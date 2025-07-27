@@ -11,6 +11,7 @@
 #include "OpacityScalingEffect.h"
 #include "RepeatEffect.h"
 #include "TimeBoxedEffect.h"
+#include "FlipEffect.h"
 
 
 // mask effects
