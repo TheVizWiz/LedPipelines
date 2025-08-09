@@ -6,15 +6,19 @@
 namespace ledpipelines {
 
 enum class LedPipelineRunningState {
-     NOT_STARTED,
-     RUNNING,
-     DONE
+    NOT_STARTED,
+    RUNNING,
+    DONE
 };
+
+namespace effects {
+class WrapperEffect;
+}
 
 class BaseLedPipelineStage {
 public:
 
-    LedPipelineRunningState state =  LedPipelineRunningState::NOT_STARTED;
+    LedPipelineRunningState state = LedPipelineRunningState::NOT_STARTED;
 
     BlendingMode blendingMode;
 
@@ -29,6 +33,12 @@ public:
     explicit BaseLedPipelineStage(BlendingMode blendingMode = BlendingMode::NORMAL);
 
     virtual ~BaseLedPipelineStage();
+
+    template<class T, typename ... Args>
+    fl::enable_if_t<std::is_base_of<effects::WrapperEffect, T>::value, T *> wrap(Args &&... args) {
+        return new T(this, std::forward<Args>(args)...);
+    }
+
 
 private:
     u_int64_t lastUpdateTimeMicros;

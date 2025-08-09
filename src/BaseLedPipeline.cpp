@@ -68,7 +68,7 @@ void ParallelLedPipeline::calculate(float startIndex, TemporaryLedData &tempData
         return;
 
     if (this->state == LedPipelineRunningState::NOT_STARTED)
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->state = LedPipelineRunningState::RUNNING;
 
     BaseLedPipelineStage *currentStage = firstStage;
 
@@ -85,7 +85,8 @@ void ParallelLedPipeline::calculate(float startIndex, TemporaryLedData &tempData
 //        currentStageData.printData();
         tempData.merge(currentStageData, currentStage->blendingMode);
 //        tempData.printData();
-        anyArePlaying = currentStage->state != LedPipelineRunningState::DONE ?  LedPipelineRunningState::RUNNING : anyArePlaying;
+        anyArePlaying =
+                currentStage->state != LedPipelineRunningState::DONE ? LedPipelineRunningState::RUNNING : anyArePlaying;
         currentStage = currentStage->nextStage;
         currentStageNumber++;
     }
@@ -103,7 +104,7 @@ void SeriesLedPipeline::calculate(float startIndex, TemporaryLedData &tempData) 
     if (this->state == LedPipelineRunningState::NOT_STARTED) {
         LPLogger::log("starting series LED pipeline.");
         currentStage = firstStage;
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->state = LedPipelineRunningState::RUNNING;
     }
 
     // there are no stages in the pipeline. return early.
