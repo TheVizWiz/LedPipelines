@@ -41,4 +41,29 @@ void setMaxRefreshRate(float refreshesPerSecond);
 String colorToHex(CRGB color, uint8_t opacity);
 
 
+template<typename T>
+struct RequiredField {
+    RequiredField(const T &value) : value(value) {}
+
+    operator T &() { return value; }
+
+    operator const T &() const { return value; }
+
+    T value;
+};
+
+template<>
+struct RequiredField<CRGB> {
+    RequiredField(const CRGB &value) : value(value) {}
+
+    RequiredField(const CRGB::HTMLColorCode value) : value(value) {}
+
+    operator CRGB &() { return value; }
+
+    operator const CRGB &() const { return value; }
+
+    CRGB value;
+};
+
+
 }

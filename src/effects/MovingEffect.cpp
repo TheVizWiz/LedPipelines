@@ -8,33 +8,40 @@ using namespace ledpipelines::effects;
 
 MovingEffect::MovingEffect(
         BaseLedPipelineStage *stage,
-        float runtimeSeconds,
+        unsigned long runtimeMs,
         float startPosition,
         float endPosition,
         SmoothingFunction smoothingFunction
-        )
+)
         : WrapperEffect(stage),
           currentPosition(0),
           startPosition(startPosition),
           endPosition(endPosition),
-          runtimeSeconds(runtimeSeconds),
+          runtimeMs(runtimeMs),
           elapsedPercentage(0),
           smoothingFunction(smoothingFunction) {}
+
+MovingEffect::MovingEffect(BaseLedPipelineStage *stage, const MovingEffect::Config &config) :
+        MovingEffect(
+                stage,
+                config.runtimeMs,
+                config.startPosition,
+                config.endPosition,
+                config.smoothingFunction
+        ) {
+}
 
 void MovingEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     if (this->state == LedPipelineRunningState::DONE) return;
 
     if (this->state == LedPipelineRunningState::NOT_STARTED) {
-        this->startTimeMillis = millis();
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->startTimeMs = millis();
+        this->state = LedPipelineRunningState::RUNNING;
     }
 
-    this->elapsedPercentage = (millis() - this->startTimeMillis) / runtimeSeconds / 1000.0f;
-
+    this->elapsedPercentage = (float) (millis() - this->startTimeMs) / (float) runtimeMs;
 
     this->currentPosition = smoothingFunction(elapsedPercentage, startPosition, endPosition);
-
-    LPLogger::log(String("elapsed percentage: ") + elapsedPercentage + " current position: " + currentPosition);
 
     this->stage->calculate(startIndex + currentPosition, tempData);
 

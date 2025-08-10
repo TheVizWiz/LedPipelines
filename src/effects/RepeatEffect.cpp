@@ -22,7 +22,7 @@ void RepeatEffect::calculate(float startIndex, TemporaryLedData &tempData) {
 //
 //    TemporaryLedData shiftedStageData = TemporaryLedData();
 //
-//    for (int i = 0; i < TemporaryLedData::size; i++) {
+//    for (int i = 0; i < TemporaryLedData::ledCount; i++) {
 //        shiftedStageData.set(i + startIndex, stageData[i], stageData.opacity[i]);
 //    }
 //
