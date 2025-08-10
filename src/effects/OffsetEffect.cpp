@@ -13,3 +13,6 @@ OffsetEffect::OffsetEffect(BaseLedPipelineStage *stage, float offset)
 void OffsetEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     this->stage->calculate(startIndex + offset, tempData);
 }
+
+OffsetEffect::OffsetEffect(BaseLedPipelineStage *stage, const OffsetEffect::Config &config)
+        : OffsetEffect(stage, config.offset) {}
