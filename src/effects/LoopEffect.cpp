@@ -8,6 +8,9 @@ LoopEffect::LoopEffect(BaseLedPipelineStage *stage, size_t numLoops) :
         numLoops(numLoops),
         currentNumLoops(0) {}
 
+LoopEffect::LoopEffect(BaseLedPipelineStage *stage, const LoopEffect::Config &config) :
+        LoopEffect(stage, config.numLoops) {}
+
 void LoopEffect::reset() {
     WrapperEffect::reset();
     currentNumLoops = 0;
@@ -19,7 +22,7 @@ void LoopEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     }
 
     if (this->state == LedPipelineRunningState::NOT_STARTED)
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->state = LedPipelineRunningState::RUNNING;
 
     // run the current stage
     stage->calculate(startIndex, tempData);
@@ -39,7 +42,7 @@ void LoopEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     } else {
         LPLogger::log(String("Current stage done, and looping again. Loops Completed: ")
                       + currentNumLoops + "/" + numLoops);
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->state = LedPipelineRunningState::RUNNING;
         this->stage->reset();
         // since the stage might not calculate anything in done, we need to redo the stage.
 //        this->stage->calculate(startIndex, tempData);
