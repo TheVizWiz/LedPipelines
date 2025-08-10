@@ -20,9 +20,9 @@ class TimedEffect {
 protected:
     unsigned long startTimeMillis;
     float elapsedPercentage;
-    float timeToRunSeconds;
+    unsigned long runtimeMs;
 
-    TimedEffect(float timeToRunSeconds);
+    TimedEffect(unsigned long runtimeMs);
 
     void reset();
 };
@@ -30,18 +30,18 @@ protected:
 
 class RandomTimedEffect : public TimedEffect {
 protected:
-    float minRuntime;
-    float maxRuntime;
+    unsigned long minRuntime;
+    unsigned long maxRuntime;
     SamplingFunction samplingFunction;
 
     RandomTimedEffect(
-            float maxRuntime,
+            unsigned long maxRuntime,
             SamplingFunction samplingFunction = SamplingFunction::UNIFORM
     );
 
     RandomTimedEffect(
-            float minRuntime,
-            float maxRuntime,
+            unsigned long minRuntime,
+            unsigned long maxRuntime,
             SamplingFunction samplingFunction = SamplingFunction::UNIFORM
     );
 

@@ -26,7 +26,7 @@ void FadeOutEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     float timeFadingSeconds = (currentTimeMillis - startTimeMillis) / 1000.0;
 
     // in this case, we have already finished fading, and can stop here.
-    if (timeFadingSeconds >= timeToRunSeconds) {
+    if (timeFadingSeconds >= runtimeMs) {
         // when it's done, we still have to set it to done for the last frame.
         // so opacity is set to 0.
         for (int i = 0; i < TemporaryLedData::size; i++) {
@@ -36,10 +36,10 @@ void FadeOutEffect::calculate(float startIndex, TemporaryLedData &tempData) {
         this->state = LedPipelineRunningState::DONE;
         return;
     }
-    elapsedPercentage = timeFadingSeconds / timeToRunSeconds;
+    elapsedPercentage = timeFadingSeconds / runtimeMs;
 
     float opacityMultiplier = smoothingFunction(
-            timeToRunSeconds,
+            runtimeMs,
             0,
             timeFadingSeconds,
             UINT8_MAX,
@@ -70,7 +70,7 @@ void RandomFadeOutEffect::calculate(float startIndex, TemporaryLedData &tempData
     if (this->state == LedPipelineRunningState::NOT_STARTED) {
         this->startTimeMillis = millis();
         this->sampleRuntime();
-        LPLogger::log(String("running random fade out effect for ") + this->timeToRunSeconds + " seconds");
+        LPLogger::log(String("running random fade out effect for ") + this->runtimeMs + " seconds");
         this->state =  LedPipelineRunningState::RUNNING;
     }
 
@@ -79,7 +79,7 @@ void RandomFadeOutEffect::calculate(float startIndex, TemporaryLedData &tempData
     float timeFadingSeconds = (currentTimeMillis - startTimeMillis) / 1000.0;
 
     // in this case, we have already finished fading, and can stop here.
-    if (timeFadingSeconds >= timeToRunSeconds) {
+    if (timeFadingSeconds >= runtimeMs) {
         LPLogger::log("done running random time boxed effect.");
 
         // when it's done, we still have to set it to done for the last frame.
@@ -92,12 +92,12 @@ void RandomFadeOutEffect::calculate(float startIndex, TemporaryLedData &tempData
         return;
     }
 
-    elapsedPercentage = timeFadingSeconds / timeToRunSeconds;
+    elapsedPercentage = timeFadingSeconds / runtimeMs;
 
     float currentOpacity = smoothingFunction(
             timeFadingSeconds,
             0,
-            timeToRunSeconds,
+            runtimeMs,
             UINT8_MAX,
             0
     );

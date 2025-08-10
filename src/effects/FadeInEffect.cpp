@@ -3,28 +3,24 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-FadeInEffect::FadeInEffect(
-        float fadeTime,
-        SmoothingFunction smoothingFunction
-) :
-        TimedEffect(fadeTime),
-        smoothingFunction(smoothingFunction) {}
-
+FadeInEffect::FadeInEffect(const FadeInEffect::Config &config)
+        : TimedEffect(config.fadeInTimeMs),
+          smoothingFunction(config.smoothingFunction) {}
 
 void FadeInEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     if (this->state == LedPipelineRunningState::DONE) return;
 
     if (this->state == LedPipelineRunningState::NOT_STARTED) {
         this->startTimeMillis = millis();
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->state = LedPipelineRunningState::RUNNING;
     }
 
     unsigned long currentTimeMillis = millis();
 
-    float timeFadingSeconds = (currentTimeMillis - startTimeMillis) / 1000.0;
+    unsigned long timeFadingMs = (currentTimeMillis - startTimeMillis);
 
     // in this case, we have already finished fading, and can stop here.
-    if (timeFadingSeconds >= timeToRunSeconds) {
+    if (timeFadingMs >= runtimeMs) {
         elapsedPercentage = 1;
         // when it's done, we still have to set it to done for the last frame.
         // so opacity is set to 255.
@@ -34,14 +30,14 @@ void FadeInEffect::calculate(float startIndex, TemporaryLedData &tempData) {
         this->state = LedPipelineRunningState::DONE;
         return;
     } else {
-        this->state =  LedPipelineRunningState::RUNNING;
-        elapsedPercentage = timeFadingSeconds / timeToRunSeconds;
+        this->state = LedPipelineRunningState::RUNNING;
+        elapsedPercentage = (float) timeFadingMs / (float) runtimeMs;
     }
 
     float opacityMultiplier = smoothingFunction(
-            timeFadingSeconds,
+            timeFadingMs,
             0,
-            timeToRunSeconds,
+            runtimeMs,
             0,
             UINT8_MAX
     );
@@ -56,14 +52,14 @@ void FadeInEffect::reset() {
     TimedEffect::reset();
 }
 
-RandomFadeInEffect::RandomFadeInEffect(
-        float minFadeTime,
-        float maxFadeTime,
-        SmoothingFunction smoothingFunction,
-        SamplingFunction samplingFunction
-) : RandomTimedEffect(minFadeTime, maxFadeTime, samplingFunction),
-    smoothingFunction(smoothingFunction) {}
 
+RandomFadeInEffect::RandomFadeInEffect(const RandomFadeInEffect::Config &config)
+        : RandomTimedEffect(
+        config.minFadeTimeMs,
+        config.maxFadeTimeMs,
+        config.samplingFunction
+),
+          smoothingFunction(config.smoothingFunction) {}
 
 void RandomFadeInEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     if (this->state == LedPipelineRunningState::DONE) return;
@@ -71,16 +67,16 @@ void RandomFadeInEffect::calculate(float startIndex, TemporaryLedData &tempData)
     if (this->state == LedPipelineRunningState::NOT_STARTED) {
         this->startTimeMillis = millis();
         this->sampleRuntime();
-        LPLogger::log(String("running random fade in effect for ") + this->timeToRunSeconds + " seconds");
-        this->state =  LedPipelineRunningState::RUNNING;
+        LPLogger::log(String("running random fade in effect for ") + this->runtimeMs + " seconds");
+        this->state = LedPipelineRunningState::RUNNING;
     }
 
     unsigned long currentTimeMillis = millis();
 
-    float timeFadingSeconds = (currentTimeMillis - startTimeMillis) / 1000.0;
+    unsigned long timeFadingMs = (currentTimeMillis - startTimeMillis);
 
     // in this case, we have already finished fading, and can stop here.
-    if (timeFadingSeconds >= timeToRunSeconds) {
+    if (timeFadingMs >= runtimeMs) {
         LPLogger::log("done running random fade in effect.");
         elapsedPercentage = 1;
         // when it's done, we still have to set it to done for the last frame.
@@ -91,14 +87,14 @@ void RandomFadeInEffect::calculate(float startIndex, TemporaryLedData &tempData)
         this->state = LedPipelineRunningState::DONE;
         return;
     } else {
-        this->state =  LedPipelineRunningState::RUNNING;
-        elapsedPercentage = timeFadingSeconds / timeToRunSeconds;
+        this->state = LedPipelineRunningState::RUNNING;
+        elapsedPercentage = (float) timeFadingMs / (float) runtimeMs;
     }
 
     float currentOpacity = smoothingFunction(
-            timeFadingSeconds,
+            timeFadingMs,
             0,
-            timeToRunSeconds,
+            runtimeMs,
             0,
             UINT8_MAX
     );

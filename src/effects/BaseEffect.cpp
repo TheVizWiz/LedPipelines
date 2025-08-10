@@ -17,13 +17,13 @@ void WrapperEffect::reset() {
 }
 
 
-TimedEffect::TimedEffect(float timeToRunSeconds) : timeToRunSeconds(timeToRunSeconds) {}
+TimedEffect::TimedEffect(unsigned long runtimeMs) : runtimeMs(runtimeMs) {}
 
 void TimedEffect::reset() {
     this->elapsedPercentage = 0;
 }
 
-RandomTimedEffect::RandomTimedEffect(float maxRuntime, SamplingFunction samplingFunction) :
+RandomTimedEffect::RandomTimedEffect(unsigned long maxRuntime, SamplingFunction samplingFunction) :
         RandomTimedEffect(0, maxRuntime, samplingFunction) {}
 
 
@@ -32,10 +32,10 @@ void RandomTimedEffect::reset() {
 }
 
 void RandomTimedEffect::sampleRuntime() {
-    this->timeToRunSeconds = samplingFunction(minRuntime, maxRuntime);
+    this->runtimeMs = samplingFunction(minRuntime, maxRuntime);
 }
 
-RandomTimedEffect::RandomTimedEffect(float minRuntime, float maxRuntime, SamplingFunction samplingFunction)
+RandomTimedEffect::RandomTimedEffect(unsigned long minRuntime, unsigned long maxRuntime, SamplingFunction samplingFunction)
         : TimedEffect(0),
           minRuntime(minRuntime),
           maxRuntime(maxRuntime),

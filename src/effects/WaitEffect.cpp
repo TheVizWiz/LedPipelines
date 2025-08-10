@@ -18,13 +18,13 @@ void WaitEffect::calculate(float startIndex, TemporaryLedData &tempData) {
 
     unsigned long totalTimeWaited = millis() - this->startTimeMillis;
 
-    if (totalTimeWaited / 1000.0 >= this->timeToRunSeconds) {
+    if (totalTimeWaited / 1000.0 >= this->runtimeMs) {
         this->elapsedPercentage = 1;
         this->state = LedPipelineRunningState::DONE;
         return;
     }
 
-    this->elapsedPercentage = ((float) totalTimeWaited / 1000.0f) / this->timeToRunSeconds; // convert ms to seconds
+    this->elapsedPercentage = ((float) totalTimeWaited / 1000.0f) / this->runtimeMs; // convert ms to seconds
     this->state =  LedPipelineRunningState::RUNNING;
 }
 
@@ -54,19 +54,19 @@ void RandomWaitEffect::calculate(float startIndex, TemporaryLedData &tempData) {
         this->state =  LedPipelineRunningState::RUNNING;
         this->startTimeMillis = millis();
         this->sampleRuntime();
-        LPLogger::log(String("running random wait effect for ") + this->timeToRunSeconds + " seconds");
+        LPLogger::log(String("running random wait effect for ") + this->runtimeMs + " seconds");
     }
 
     unsigned long totalTimeWaited = millis() - this->startTimeMillis;
 
-    if (totalTimeWaited / 1000.0 >= this->timeToRunSeconds) {
+    if (totalTimeWaited / 1000.0 >= this->runtimeMs) {
         LPLogger::log("done running random wait effect.");
         this->elapsedPercentage = 1;
         this->state = LedPipelineRunningState::DONE;
         return;
     }
 
-    this->elapsedPercentage = ((float) totalTimeWaited / 1000.0f) / this->timeToRunSeconds; // convert ms to seconds
+    this->elapsedPercentage = ((float) totalTimeWaited / 1000.0f) / this->runtimeMs; // convert ms to seconds
     this->state =  LedPipelineRunningState::RUNNING;
 }
 
