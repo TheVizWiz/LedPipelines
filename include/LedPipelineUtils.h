@@ -56,6 +56,8 @@ template<>
 struct RequiredField<CRGB> {
     RequiredField(const CRGB &value) : value(value) {}
 
+    RequiredField(const uint32_t &value) : value(value) {}
+
     RequiredField(const CRGB::HTMLColorCode value) : value(value) {}
 
     operator CRGB &() { return value; }

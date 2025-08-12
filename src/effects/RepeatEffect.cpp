@@ -3,18 +3,17 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-RepeatEffect::RepeatEffect(BaseLedPipelineStage *stage, float repeatDistance, int numRepeats)
-        : WrapperEffect(stage),
-          numRepeats(numRepeats),
-          repeatDistance(repeatDistance) {}
-
+RepeatEffect::RepeatEffect(BaseLedPipelineStage *stage, const RepeatEffect::Config &config) :
+        WrapperEffect(stage),
+        numRepeats(config.numRepeats),
+        repeatDistance(config.repeatDistance) {}
 
 void RepeatEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     if (this->state == LedPipelineRunningState::DONE)
         return;
 
     if (this->state == LedPipelineRunningState::NOT_STARTED)
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->state = LedPipelineRunningState::RUNNING;
 
 //    // only calculate the data once. We first calculate it at 0, and then shift it by how much
 //    TemporaryLedData stageData = TemporaryLedData();

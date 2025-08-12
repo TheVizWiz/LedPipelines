@@ -9,7 +9,7 @@ class FadeInEffect : public BaseLedPipelineStage, TimedEffect {
 public:
 
     struct Config {
-        RequiredField<unsigned long> fadeInTimeMs;
+        RequiredField<unsigned long> runtimeMs;
         SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
     };
 
@@ -26,10 +26,10 @@ class RandomFadeInEffect : public BaseLedPipelineStage, RandomTimedEffect {
 public:
 
     struct Config {
-        unsigned long minFadeTimeMs = 0;
-        RequiredField<unsigned long> maxFadeTimeMs;
-        SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
+        unsigned long minRuntimeMs = 0;
+        RequiredField<unsigned long> maxRuntimeMs;
         SamplingFunction samplingFunction = SamplingFunction::UNIFORM;
+        SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
     };
 
     SmoothingFunction smoothingFunction;

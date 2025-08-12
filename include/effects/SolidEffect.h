@@ -4,12 +4,20 @@
 
 namespace ledpipelines::effects {
 class SolidEffect : public BaseLedPipelineStage {
-protected:
+public:
+
+    struct Config {
+        RequiredField<CRGB> color;
+        uint8_t opacity = 0xFF;
+    };
+
+
+
     CRGB color;
     uint8_t opacity;
 
-public:
-    explicit SolidEffect(CRGB color, uint8_t opacity = 255);
+    SolidEffect(const Config &config);
+
 
     void calculate(float startIndex, TemporaryLedData &tempData) override;
 };
@@ -17,11 +25,16 @@ public:
 
 class SolidSegmentEffect : public SolidEffect {
 
-protected:
-    float segmentLength = 0;
-
 public:
-    explicit SolidSegmentEffect(CRGB color, float segmentLength, uint8_t opacity = 255);
+    struct Config {
+        RequiredField<float> length;
+        RequiredField<CRGB> color;
+        uint8_t opacity = 0xFF;
+    };
+
+    float length;
+
+    SolidSegmentEffect(const Config &config);
 
     void calculate(float startIndex, TemporaryLedData &tempData) override;
 };

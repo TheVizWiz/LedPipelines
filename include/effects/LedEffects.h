@@ -17,7 +17,6 @@
 // mask effects
 #include "MaskEffect.h"
 #include "FadeInEffect.h"
-#include "FadeOutEffect.h"
 
 
 

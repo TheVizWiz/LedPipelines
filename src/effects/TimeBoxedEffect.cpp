@@ -4,8 +4,8 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-TimeBoxedEffect::TimeBoxedEffect(BaseLedPipelineStage *stage, float timeToRunSeconds)
-        : WrapperEffect(stage), TimedEffect(timeToRunSeconds) {}
+TimeBoxedEffect::TimeBoxedEffect(BaseLedPipelineStage *stage, const Config &config)
+        : WrapperEffect(stage), TimedEffect(config) {}
 
 
 void TimeBoxedEffect::calculate(float startIndex, TemporaryLedData &tempData) {
@@ -13,7 +13,7 @@ void TimeBoxedEffect::calculate(float startIndex, TemporaryLedData &tempData) {
 
     if (this->state == LedPipelineRunningState::NOT_STARTED) {
         LPLogger::log(String("starting time boxed effect. Running for ") + runtimeMs + " seconds");
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->state = LedPipelineRunningState::RUNNING;
         startTimeMillis = millis();
     }
 
@@ -41,25 +41,17 @@ void TimeBoxedEffect::reset() {
     TimedEffect::reset();
 }
 
-
 RandomTimeBoxedEffect::RandomTimeBoxedEffect(
-        ledpipelines::BaseLedPipelineStage *stage,
-        float maxRuntime,
-        ledpipelines::SamplingFunction samplingFunction
-) : RandomTimeBoxedEffect(stage, 0, maxRuntime, samplingFunction) {}
+        BaseLedPipelineStage *stage,
+        const Config &config)
+        : WrapperEffect(stage), RandomTimedEffect(config) {}
 
-RandomTimeBoxedEffect::RandomTimeBoxedEffect(
-        ledpipelines::BaseLedPipelineStage *stage,
-        float minRuntime,
-        float maxRuntime,
-        ledpipelines::SamplingFunction samplingFunction
-) : WrapperEffect(stage), RandomTimedEffect(minRuntime, maxRuntime, samplingFunction) {}
 
 void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     if (this->state == LedPipelineRunningState::DONE) return;
 
     if (this->state == LedPipelineRunningState::NOT_STARTED) {
-        this->state =  LedPipelineRunningState::RUNNING;
+        this->state = LedPipelineRunningState::RUNNING;
         this->sampleRuntime();
         LPLogger::log(String("running random time boxed effect for ") + this->runtimeMs + " seconds");
         startTimeMillis = millis();

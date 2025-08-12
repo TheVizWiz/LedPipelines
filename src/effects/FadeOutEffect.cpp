@@ -5,8 +5,9 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-FadeOutEffect::FadeOutEffect(const Config &config)
-        : TimedEffect(config.fadeInTimeMs),
+FadeOutEffect::FadeOutEffect(const FadeOutEffect::Config &config)
+        : BaseLedPipelineStage(),
+          TimedEffect({.runtimeMs = config.runtimeMs}),
           smoothingFunction(config.smoothingFunction) {}
 
 void FadeOutEffect::calculate(float startIndex, TemporaryLedData &tempData) {
@@ -52,13 +53,15 @@ void FadeOutEffect::reset() {
     TimedEffect::reset();
 }
 
-RandomFadeOutEffect::RandomFadeOutEffect(const RandomFadeOutEffect::Config &config)
-        : RandomTimedEffect(
-        config.minFadeTimeMs,
-        config.maxFadeTimeMs,
-        config.samplingFunction
-), smoothingFunction(config.smoothingFunction) {}
 
+RandomFadeOutEffect::RandomFadeOutEffect(const RandomFadeOutEffect::Config &config)
+        : BaseLedPipelineStage(),
+          RandomTimedEffect({
+                                    .minRuntimeMs = config.minRuntimeMs,
+                                    .maxRuntimeMs = config.maxRuntimeMs,
+                                    .samplingFunction = config.samplingFunction
+                            }),
+          smoothingFunction(config.smoothingFunction) {}
 
 void RandomFadeOutEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     if (this->state == LedPipelineRunningState::DONE) return;

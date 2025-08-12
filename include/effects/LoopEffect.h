@@ -16,7 +16,6 @@ private:
     size_t currentNumLoops = 0;
 
 public:
-    explicit LoopEffect(BaseLedPipelineStage *stage, size_t numLoops);
 
     explicit LoopEffect(BaseLedPipelineStage *stage, const Config &config = {.numLoops = 0});
 

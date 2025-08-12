@@ -6,30 +6,14 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-MovingEffect::MovingEffect(
-        BaseLedPipelineStage *stage,
-        unsigned long runtimeMs,
-        float startPosition,
-        float endPosition,
-        SmoothingFunction smoothingFunction
-)
-        : WrapperEffect(stage),
-          currentPosition(0),
-          startPosition(startPosition),
-          endPosition(endPosition),
-          runtimeMs(runtimeMs),
-          elapsedPercentage(0),
-          smoothingFunction(smoothingFunction) {}
-
 MovingEffect::MovingEffect(BaseLedPipelineStage *stage, const MovingEffect::Config &config) :
-        MovingEffect(
-                stage,
-                config.runtimeMs,
-                config.startPosition,
-                config.endPosition,
-                config.smoothingFunction
-        ) {
-}
+        WrapperEffect(stage),
+        currentPosition(0),
+        startPosition(config.startPosition),
+        endPosition(config.endPosition),
+        runtimeMs(config.runtimeMs),
+        elapsedPercentage(0),
+        smoothingFunction(config.smoothingFunction) {}
 
 void MovingEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     if (this->state == LedPipelineRunningState::DONE) return;

@@ -6,7 +6,10 @@ namespace ledpipelines::effects {
 class TimeBoxedEffect : public WrapperEffect, public TimedEffect {
 
 public:
-    TimeBoxedEffect(BaseLedPipelineStage *stage, float timeToRunSeconds);
+
+    using Config = TimedEffect::Config;
+
+    TimeBoxedEffect(BaseLedPipelineStage *stage, const Config &config);
 
     void reset() override;
 
@@ -16,18 +19,11 @@ public:
 class RandomTimeBoxedEffect : public WrapperEffect, public RandomTimedEffect {
 
 public:
+    using Config = RandomTimedEffect::Config;
 
     RandomTimeBoxedEffect(
             BaseLedPipelineStage *stage,
-            float maxRuntime,
-            SamplingFunction samplingFunction
-    );
-
-    RandomTimeBoxedEffect(
-            BaseLedPipelineStage *stage,
-            float minRuntime,
-            float maxRuntime,
-            SamplingFunction samplingFunction
+            const Config &config
     );
 
     void reset() override;

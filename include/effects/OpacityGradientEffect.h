@@ -6,12 +6,18 @@
 namespace ledpipelines::effects {
 class OpacityGradientEffect : public WrapperEffect {
 public:
-    float fadeLength;
+
+    struct Config {
+        float startIndex = 0;
+        RequiredField<float> endIndex;
+        SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
+    };
+
     float startIndex;
+    float endIndex;
     SmoothingFunction smoothingFunction;
 
-    OpacityGradientEffect(BaseLedPipelineStage *stage, float fadeLength, float startIndex = 0,
-                          SmoothingFunction smoothingType = SmoothingFunction::SMOOTH_LINEAR);
+    OpacityGradientEffect(BaseLedPipelineStage *stage, const Config &config);
 
     void calculate(float startIndex, TemporaryLedData &tempData) override;
 

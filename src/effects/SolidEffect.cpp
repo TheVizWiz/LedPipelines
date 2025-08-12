@@ -3,10 +3,10 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-SolidEffect::SolidEffect(CRGB color, uint8_t opacity) :
-        BaseLedPipelineStage(BlendingMode::NORMAL),
-        color(color),
-        opacity(opacity) {
+SolidEffect::SolidEffect(const SolidEffect::Config &config)
+        : BaseLedPipelineStage(BlendingMode::NORMAL),
+          color(config.color),
+          opacity(config.opacity) {
     this->state = LedPipelineRunningState::RUNNING;
 }
 
@@ -16,15 +16,14 @@ void SolidEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     }
 }
 
-
-SolidSegmentEffect::SolidSegmentEffect(CRGB color, float segmentLength, uint8_t opacity)
-        : SolidEffect(color, opacity),
-          segmentLength(segmentLength) {}
+SolidSegmentEffect::SolidSegmentEffect(const SolidSegmentEffect::Config &config)
+        : SolidEffect({.color = config.color, .opacity = config.opacity}),
+          length(config.length) {}
 
 void SolidSegmentEffect::calculate(float startIndex, TemporaryLedData &tempData) {
 
 
-    float endIndex = startIndex + segmentLength;
+    float endIndex = startIndex + length;
 
     int startIndexFloor = (int) startIndex;
     int endIndexFloor = (int) endIndex;
@@ -40,7 +39,7 @@ void SolidSegmentEffect::calculate(float startIndex, TemporaryLedData &tempData)
      */
     if (startIndexFloor == endIndexFloor) {
         // both are on the same pixel, we can light it up partially.
-        float amountToLightUp = segmentLength;
+        float amountToLightUp = length;
         tempData.set(startIndexFloor, color * amountToLightUp, opacity);
 
     } else {

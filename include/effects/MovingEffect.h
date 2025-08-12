@@ -25,10 +25,6 @@ private:
     SmoothingFunction smoothingFunction;
 
 public:
-    MovingEffect(BaseLedPipelineStage *stage, unsigned long runtimeMs, float startPosition = 0,
-                 float endPosition = TemporaryLedData::size,
-                 SmoothingFunction smoothingFunction = SmoothingFunction::LINEAR);
-
     MovingEffect(BaseLedPipelineStage *stage, const MovingEffect::Config &config);
 
     void calculate(float startIndex, TemporaryLedData &tempData) override;

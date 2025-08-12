@@ -4,7 +4,7 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 FadeInEffect::FadeInEffect(const FadeInEffect::Config &config)
-        : TimedEffect(config.fadeInTimeMs),
+        : TimedEffect({.runtimeMs = config.runtimeMs}),
           smoothingFunction(config.smoothingFunction) {}
 
 void FadeInEffect::calculate(float startIndex, TemporaryLedData &tempData) {
@@ -55,10 +55,11 @@ void FadeInEffect::reset() {
 
 RandomFadeInEffect::RandomFadeInEffect(const RandomFadeInEffect::Config &config)
         : RandomTimedEffect(
-        config.minFadeTimeMs,
-        config.maxFadeTimeMs,
-        config.samplingFunction
-),
+        {
+                .minRuntimeMs = config.minRuntimeMs,
+                .maxRuntimeMs =  config.maxRuntimeMs,
+                .samplingFunction =  config.samplingFunction
+        }),
           smoothingFunction(config.smoothingFunction) {}
 
 void RandomFadeInEffect::calculate(float startIndex, TemporaryLedData &tempData) {

@@ -3,13 +3,10 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-LoopEffect::LoopEffect(BaseLedPipelineStage *stage, size_t numLoops) :
-        WrapperEffect(stage),
-        numLoops(numLoops),
-        currentNumLoops(0) {}
-
 LoopEffect::LoopEffect(BaseLedPipelineStage *stage, const LoopEffect::Config &config) :
-        LoopEffect(stage, config.numLoops) {}
+        WrapperEffect(stage),
+        numLoops(config.numLoops),
+        currentNumLoops(0) {}
 
 void LoopEffect::reset() {
     WrapperEffect::reset();

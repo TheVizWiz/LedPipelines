@@ -8,7 +8,9 @@ namespace ledpipelines::effects {
 class WaitEffect : public BaseLedPipelineStage, TimedEffect {
 public:
 
-    WaitEffect(float waitTimeSeconds);
+    using Config = TimedEffect::Config;
+
+    WaitEffect(const Config &config);
 
     void calculate(float startIndex, TemporaryLedData &tempData) override;
 
@@ -19,16 +21,10 @@ public:
 
 class RandomWaitEffect : public BaseLedPipelineStage, RandomTimedEffect {
 public:
-    RandomWaitEffect(
-            float minWaitTime,
-            float maxWaitTime,
-            const SamplingFunction& function = SamplingFunction::UNIFORM
-    );
 
-    RandomWaitEffect(
-            float maxWaitTime,
-            const SamplingFunction& function = SamplingFunction::UNIFORM
-    );
+    using Config = RandomTimedEffect::Config;
+
+    RandomWaitEffect(const Config &config);
 
     void calculate(float startIndex, TemporaryLedData &tempData) override;
 

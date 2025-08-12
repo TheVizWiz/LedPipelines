@@ -17,33 +17,36 @@ public:
 
 
 class TimedEffect {
-protected:
+public:
+    struct Config {
+        RequiredField<unsigned long> runtimeMs;
+    };
+
     unsigned long startTimeMillis;
     float elapsedPercentage;
     unsigned long runtimeMs;
 
-    TimedEffect(unsigned long runtimeMs);
+    TimedEffect(const Config &config);
 
     void reset();
 };
 
 
 class RandomTimedEffect : public TimedEffect {
-protected:
+public:
+
+    struct Config {
+        unsigned long minRuntimeMs;
+        RequiredField<unsigned long> maxRuntimeMs;
+        SamplingFunction samplingFunction = SamplingFunction::UNIFORM;
+    };
+
     unsigned long minRuntime;
     unsigned long maxRuntime;
     SamplingFunction samplingFunction;
 
-    RandomTimedEffect(
-            unsigned long maxRuntime,
-            SamplingFunction samplingFunction = SamplingFunction::UNIFORM
-    );
+    RandomTimedEffect(const Config &config);
 
-    RandomTimedEffect(
-            unsigned long minRuntime,
-            unsigned long maxRuntime,
-            SamplingFunction samplingFunction = SamplingFunction::UNIFORM
-    );
 
     void sampleRuntime();
 

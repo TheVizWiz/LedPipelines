@@ -3,17 +3,16 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-OpacityGradientEffect::OpacityGradientEffect(BaseLedPipelineStage *stage, float fadeLength, float startIndex,
-                                             SmoothingFunction smoothingType)
-        : WrapperEffect(stage), fadeLength(fadeLength), smoothingFunction(smoothingType), startIndex(startIndex) {
 
+OpacityGradientEffect::OpacityGradientEffect(BaseLedPipelineStage *stage, const Config &config)
+        : WrapperEffect(stage),
+          startIndex(config.startIndex),
+          endIndex(config.endIndex),
+          smoothingFunction(config.smoothingFunction) {
 }
 
 
 void OpacityGradientEffect::calculateForwardGradient(float startIndex, TemporaryLedData &tempData) {
-
-    float endIndex = startIndex + fadeLength;
-
     int startIndexFloor = (int) startIndex;
     int endIndexFloor = (int) endIndex;
 
@@ -51,7 +50,7 @@ void OpacityGradientEffect::calculateForwardGradient(float startIndex, Temporary
         float firstPixelRightBound = smoothingFunction(
                 floor(startIndex + 1),
                 startIndex,
-                startIndex + fadeLength,
+                endIndex,
                 0,
                 1
         );
@@ -59,9 +58,9 @@ void OpacityGradientEffect::calculateForwardGradient(float startIndex, Temporary
 
         // last pixel calculations
         float lastPixelLeftBound = smoothingFunction(
-                floor(startIndex + fadeLength),
+                floor(endIndex),
                 startIndex,
-                startIndex + fadeLength,
+                endIndex,
                 0,
                 1
         );
@@ -86,7 +85,7 @@ void OpacityGradientEffect::calculateForwardGradient(float startIndex, Temporary
             float pixelAverageFadeAmount = smoothingFunction(
                     i + 0.5,
                     startIndex,
-                    startIndex + fadeLength,
+                    endIndex,
                     0,
                     1
             );
@@ -115,11 +114,6 @@ void OpacityGradientEffect::calculateBackwardGradient(float startIndex, Temporar
 
     // if the gradient is backwards, the left value is 1 and the right value is 0.
     // instead of doing complex math, we just flip how we are calculating start and end indices.
-
-
-    float endIndex = startIndex;
-    startIndex = endIndex + fadeLength;
-
     int startIndexFloor = (int) startIndex;
     int endIndexFloor = (int) endIndex;
 
@@ -156,8 +150,8 @@ void OpacityGradientEffect::calculateBackwardGradient(float startIndex, Temporar
         float firstPixelLeftBound = 1;
         float firstPixelRightBound = smoothingFunction(
                 floor(startIndex + 1),
+                endIndex,
                 startIndex,
-                startIndex + abs(fadeLength),
                 1,
                 0
         );
@@ -165,10 +159,9 @@ void OpacityGradientEffect::calculateBackwardGradient(float startIndex, Temporar
 
         // last pixel calculations
         float lastPixelLeftBound = smoothingFunction(
-                floor(startIndex + abs(fadeLength)
-                ),
+                floor(endIndex),
+                endIndex,
                 startIndex,
-                startIndex + abs(fadeLength),
                 1,
                 0
         );
@@ -189,8 +182,8 @@ void OpacityGradientEffect::calculateBackwardGradient(float startIndex, Temporar
         for (int i = startIndexFloor + 1; i < endIndexFloor; i++) {
             float pixelAverageFadeAmount = smoothingFunction(
                     i + 0.5,
+                    endIndex,
                     startIndex,
-                    startIndex + abs(fadeLength),
                     1,
                     0
             );
@@ -212,7 +205,6 @@ void OpacityGradientEffect::calculateBackwardGradient(float startIndex, Temporar
     }
 }
 
-
 void OpacityGradientEffect::calculate(float startIndex, TemporaryLedData &tempData) {
     if (this->state == LedPipelineRunningState::DONE)
         return;
@@ -223,7 +215,7 @@ void OpacityGradientEffect::calculate(float startIndex, TemporaryLedData &tempDa
 
     this->stage->calculate(startIndex, tempData);
 
-    if (this->fadeLength < 0) calculateBackwardGradient(startIndex + this->startIndex, tempData);
+    if (this->startIndex > this->endIndex) calculateBackwardGradient(startIndex + this->startIndex, tempData);
     else calculateForwardGradient(startIndex + this->startIndex, tempData);
 
     this->state = this->stage->state;

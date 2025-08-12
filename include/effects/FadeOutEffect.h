@@ -2,16 +2,16 @@
 
 
 #include "BaseEffect.h"
+#include "FadeInEffect.h"
 
 
 namespace ledpipelines::effects {
 class FadeOutEffect : public BaseLedPipelineStage, TimedEffect {
 
 public:
-    struct Config {
-        RequiredField<unsigned long> fadeInTimeMs;
-        SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
-    };
+
+    using Config = FadeInEffect::Config;
+
     SmoothingFunction smoothingFunction;
 
     FadeOutEffect(const Config &config);
@@ -24,12 +24,8 @@ public:
 class RandomFadeOutEffect : public BaseLedPipelineStage, RandomTimedEffect {
 
 public:
-    struct Config {
-        unsigned long minFadeTimeMs = 0;
-        RequiredField<unsigned long> maxFadeTimeMs;
-        SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
-        SamplingFunction samplingFunction = SamplingFunction::UNIFORM;
-    };
+
+    using Config = RandomFadeInEffect::Config;
 
     SmoothingFunction smoothingFunction;
 

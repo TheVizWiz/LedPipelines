@@ -44,6 +44,16 @@ void setup() {
     Serial.print("There are this many leds: ");
     Serial.println(TemporaryLedData::size);
 
+    /**
+    offPipeline = (new ParallelLedPipeline())
+            ->addStage(new SolidEffect({.color = CRGB::Black}))
+            ->addStage(
+                    new LoopEffect(
+                            (new SeriesLedPipeline())
+                                    ->addStage(new TimeBoxedEffect(new SolidSegmentEffect({CRGB::Blue, 1}), {1}))
+                                    ->addStage(new TimeBoxedEffect(new SolidSegmentEffect({CRGB::Green, 1}), {1}))
+                    )
+            );
     onPipeline = (new ParallelLedPipeline())
             ->addStage(new SolidEffect(CRGB::White, 200))
             ->addStage(
@@ -59,29 +69,31 @@ void setup() {
                                     )
                     )
             )
-            ->addStage((new SolidSegmentEffect(CRGB::White, 5))
-                               ->wrap<OpacityGradientEffect>(2, 0)
-                               ->wrap<OpacityGradientEffect>(-2, 5)
+            ->addStage((new SolidSegmentEffect({
+                                                       .length = 10,
+                                                       .color = CRGB::White,
+                                                       .opacity = 0xFF
+                                               }))
+                               ->wrap<OpacityGradientEffect>(OpacityGradientEffect::Config{
+                                       .endIndex = 1
+                               })
+                               ->wrap<OpacityGradientEffect>(OpacityGradientEffect::Config{
+                                       .endIndex = 1
+                               })
                                ->wrap<MovingEffect>(MovingEffect::Config{
                                        .runtimeMs           = 10000,
                                        .startPosition       = 0,
                                        .endPosition         = 10,
                                        .smoothingFunction   = SmoothingFunction::LINEAR,
                                })
-                               ->wrap<MovingEffect>(10, -10, LED_COUNT + 10)
+                               ->wrap<MovingEffect>(MovingEffect::Config{
+                                       .runtimeMs = 10,
+                                       .startPosition = -10,
+                                       .endPosition = LED_COUNT + 10
+                               })
                                ->wrap<LoopEffect>()
             );
-
-    offPipeline = (new ParallelLedPipeline())
-            ->addStage(new SolidEffect(CRGB::Black))
-            ->addStage(
-                    new LoopEffect(
-                            (new SeriesLedPipeline())
-                                    ->addStage(new TimeBoxedEffect(new SolidSegmentEffect(CRGB::Blue, 1), 1))
-                                    ->addStage(new TimeBoxedEffect(new SolidSegmentEffect(CRGB::Green, 1), 1))
-                    )
-            );
-
+    */
 
     Serial.println("done initializing onPipeline and offPipeline");
     onPipeline->reset();

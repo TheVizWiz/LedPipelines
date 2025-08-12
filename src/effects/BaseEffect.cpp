@@ -16,30 +16,25 @@ void WrapperEffect::reset() {
     stage->reset();
 }
 
-
-TimedEffect::TimedEffect(unsigned long runtimeMs) : runtimeMs(runtimeMs) {}
+TimedEffect::TimedEffect(const TimedEffect::Config &config) :
+        runtimeMs(config.runtimeMs) {}
 
 void TimedEffect::reset() {
     this->elapsedPercentage = 0;
 }
 
-RandomTimedEffect::RandomTimedEffect(unsigned long maxRuntime, SamplingFunction samplingFunction) :
-        RandomTimedEffect(0, maxRuntime, samplingFunction) {}
-
+RandomTimedEffect::RandomTimedEffect(const RandomTimedEffect::Config &config)
+        : TimedEffect({.runtimeMs = 0}),
+          minRuntime(config.minRuntimeMs),
+          maxRuntime(config.maxRuntimeMs),
+          samplingFunction(config.samplingFunction) {}
 
 void RandomTimedEffect::reset() {
     TimedEffect::reset();
 }
 
+
 void RandomTimedEffect::sampleRuntime() {
     this->runtimeMs = samplingFunction(minRuntime, maxRuntime);
-}
-
-RandomTimedEffect::RandomTimedEffect(unsigned long minRuntime, unsigned long maxRuntime, SamplingFunction samplingFunction)
-        : TimedEffect(0),
-          minRuntime(minRuntime),
-          maxRuntime(maxRuntime),
-          samplingFunction(samplingFunction) {
-
 }
 
