@@ -71,8 +71,8 @@ void setup() {
      * the TimeBoxedEffect, which sets the max duration of the internal effect to be a certain number of seconds.
      */
 
-    auto redEffect = new SolidEffect(CRGB::Red);
-    auto redEffectLimited = new TimeBoxedEffect(redEffect, 2);
+    auto redEffect = new SolidEffect({CRGB::Red});
+    auto redEffectLimited = new TimeBoxedEffect(redEffect, {2});
 
 
     /**
@@ -82,8 +82,8 @@ void setup() {
      *
      * Let's set up the blue and green effects. I'll do these on one line, just to show what that looks like.
      */
-    auto greenEffectLimited = new TimeBoxedEffect(new SolidEffect(CRGB::Green), 2);
-    auto blueEffectLimited = new TimeBoxedEffect(new SolidEffect(CRGB::Blue), 2);
+    auto greenEffectLimited = new TimeBoxedEffect(new SolidEffect({CRGB::Green}), {2});
+    auto blueEffectLimited = new TimeBoxedEffect(new SolidEffect({CRGB::Blue}), {2});
 
 
     /**

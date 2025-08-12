@@ -12,6 +12,7 @@
 #include "RepeatEffect.h"
 #include "TimeBoxedEffect.h"
 #include "FlipEffect.h"
+#include "PathEffect.h"
 
 
 // mask effects

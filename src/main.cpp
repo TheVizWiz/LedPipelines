@@ -44,7 +44,6 @@ void setup() {
     Serial.print("There are this many leds: ");
     Serial.println(TemporaryLedData::size);
 
-    /**
     offPipeline = (new ParallelLedPipeline())
             ->addStage(new SolidEffect({.color = CRGB::Black}))
             ->addStage(
@@ -54,18 +53,19 @@ void setup() {
                                     ->addStage(new TimeBoxedEffect(new SolidSegmentEffect({CRGB::Green, 1}), {1}))
                     )
             );
+
     onPipeline = (new ParallelLedPipeline())
-            ->addStage(new SolidEffect(CRGB::White, 200))
+            ->addStage(new SolidEffect({.color = CRGB::White, .opacity = 200}))
             ->addStage(
                     new LoopEffect(
                             (new SeriesLedPipeline())
                                     ->addStage(
-                                            (new SolidSegmentEffect(CRGB::Red, 1))
-                                                    ->wrap<TimeBoxedEffect>(1)
+                                            (new SolidSegmentEffect({.length = 1, .color = CRGB::Red}))
+                                                    ->wrap<TimeBoxedEffect>(TimeBoxedEffect::Config{1})
                                     )
                                     ->addStage(
-                                            (new SolidSegmentEffect(CRGB::Red, 1))
-                                                    ->wrap<TimeBoxedEffect>(1)
+                                            (new SolidSegmentEffect({.length = 1, .color = CRGB::Red}))
+                                                    ->wrap<TimeBoxedEffect>(TimeBoxedEffect::Config{1})
                                     )
                     )
             )
@@ -93,7 +93,6 @@ void setup() {
                                })
                                ->wrap<LoopEffect>()
             );
-    */
 
     Serial.println("done initializing onPipeline and offPipeline");
     onPipeline->reset();

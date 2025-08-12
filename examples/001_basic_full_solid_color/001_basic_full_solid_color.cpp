@@ -58,7 +58,7 @@ void setup() {
      * SolidEffect. We can set the pipeline to be the one stage that we want, by also passing in the color that we want
      * to set it to.
      */
-    pipeline = new ledpipelines::effects::SolidEffect(CRGB::Red);
+    pipeline = new ledpipelines::effects::SolidEffect({CRGB::Red});
 }
 
 
