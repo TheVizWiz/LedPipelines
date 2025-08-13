@@ -19,11 +19,11 @@ public:
 
     SamplingFunction(const SamplingFunction &&function) : value(function.value) {};
 
-    float operator()() { return this->operator()(0, 1); }
+    float operator()() const { return this->operator()(0, 1); }
 
-    float operator()(float max) { return this->operator()(0, max); };
+    float operator()(float max) const { return this->operator()(0, max); };
 
-    float operator()(float min, float max);
+    float operator()(float min, float max) const;
 
 private:
     enum SamplingFunction_ value;

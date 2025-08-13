@@ -23,19 +23,19 @@ public:
     SmoothingFunction(const SmoothingFunction &&function) : value(function.value) {}
 
 
-    float operator()(float percentage) {
+    float operator()(float percentage) const {
         return this->operator()(percentage, 0, 1);
     }
 
-    float operator()(float percentage, float max) {
+    float operator()(float percentage, float max) const {
         return this->operator()(percentage, 0, max);
     }
 
-    float operator()(float percentage, float min, float max) {
+    float operator()(float percentage, float min, float max) const {
         return this->operator()(percentage, 0, 1, min, max);
     }
 
-    float operator()(float amount, float oldMin, float oldMax, float newMin, float newMax);
+    float operator()(float amount, float oldMin, float oldMax, float newMin, float newMax) const;
 
 
 private:

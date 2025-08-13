@@ -24,3 +24,4 @@
 // basic effects
 #include "SolidEffect.h"
 #include "WaitEffect.h"
+#include "Spawner.h"

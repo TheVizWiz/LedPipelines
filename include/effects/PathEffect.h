@@ -7,7 +7,7 @@
 namespace ledpipelines::effects {
 
 
-struct PathEffect : WrapperEffect {
+struct PathEffect : public WrapperEffect {
 
     std::vector<std::pair<int, int>> segments;
 

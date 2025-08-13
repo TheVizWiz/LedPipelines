@@ -3,7 +3,7 @@
 
 using namespace ledpipelines;
 
-float SamplingFunction::operator()(float min, float max) {
+float SamplingFunction::operator()(float min, float max) const{
 
     float originalRandomValue = (float) rand() / (float) RAND_MAX;
 
