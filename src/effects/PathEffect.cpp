@@ -7,8 +7,8 @@ namespace ledpipelines::effects {
 
 
 PathEffect::PathEffect(BaseLedPipelineStage *stage) :
-        WrapperEffect(stage),
-        segments() {}
+    WrapperEffect(stage),
+    segments() {}
 
 
 PathEffect *PathEffect::addSegment(int start, int end) {
@@ -35,7 +35,7 @@ void PathEffect::calculate(float startIndex, TemporaryLedData &tempData) {
 
 
         for (int i = start;
-             (start < end ? i <= end : i >= end);
+             (start < end ? i < end : i > end);/
              (start < end ? i++ : i--)) {
 
             auto opacity = tempData.getOpacity(currentIndex);

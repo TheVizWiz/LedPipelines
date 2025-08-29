@@ -1,0 +1,34 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "C:/Users/thevizwiz/Documents/_Documents Unsynced/projects/led_pipelines/include",
+                "C:/Users/thevizwiz/Documents/_Documents Unsynced/projects/led_pipelines/src",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "C:/Users/thevizwiz/Documents/_Documents Unsynced/projects/led_pipelines/include",
+                    "C:/Users/thevizwiz/Documents/_Documents Unsynced/projects/led_pipelines/src",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=60118",
+                ""
+            ],
+            "compilerPath": "C:/ProgramData/mingw64/mingw64/bin/gcc.exe",
+            "compilerArgs": [
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

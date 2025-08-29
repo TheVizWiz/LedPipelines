@@ -4,9 +4,9 @@
 using namespace ledpipelines;
 
 BaseLedPipelineStage::BaseLedPipelineStage(BlendingMode blendingMode)
-        : blendingMode(blendingMode),
-          state(LedPipelineRunningState::NOT_STARTED),
-          lastUpdateTimeMicros(micros()) {}
+    : blendingMode(blendingMode),
+      state(LedPipelineRunningState::NOT_STARTED),
+      lastUpdateTimeMicros(micros()) {}
 
 BaseLedPipelineStage::~BaseLedPipelineStage() {
     delete nextStage;
@@ -86,7 +86,7 @@ void ParallelLedPipeline::calculate(float startIndex, TemporaryLedData &tempData
         tempData.merge(currentStageData, currentStage->blendingMode);
 //        tempData.printData();
         anyArePlaying =
-                currentStage->state != LedPipelineRunningState::DONE ? LedPipelineRunningState::RUNNING : anyArePlaying;
+            currentStage->state != LedPipelineRunningState::DONE ? LedPipelineRunningState::RUNNING : anyArePlaying;
         currentStage = currentStage->nextStage;
         currentStageNumber++;
     }

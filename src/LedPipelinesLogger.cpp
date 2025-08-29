@@ -2,7 +2,7 @@
 
 using namespace ledpipelines;
 
-LogLevel LPLogger::internalLogLevel = LogLevel::Debug;
+LogLevel LPLogger::internalLogLevel = LogLevel::NONE;
 
 
 static char formattedTimeBuffer[20];
@@ -24,6 +24,6 @@ static String getFormattedTime() {
 }
 
 void LPLogger::logInternal(LogLevel logLevel, String &log) {
-
+    if (LPLogger::internalLogLevel < logLevel) return;
     Serial.println("[" + getFormattedTime() + "] (" + logLevel.toString() + ") " + log);
 }

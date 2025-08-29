@@ -30,16 +30,16 @@ void setup() {
 
     FastLED.addLeds<WS2812B, 48, GRB>(leds, 1);
     FastLED.addLeds<WS2812B, LEFT_PIN, RGB>(leds, 1, LEFT_COUNT);
-    FastLED.addLeds<WS2812B, RIGHT_PIN, RGB>(leds, 1 + LEFT_COUNT, RIGHT_COUNT);
-    FastLED.addLeds<WS2812B, TAIL_PIN, RGB>(leds, 1 + LEFT_COUNT + RIGHT_COUNT, TAIL_COUNT);
+    FastLED.addLeds<WS2812B, LEFT_PIN, RGB>(leds, 1 + LEFT_COUNT, RIGHT_COUNT);
+    FastLED.addLeds<WS2812B, LEFT_PIN, RGB>(leds, 1 + LEFT_COUNT + RIGHT_COUNT, TAIL_COUNT);
 
     pinMode(SWITCH_PIN, INPUT_PULLUP);
     pinMode(LED_BUILTIN, OUTPUT);
 
-    LPLogger::initialize(LogLevel::LOG);
+    LPLogger::initialize(LogLevel::ERROR);
 
     ledpipelines::initialize();
-    ledpipelines::setMaxRefreshRate(60);
+    ledpipelines::setMaxRefreshRate(10);
 
     Serial.print("There are this many leds: ");
     Serial.println(TemporaryLedData::size);
@@ -54,11 +54,14 @@ void setup() {
             )
         );
 
-    PathEffect *pathEffect = (new PathEffect(nullptr))
-        ->addSegment(0, 10)->addSegment(0, 15)->addSegment(15, 0);
-
     onPipeline = (new ParallelLedPipeline())
-        ->addStage(new SolidEffect({.color = CRGB::White, .opacity = 200}))
+        ->addStage((new SolidEffect({.color = CRGB::White}))
+                       ->wrap<OpacityGradientEffect>(OpacityGradientEffect::Config{
+                           .startIndex = 0,
+                           .endIndex = TemporaryLedData::size,
+                           .smoothingFunction = SmoothingFunction::LINEAR
+                       })
+        )
         ->addStage(
             new LoopEffect(
                 (new SeriesLedPipeline())
@@ -112,11 +115,12 @@ void loop() {
 
     bool effectShouldPlay = digitalRead(SWITCH_PIN) == LOW;
 
-    if (effectShouldPlay) {
-        onPipeline->run();
-//        digitalWrite(LED_BUILTIN, HIGH);
-    } else {
-        offPipeline->run();
-//        digitalWrite(LED_BUILTIN, LOW);
-    }
+
+//    onPipeline->dryRun();
+
+//    if (effectShouldPlay) {
+    onPipeline->run();
+//    } else {
+//        offPipeline->run();
+//    }
 }
