@@ -3,26 +3,26 @@
 #include "BaseEffect.h"
 
 // wrapper effects
-#include "AbsolutePositionEffect.h"
-#include "LoopEffect.h"
-#include "MovingEffect.h"
-#include "OffsetEffect.h"
-#include "OpacityGradientEffect.h"
-#include "OpacityScalingEffect.h"
-#include "RepeatEffect.h"
-#include "TimeBoxedEffect.h"
-#include "ToggleEffect.h"
-#include "FlipEffect.h"
-#include "PathEffect.h"
+#include "AbsolutePosition.h"
+#include "Loop.h"
+#include "Moving.h"
+#include "Shift.h"
+#include "OpacityGradient.h"
+#include "OpacityScale.h"
+#include "Repeat.h"
+#include "TimeBox.h"
+#include "Toggle.h"
+#include "Flip.h"
+#include "Path.h"
 
 
 // mask effects
-#include "MaskEffect.h"
-#include "FadeInEffect.h"
+#include "Mask.h"
+#include "FadeIn.h"
 
 
 
 // basic effects
-#include "SolidEffect.h"
-#include "WaitEffect.h"
+#include "Solid.h"
+#include "Wait.h"
 #include "Spawner.h"

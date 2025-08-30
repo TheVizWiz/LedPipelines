@@ -45,65 +45,65 @@ void setup() {
     Serial.println(TemporaryLedData::size);
 
     offPipeline = (new ParallelLedPipeline())
-        ->addStage(new SolidEffect({.color = CRGB::Black}))
+        ->addStage(new Solid({.color = CRGB::Black}))
         ->addStage(
-            new LoopEffect(
+            new Loop(
                 (new SeriesLedPipeline())
-                    ->addStage(new TimeBoxedEffect(new SolidSegmentEffect({CRGB::Blue, 1}), {1}))
-                    ->addStage(new TimeBoxedEffect(new SolidSegmentEffect({CRGB::Green, 1}), {1}))
+                    ->addStage(new TimeBox(new SolidSegment({CRGB::Blue, 1}), {1}))
+                    ->addStage(new TimeBox(new SolidSegment({CRGB::Green, 1}), {1}))
             )
         );
 
     onPipeline = (new ParallelLedPipeline())
-        ->addStage((new SolidEffect({.color = CRGB::White}))
-                       ->wrap<OpacityGradientEffect>(OpacityGradientEffect::Config{
+        ->addStage((new Solid({.color = CRGB::White}))
+                       ->wrap<OpacityGradient>(OpacityGradient::Config{
                            .startIndex = 0,
                            .endIndex = TemporaryLedData::size,
                            .smoothingFunction = SmoothingFunction::LINEAR
                        })
         )
         ->addStage(
-            new LoopEffect(
+            new Loop(
                 (new SeriesLedPipeline())
                     ->addStage(
-                        (new SolidSegmentEffect({.length = 1, .color = CRGB::Red}))
-                            ->wrap<TimeBoxedEffect>(TimeBoxedEffect::Config{1})
+                        (new SolidSegment({.length = 1, .color = CRGB::Red}))
+                            ->wrap<TimeBox>(TimeBox::Config{1})
                     )
                     ->addStage(
-                        (new SolidSegmentEffect({.length = 1, .color = CRGB::Red}))
-                            ->wrap<TimeBoxedEffect>(TimeBoxedEffect::Config{1})
+                        (new SolidSegment({.length = 1, .color = CRGB::Red}))
+                            ->wrap<TimeBox>(TimeBox::Config{1})
                     )
             )
         )
-        ->addStage((new SolidSegmentEffect({
-                                               .length = 10,
-                                               .color = CRGB::White,
-                                               .opacity = 0xFF
-                                           }
+        ->addStage((new SolidSegment({
+                                         .length = 10,
+                                         .color = CRGB::White,
+                                         .opacity = 0xFF
+                                     }
                    )
                    )
-                       ->wrap<OpacityGradientEffect>(OpacityGradientEffect::Config{
-                                                         .endIndex = 1
-                                                     }
+                       ->wrap<OpacityGradient>(OpacityGradient::Config{
+                                                   .endIndex = 1
+                                               }
                        )
-                       ->wrap<OpacityGradientEffect>(OpacityGradientEffect::Config{
-                                                         .endIndex = 1
-                                                     }
+                       ->wrap<OpacityGradient>(OpacityGradient::Config{
+                                                   .endIndex = 1
+                                               }
                        )
-                       ->wrap<MovingEffect>(MovingEffect::Config{
+                       ->wrap<Moving>(Moving::Config{
                                                 .runtimeMs           = 10000,
                                                 .startPosition       = 0,
                                                 .endPosition         = 10,
                                                 .smoothingFunction   = SmoothingFunction::LINEAR,
                                             }
                        )
-                       ->wrap<MovingEffect>(MovingEffect::Config{
+                       ->wrap<Moving>(Moving::Config{
                                                 .runtimeMs = 10,
                                                 .startPosition = -10,
                                                 .endPosition = LED_COUNT + 10
                                             }
                        )
-                       ->wrap<LoopEffect>()
+                       ->wrap<Loop>()
         );
 
     Serial.println("done initializing onPipeline and offPipeline");
