@@ -3,59 +3,57 @@
 #include "BaseLedPipeline.h"
 
 namespace ledpipelines::effects {
-class Solid : public BaseLedPipelineStage {
-public:
-
-    struct Config {
-        RequiredField<CRGB> color;
-        uint8_t opacity = 0xFF;
-    };
+	struct Solid : LedPipelineStage {
+		CRGB color;
+		uint8_t opacity;
 
 
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    CRGB color;
-    uint8_t opacity;
+		struct Builder : LedPipelineStage::Builder<Solid> {
+			BUILDER_FIELD(CRGB, color);
+			BUILDER_FIELD_DEFAULT(uint8_t, opacity, 0xFF);
 
-    Solid(const Config &config);
+			explicit Builder(const CRGB color) : _color(color) {}
 
+			Solid *build() override {
+				return new Solid(
+					_color,
+					_opacity
+				);
+			}
+		};
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-};
-
-
-class SolidSegment : public Solid {
-
-public:
-    struct Config {
-        RequiredField<float> length;
-        RequiredField<CRGB> color;
-        uint8_t opacity = 0xFF;
-    };
-
-    float length;
-
-    SolidSegment(const Config &config);
-
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-};
+		protected:
+			Solid(CRGB color, uint8_t opacity);
+	};
 
 
+	struct SolidSegment : Solid {
+		float length;
 
-struct LengtheningSegment : public SolidSegment {
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    struct Config {
-        float startLength = 0;
-        RequiredField<float> endLength;
-        RequiredField<long> runtimeMs;
-        RequiredField<CRGB> color;
-        uint8_t opacity = 0xFF;
-    };
+		struct Builder : LedPipelineStage::Builder<SolidSegment> {
+			BUILDER_FIELD(CRGB, color);
+			BUILDER_FIELD_DEFAULT(uint8_t, opacity, 0xFF);
+			BUILDER_FIELD(float, length);
+			explicit Builder(const CRGB color, const float length) : _color(color), _length(length) {}
 
-    LengtheningSegment(const Config &config);
+			SolidSegment *build() override {
+				return new SolidSegment(
+					_color,
+					_opacity,
+					_length
+				);
+			}
+		};
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-
-    void reset() override;
-};
-
+		protected:
+			SolidSegment(
+				const CRGB color,
+				uint8_t opacity,
+				float length
+			);
+	};
 }

@@ -21,7 +21,6 @@
 #include "FadeIn.h"
 
 
-
 // basic effects
 #include "Solid.h"
 #include "Wait.h"

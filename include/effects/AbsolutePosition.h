@@ -4,21 +4,20 @@
 #include "BaseEffect.h"
 
 namespace ledpipelines::effects {
+	struct AbsolutePosition : WrapperEffect {
+		struct Builder : WrapperEffect::Builder<AbsolutePosition> {
+			float position = 0;
 
-class AbsolutePosition : public WrapperEffect {
+			Builder(float position = 0);
 
-public:
+			AbsolutePosition *build() override;
+		};
 
-    struct Config {
-        RequiredField<float> position;
-    };
+		float position;
 
-    float position;
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    explicit AbsolutePosition(BaseLedPipelineStage *stage, float position = 0);
-
-    AbsolutePosition(BaseLedPipelineStage *stage, const AbsolutePosition::Config &config);
-
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-};
+		private:
+			explicit AbsolutePosition(LedPipelineStage *stage, float position = 0);
+	};
 }

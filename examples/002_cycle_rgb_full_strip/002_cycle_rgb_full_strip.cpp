@@ -4,7 +4,6 @@
 #define LED_PIN 5 // the pin we're attaching our LEDs to.
 
 
-
 // these just make it easier to make effects without having to write out the entire thing every time.
 // e.g. now we can do SolidEffect instead of ledpipelines::effects::SolidEffect. totally optional.
 using namespace ledpipelines;
@@ -37,22 +36,21 @@ BaseLedPipelineStage *pipeline;
 
 
 void setup() {
-
-    /**
+	/**
      * The first step is to add all your LEDs to FastLED. In this case, we have 100 WS2812B leds on pin LED_PIN.
      */
-    FastLED.addLeds<WS2812B, LED_PIN, GBR>(leds, 100);
+	FastLED.addLeds<WS2812B, LED_PIN, GBR>(leds, 100);
 
-    /**
+	/**
      * Always call initialize() after adding all the LEDs to FastLED. LedPipelines sets things up in the background
      * (such as counting all the leds and creating memory for the effects to follow) in this function. This can be
      * called before or after actually creating all your LedPipelines, but has to be called *after* adding all your
      * LEDs to FastLED.
      */
-    initialize();
+	initialize();
 
 
-    /**
+	/**
      * Let's take a second before we actually create the pipelines to think about what we want to do. We want to create an
      * effect that will cycle through red for 2 seconds, then green for 2 seconds, then blue for 2 seconds, and then
      * repeat indefinitely.
@@ -71,22 +69,22 @@ void setup() {
      * the TimeBoxedEffect, which sets the max duration of the internal effect to be a certain number of seconds.
      */
 
-    auto redEffect = new SolidEffect({CRGB::Red});
-    auto redEffectLimited = new TimeBoxedEffect(redEffect, {2});
+	auto redEffect = new SolidEffect({CRGB::Red});
+	auto redEffectLimited = new TimeBoxedEffect(redEffect, {2});
 
 
-    /**
+	/**
      * The two lines above first set up a red effect, then wrap it in a TimeBoxedEffect that limits it to run for 2
      * seconds. If we were to add this to the pipeline like we did last time, we would get a red light for two seconds,
      * and then nothing until we reset the microcontroller.
      *
      * Let's set up the blue and green effects. I'll do these on one line, just to show what that looks like.
      */
-    auto greenEffectLimited = new TimeBoxedEffect(new SolidEffect({CRGB::Green}), {2});
-    auto blueEffectLimited = new TimeBoxedEffect(new SolidEffect({CRGB::Blue}), {2});
+	auto greenEffectLimited = new TimeBoxedEffect(new SolidEffect({CRGB::Green}), {2});
+	auto blueEffectLimited = new TimeBoxedEffect(new SolidEffect({CRGB::Blue}), {2});
 
 
-    /**
+	/**
      * Now that we have all of our effects, we can think about the next part - making them play one at a time, and then
      * loop back around. When we set up more complicated effects like this, the order that we set up our pipelines matters
      * for what the final effect will look like. To make this effect, we'll need to use two new things: a SeriesLedPipeline,
@@ -111,20 +109,20 @@ void setup() {
      * what that looks like:
      */
 
-    pipeline = new LoopEffect(
-            /**
+	pipeline = new LoopEffect(
+		/**
              * inside the loop effect, we can supply the pipeline we talked about before. We could set up another variable
              * for the internal pipeline, and then add each stage separately, but the addStage method returns a reference
              * to the pipeline itself so that we can chain multiple calls.
              */
-            (new SeriesLedPipeline) // yes, the parentheses here are required :(
-                    ->addStage(redEffectLimited)
-                    ->addStage(greenEffectLimited)
-                    ->addStage(blueEffectLimited)
-    );
+		(new SeriesLedPipeline) // yes, the parentheses here are required :(
+		->addStage(redEffectLimited)
+		->addStage(greenEffectLimited)
+		->addStage(blueEffectLimited)
+	);
 
 
-    /**
+	/**
      * Let's take a second and talk about why we used a SeriesLedPipeline above. There are two kinds of LedPipelines:
      * SeriesLedPipelines and ParallelLedPipelines. a SeriesLedPipeline will run the first effect until it completes,
      * then run the next effect, and so on and so forth. A ParallelLedPipeline will run all of its stages at the same time,
@@ -140,9 +138,9 @@ void setup() {
 
 
 void loop() {
-    /**
+	/**
      * Just like in 001, we can use the run command to run the pipeline. Now, we should get looping RGB effects, over
      * and over again.
      */
-    pipeline->run();
+	pipeline->run();
 }

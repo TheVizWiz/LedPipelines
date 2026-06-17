@@ -2,38 +2,65 @@
 
 
 #include "BaseEffect.h"
-#include "FadeIn.h"
-
 
 namespace ledpipelines::effects {
-class FadeOut : public BaseLedPipelineStage, TimedEffect {
+	struct FadeOut : public LedPipelineStage, TimedEffect {
+		SmoothingFunction smoothingFunction;
 
-public:
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    using Config = FadeIn::Config;
+		void reset() override;
 
-    SmoothingFunction smoothingFunction;
+		struct Builder : LedPipelineStage::Builder<FadeOut>, TimedEffect::Builder {
+			BUILDER_FIELD_DEFAULT(
+				SmoothingFunction,
+				smoothingFunction,
+				SmoothingFunction::SMOOTH_LINEAR
+			);
 
-    FadeOut(const Config &config);
+			Builder(const unsigned long runtimeMs) : TimedEffect::Builder(runtimeMs) {};
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+			FadeOut *build() override { return new FadeOut(_runtimeMs, _smoothingFunction); }
+		};
 
-    void reset() override;
-};
+		private:
+			FadeOut(
+				unsigned long runtimeMs,
+				SmoothingFunction smoothingFunction
+			);
+	};
 
-class RandomFadeOutEffect : public BaseLedPipelineStage, RandomTimedEffect {
+	struct RandomFadeOut : public LedPipelineStage, RandomTimedEffect {
+		struct Builder : LedPipelineStage::Builder<RandomFadeOut>, RandomTimedEffect::Builder {
+			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::LINEAR);
 
-public:
+			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder(maxRuntimeMs) {};
 
-    using Config = RandomFadeInEffect::Config;
+			RandomFadeOut *build() override {
+				return new RandomFadeOut(
+					_minRuntimeMs,
+					_maxRuntimeMs,
+					_samplingFunction,
+					_smoothingFunction
+				);
+			}
+		};
 
-    SmoothingFunction smoothingFunction;
+		SmoothingFunction smoothingFunction;
 
-    RandomFadeOutEffect(const Config &config);
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    void reset() override;
-};
+		void reset() override;
+
+		private:
+			RandomFadeOut(
+				unsigned long minRuntimeMs,
+				unsigned long maxRuntimeMs,
+				SamplingFunction samplingFunction,
+				SmoothingFunction smoothingFunction
+			);
+	};
+}
 
 }

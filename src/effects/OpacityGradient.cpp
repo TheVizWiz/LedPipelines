@@ -4,19 +4,19 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-OpacityGradient::OpacityGradient(BaseLedPipelineStage *stage, const Config &config)
-        : WrapperEffect(stage),
-          startIndex(config.startIndex),
-          endIndex(config.endIndex),
-          smoothingFunction(config.smoothingFunction) {
-}
+OpacityGradient::OpacityGradient(LedPipelineStage *stage, float startIndex, float endIndex,
+                                 SmoothingFunction smoothingFunction)
+	: WrapperEffect(stage),
+	  startIndex(startIndex),
+	  endIndex(endIndex),
+	  smoothingFunction(smoothingFunction) {}
 
 
-void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedData &tempData) {
-    int startIndexFloor = (int) startIndex;
-    int endIndexFloor = (int) endIndex;
+void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedData &tempData) const {
+	int startIndexFloor = (int) startIndex;
+	int endIndexFloor = (int) endIndex;
 
-    /**
+	/**
      *
      * How we light up a pixel:
      *
@@ -32,92 +32,84 @@ void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedDat
      * - left bound and right bound of every pixel between start and end as left and right bound.
      * - left bound of the last pixel as left bound, and right bound as the end value (100%).
      */
-    if (startIndexFloor == endIndexFloor) {
-        // both are on the same pixel, we can fade it partially. We fade it by 50% since the left and right bounds
-        // are 0 and 1.
-        float amountToFadePixel = 0.5;
+	if (startIndexFloor == endIndexFloor) {
+		// both are on the same pixel, we can fade it partially. We fade it by 50% since the left and right bounds
+		// are 0 and 1.
+		float amountToFadePixel = 0.5;
 
-        tempData.set(
-                startIndexFloor,
-                tempData.get(startIndexFloor),
-                tempData.getOpacity(startIndexFloor) * amountToFadePixel
-        );
+		tempData.set(
+			startIndexFloor,
+			tempData.get(startIndexFloor),
+			tempData.getOpacity(startIndexFloor) * amountToFadePixel
+		);
+	} else {
+		// first pixel calculations
+		float firstPixelLeftBound = 0;
+		float firstPixelRightBound = smoothingFunction(
+			floor(startIndex + 1),
+			startIndex,
+			endIndex,
+			0,
+			1
+		);
+		float firstPixelFadeAmount = (firstPixelLeftBound + firstPixelRightBound) / 2;
 
-    } else {
-
-        // first pixel calculations
-        float firstPixelLeftBound = 0;
-        float firstPixelRightBound = smoothingFunction(
-                floor(startIndex + 1),
-                startIndex,
-                endIndex,
-                0,
-                1
-        );
-        float firstPixelFadeAmount = (firstPixelLeftBound + firstPixelRightBound) / 2;
-
-        // last pixel calculations
-        float lastPixelLeftBound = smoothingFunction(
-                floor(endIndex),
-                startIndex,
-                endIndex,
-                0,
-                1
-        );
-        float lastPixelRightBound = 1;
-        float lastPixelFadeAmount = (lastPixelLeftBound + lastPixelRightBound) / 2;
+		// last pixel calculations
+		float lastPixelLeftBound = smoothingFunction(
+			floor(endIndex),
+			startIndex,
+			endIndex,
+			0,
+			1
+		);
+		float lastPixelRightBound = 1;
+		float lastPixelFadeAmount = (lastPixelLeftBound + lastPixelRightBound) / 2;
 
 
+		// set first pixel
+		tempData.set(
+			startIndexFloor,
+			tempData.get(startIndexFloor),
+			tempData.getOpacity(startIndexFloor) * firstPixelFadeAmount
+		);
 
 
-        // set first pixel
-        tempData.set(
-                startIndexFloor,
-                tempData.get(startIndexFloor),
-                tempData.getOpacity(startIndexFloor) * firstPixelFadeAmount
-        );
+		// for every pixel in between, we calculate what the left and right bounds are, and average them.
+		// to this, we use a clever trick: we know the left and right pixel values, and the average will be exactly halfway,
+		// so we can just do left + 0.5. Then, the calculation will be much faster.
+		for (int i = startIndexFloor + 1; i < endIndexFloor; i++) {
+			float pixelAverageFadeAmount = smoothingFunction(
+				i + 0.5,
+				startIndex,
+				endIndex,
+				0,
+				1
+			);
 
+			tempData.set(
+				i,
+				tempData.get(i),
+				tempData.getOpacity(i) * pixelAverageFadeAmount
+			);
+		}
 
-        // for every pixel in between, we calculate what the left and right bounds are, and average them.
-        // to this, we use a clever trick: we know the left and right pixel values, and the average will be exactly halfway,
-        // so we can just do left + 0.5. Then, the calculation will be much faster.
-        for (int i = startIndexFloor + 1; i < endIndexFloor; i++) {
-            float pixelAverageFadeAmount = smoothingFunction(
-                    i + 0.5,
-                    startIndex,
-                    endIndex,
-                    0,
-                    1
-            );
-
-            tempData.set(
-                    i,
-                    tempData.get(i),
-                    tempData.getOpacity(i) * pixelAverageFadeAmount
-            );
-        }
-
-        // set last pixel
-        tempData.set(
-                endIndexFloor,
-                tempData.get(endIndexFloor),
-                tempData.getOpacity(endIndexFloor) * lastPixelFadeAmount
-        );
-
-    }
-
+		// set last pixel
+		tempData.set(
+			endIndexFloor,
+			tempData.get(endIndexFloor),
+			tempData.getOpacity(endIndexFloor) * lastPixelFadeAmount
+		);
+	}
 }
 
 
 void OpacityGradient::calculateBackwardGradient(float startIndex, TemporaryLedData &tempData) {
+	// if the gradient is backwards, the left value is 1 and the right value is 0.
+	// instead of doing complex math, we just flip how we are calculating start and end indices.
+	int startIndexFloor = (int) startIndex;
+	int endIndexFloor = (int) endIndex;
 
-
-    // if the gradient is backwards, the left value is 1 and the right value is 0.
-    // instead of doing complex math, we just flip how we are calculating start and end indices.
-    int startIndexFloor = (int) startIndex;
-    int endIndexFloor = (int) endIndex;
-
-    /**
+	/**
      *
      * How we light up a pixel:
      *
@@ -133,90 +125,87 @@ void OpacityGradient::calculateBackwardGradient(float startIndex, TemporaryLedDa
      * - left bound and right bound of every pixel between start and end as left and right bound.
      * - left bound of the last pixel as left bound, and right bound as the end value (100%).
      */
-    if (startIndexFloor == endIndexFloor) {
-        // both are on the same pixel, we can fade it partially. We fade it by 50% since the left and right bounds
-        // are 0 and 1.
-        float amountToFadePixel = 0.5;
+	if (startIndexFloor == endIndexFloor) {
+		// both are on the same pixel, we can fade it partially. We fade it by 50% since the left and right bounds
+		// are 0 and 1.
+		float amountToFadePixel = 0.5;
 
-        tempData.set(
-                startIndexFloor,
-                tempData.get(startIndexFloor),
-                tempData.getOpacity(startIndexFloor) * amountToFadePixel
-        );
+		tempData.set(
+			startIndexFloor,
+			tempData.get(startIndexFloor),
+			tempData.getOpacity(startIndexFloor) * amountToFadePixel
+		);
+	} else {
+		// first pixel calculations
+		float firstPixelLeftBound = 1;
+		float firstPixelRightBound = smoothingFunction(
+			floor(startIndex + 1),
+			endIndex,
+			startIndex,
+			1,
+			0
+		);
+		float firstPixelFadeAmount = (firstPixelLeftBound + firstPixelRightBound) / 2;
 
-    } else {
+		// last pixel calculations
+		float lastPixelLeftBound = smoothingFunction(
+			floor(endIndex),
+			endIndex,
+			startIndex,
+			1,
+			0
+		);
+		float lastPixelRightBound = 0;
+		float lastPixelFadeAmount = (lastPixelLeftBound + lastPixelRightBound) / 2;
 
-        // first pixel calculations
-        float firstPixelLeftBound = 1;
-        float firstPixelRightBound = smoothingFunction(
-                floor(startIndex + 1),
-                endIndex,
-                startIndex,
-                1,
-                0
-        );
-        float firstPixelFadeAmount = (firstPixelLeftBound + firstPixelRightBound) / 2;
-
-        // last pixel calculations
-        float lastPixelLeftBound = smoothingFunction(
-                floor(endIndex),
-                endIndex,
-                startIndex,
-                1,
-                0
-        );
-        float lastPixelRightBound = 0;
-        float lastPixelFadeAmount = (lastPixelLeftBound + lastPixelRightBound) / 2;
-
-        // set first pixel
-        tempData.set(
-                startIndexFloor,
-                tempData.get(startIndexFloor),
-                tempData.getOpacity(startIndexFloor) * firstPixelFadeAmount
-        );
+		// set first pixel
+		tempData.set(
+			startIndexFloor,
+			tempData.get(startIndexFloor),
+			tempData.getOpacity(startIndexFloor) * firstPixelFadeAmount
+		);
 
 
-        // for every pixel in between, we calculate what the left and right bounds are, and average them.
-        // to this, we use a clever trick: we know the left and right pixel values, and the average will be exactly halfway,
-        // so we can just do left + 0.5. Then, the calculation will be much faster.
-        for (int i = startIndexFloor + 1; i < endIndexFloor; i++) {
-            float pixelAverageFadeAmount = smoothingFunction(
-                    i + 0.5,
-                    endIndex,
-                    startIndex,
-                    1,
-                    0
-            );
+		// for every pixel in between, we calculate what the left and right bounds are, and average them.
+		// to this, we use a clever trick: we know the left and right pixel values, and the average will be exactly halfway,
+		// so we can just do left + 0.5. Then, the calculation will be much faster.
+		for (int i = startIndexFloor + 1; i < endIndexFloor; i++) {
+			float pixelAverageFadeAmount = smoothingFunction(
+				i + 0.5,
+				endIndex,
+				startIndex,
+				1,
+				0
+			);
 
-            tempData.set(
-                    i,
-                    tempData.get(i),
-                    tempData.getOpacity(i) * pixelAverageFadeAmount
-            );
-        }
+			tempData.set(
+				i,
+				tempData.get(i),
+				tempData.getOpacity(i) * pixelAverageFadeAmount
+			);
+		}
 
-        // set last pixel
-        tempData.set(
-                endIndexFloor,
-                tempData.get(endIndexFloor),
-                tempData.getOpacity(endIndexFloor) * lastPixelFadeAmount
-        );
-
-    }
+		// set last pixel
+		tempData.set(
+			endIndexFloor,
+			tempData.get(endIndexFloor),
+			tempData.getOpacity(endIndexFloor) * lastPixelFadeAmount
+		);
+	}
 }
 
 void OpacityGradient::calculate(float startIndex, TemporaryLedData &tempData) {
-    if (this->state == LedPipelineRunningState::DONE)
-        return;
+	if (this->state == LedPipelineRunningState::DONE)
+		return;
 
-    if (this->state == LedPipelineRunningState::NOT_STARTED) {
-        this->state = LedPipelineRunningState::RUNNING;
-    }
+	if (this->state == LedPipelineRunningState::NOT_STARTED) {
+		this->state = LedPipelineRunningState::RUNNING;
+	}
 
-    this->stage->calculate(startIndex, tempData);
+	this->stage->calculate(startIndex, tempData);
 
-    if (this->startIndex > this->endIndex) calculateBackwardGradient(startIndex + this->startIndex, tempData);
-    else calculateForwardGradient(startIndex + this->startIndex, tempData);
+	if (this->startIndex > this->endIndex) calculateBackwardGradient(startIndex + this->startIndex, tempData);
+	else calculateForwardGradient(startIndex + this->startIndex, tempData);
 
-    this->state = this->stage->state;
+	this->state = this->stage->state;
 }

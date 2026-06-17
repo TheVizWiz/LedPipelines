@@ -32,21 +32,20 @@ ledpipelines::BaseLedPipelineStage *pipeline;
 
 
 void setup() {
-
-    /**
+	/**
      * The first step is to add all your LEDs to FastLED. In this case, we have 100 WS2812B leds on pin LED_PIN.
      */
-    FastLED.addLeds<WS2812B, LED_PIN, GBR>(leds, 100);
+	FastLED.addLeds<WS2812B, LED_PIN, GBR>(leds, 100);
 
-    /**
+	/**
      * Always call initialize() after adding all the LEDs to FastLED. LedPipelines sets things up in the background
      * (such as counting all the leds and creating memory for the effects to follow) in this function. This can be
      * called before or after actually creating all your LedPipelines, but has to be called *after* adding all your
      * LEDs to FastLED.
      */
-    ledpipelines::initialize();
+	ledpipelines::initialize();
 
-    /**
+	/**
      * LedPipelines is set up around the idea of stages, which are building blocks used to make effects. The most basic
      * LedPipelineStage is a single effect that does one thing, like light up the entire strip in a single color. However,
      * many times, you might want to make effects that are made up of multiple other effects internally. To make those kinds
@@ -58,16 +57,16 @@ void setup() {
      * SolidEffect. We can set the pipeline to be the one stage that we want, by also passing in the color that we want
      * to set it to.
      */
-    pipeline = new ledpipelines::effects::SolidEffect({CRGB::Red});
+	pipeline = new ledpipelines::effects::SolidEffect({CRGB::Red});
 }
 
 
 void loop() {
-    /**
+	/**
      * To run the effects in your pipeline, simply use the run() method on the pipeline. Call this method as often
      * as possible. It is blocking, and will also call FastLED.show();
      */
-    pipeline->run();
+	pipeline->run();
 }
 
 /**

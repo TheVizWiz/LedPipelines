@@ -7,12 +7,12 @@
 
 
 namespace ledpipelines {
-void initialize() {
-    TemporaryLedData::initialize();
-}
+	void initialize() {
+		TemporaryLedData::initialize();
+	}
 
 
-int ledCount() {
-    return TemporaryLedData::size;
-}
+	int ledCount() {
+		return TemporaryLedData::size;
+	}
 }

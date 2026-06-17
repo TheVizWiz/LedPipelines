@@ -2,34 +2,51 @@
 
 
 #include "BaseEffect.h"
-#include "LedPipelineUtils.h"
 
 
 namespace ledpipelines::effects {
-class Moving : public WrapperEffect {
-public:
-    struct Config {
-        RequiredField<unsigned long> runtimeMs;
-        float startPosition = 0;
-        float endPosition = TemporaryLedData::size;
-        SmoothingFunction smoothingFunction = SmoothingFunction::LINEAR;
-    };
+	struct Moving : public WrapperEffect, TimedEffect {
+		private:
+			float currentPosition;
+			float startPosition;
+			float endPosition;
+			SmoothingFunction smoothingFunction;
 
-private:
-    unsigned long runtimeMs;
-    float currentPosition;
-    float startPosition;
-    float endPosition;
-    float elapsedPercentage;
-    unsigned long startTimeMs;
-    SmoothingFunction smoothingFunction;
+		public:
+			void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-public:
-    Moving(BaseLedPipelineStage *stage, const Moving::Config &config);
+			void reset() override;
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+			struct Builder : WrapperEffect::Builder<Moving>, TimedEffect::Builder {
+				BUILDER_FIELD_DEFAULT(float, startPosition, 0.0f);
+				BUILDER_FIELD_DEFAULT(float, endPosition, TemporaryLedData::size);
+				BUILDER_FIELD_DEFAULT(
+					SmoothingFunction, smoothingFunction,
+					SmoothingFunction::LINEAR
+				);
 
-    void reset() override;
-};
+				explicit Builder(
+					unsigned long runtimeMs
+				) : TimedEffect::Builder(runtimeMs) {};
 
+				Moving *build() override {
+					return new Moving(
+						_stage,
+						_runtimeMs,
+						_startPosition,
+						_endPosition,
+						_smoothingFunction
+					);
+				}
+			};
+
+		protected:
+			Moving(
+				LedPipelineStage *stage,
+				unsigned long runtimeMs,
+				float startPosition,
+				float endPosition,
+				SmoothingFunction smoothingFunction
+			);
+	};
 }

@@ -5,29 +5,26 @@
 #include "LedPipelineUtils.h"
 
 namespace ledpipelines::effects {
-class Wait : public BaseLedPipelineStage, TimedEffect {
-public:
+	class Wait : public LedPipelineStage, TimedEffect {
+	public:
+		using Config = TimedEffect::Config;
 
-    using Config = TimedEffect::Config;
+		Wait(const Config &config);
 
-    Wait(const Config &config);
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-
-    void reset() override;
-
-};
+		void reset() override;
+	};
 
 
-class RandomWaitEffect : public BaseLedPipelineStage, RandomTimedEffect {
-public:
+	class RandomWaitEffect : public LedPipelineStage, RandomTimedEffect {
+	public:
+		using Config = RandomTimedEffect::Config;
 
-    using Config = RandomTimedEffect::Config;
+		RandomWaitEffect(const Config &config);
 
-    RandomWaitEffect(const Config &config);
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-
-    void reset() override;
-};
+		void reset() override;
+	};
 }

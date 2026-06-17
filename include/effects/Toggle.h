@@ -5,22 +5,20 @@
 
 
 namespace ledpipelines::effects {
+	struct Toggle : public WrapperEffect {
+	public:
+		bool isActive;
 
-struct Toggle : public WrapperEffect {
+		Toggle(LedPipelineStage *stage);
 
-public:
-    bool isActive;
+		void deactivate();
 
-    Toggle(BaseLedPipelineStage *stage);
+		void activate();
 
-    void deactivate();
+		void toggle();
 
-    void activate();
+		void reset() override;
 
-    void toggle();
-
-    void reset() override;
-
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-};
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
+	};
 }

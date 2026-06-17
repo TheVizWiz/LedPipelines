@@ -4,22 +4,23 @@
 #include "BaseEffect.h"
 
 namespace ledpipelines::effects {
-class Shift : public WrapperEffect {
+	struct Shift : WrapperEffect {
+		float offset;
 
-public:
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    struct Config {
-        RequiredField<float> offset;
-    };
 
-    float offset;
+		struct Builder : WrapperEffect::Builder<Shift> {
+			BUILDER_FIELD(float, offset);
 
-public:
-    Shift(BaseLedPipelineStage *stage, float offset);
+			Builder(float offset) : _offset(offset) {}
 
-    Shift(BaseLedPipelineStage *stage, const Config &config);
+			Shift *build() override {
+				return new Shift(_stage, _offset);
+			}
+		};
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-};
-
+		protected:
+			Shift(LedPipelineStage *stage, float offset);
+	};
 }

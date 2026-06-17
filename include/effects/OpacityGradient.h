@@ -4,28 +4,50 @@
 
 
 namespace ledpipelines::effects {
-class OpacityGradient : public WrapperEffect {
-public:
+	struct OpacityGradient : WrapperEffect {
+		struct Config {
+			float startIndex = 0;
+			RequiredField<float> endIndex;
+			SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
+		};
 
-    struct Config {
-        float startIndex = 0;
-        RequiredField<float> endIndex;
-        SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
-    };
+		float startIndex;
+		float endIndex;
+		SmoothingFunction smoothingFunction;
 
-    float startIndex;
-    float endIndex;
-    SmoothingFunction smoothingFunction;
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    OpacityGradient(BaseLedPipelineStage *stage, const Config &config);
+		struct Builder : WrapperEffect::Builder<OpacityGradient> {
+			BUILDER_FIELD_DEFAULT(float, startIndex, 0);
+			BUILDER_FIELD(float, endIndex);
+			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::SMOOTH_LINEAR);
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+			explicit Builder(const float endIndex) : _endIndex(endIndex) {}
 
+			explicit Builder(const float startIndex, const float endIndex) : _startIndex(startIndex),
+			                                                                 _endIndex(endIndex) {}
 
-private:
-    void calculateForwardGradient(float startIndex, TemporaryLedData &tempData);
+			OpacityGradient *build() override {
+				return new OpacityGradient(
+					_stage,
+					_startIndex,
+					_endIndex,
+					_smoothingFunction
+				);
+			}
+		};
 
-    void calculateBackwardGradient(float startIndex, TemporaryLedData &tempData);
-};
+		private:
+			void calculateForwardGradient(float startIndex, TemporaryLedData &tempData) const;
 
+			void calculateBackwardGradient(float startIndex, TemporaryLedData &tempData);
+
+		protected:
+			OpacityGradient(
+				LedPipelineStage *stage,
+				float startIndex,
+				float endIndex,
+				SmoothingFunction smoothingFunction
+			);
+	};
 }

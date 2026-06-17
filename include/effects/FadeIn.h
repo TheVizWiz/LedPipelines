@@ -4,41 +4,71 @@
 #include "BaseEffect.h"
 
 namespace ledpipelines::effects {
-class FadeIn : public BaseLedPipelineStage, TimedEffect {
+	struct FadeIn : public LedPipelineStage, TimedEffect {
+		SmoothingFunction smoothingFunction;
 
-public:
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    struct Config {
-        RequiredField<unsigned long> runtimeMs;
-        SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
-    };
+		void reset() override;
 
-    SmoothingFunction smoothingFunction;
+		struct Builder : LedPipelineStage::Builder<FadeIn>, TimedEffect::Builder {
+			BUILDER_FIELD_DEFAULT(
+				SmoothingFunction,
+				smoothingFunction,
+				SmoothingFunction::SMOOTH_LINEAR
+			);
 
-    FadeIn(const Config &config);
+			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder(runtimeMs) {};
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+			FadeIn *build() override {
+				return new FadeIn(
+					_runtimeMs,
+					_smoothingFunction
+				);
+			}
+		};
 
-    void reset() override;
-};
+		private:
+			FadeIn(
+				unsigned long runtimeMs,
+				SmoothingFunction smoothingFunction
+			);
+	};
 
-class RandomFadeInEffect : public BaseLedPipelineStage, RandomTimedEffect {
-public:
+	struct RandomFadeIn : public LedPipelineStage, RandomTimedEffect {
+		SmoothingFunction smoothingFunction;
 
-    struct Config {
-        unsigned long minRuntimeMs = 0;
-        RequiredField<unsigned long> maxRuntimeMs;
-        SamplingFunction samplingFunction = SamplingFunction::UNIFORM;
-        SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
-    };
 
-    SmoothingFunction smoothingFunction;
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    RandomFadeInEffect(const Config &config);
+		void reset() override;
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+		struct Builder : LedPipelineStage::Builder<RandomFadeIn>, RandomTimedEffect::Builder {
+			BUILDER_FIELD_DEFAULT(
+				SmoothingFunction,
+				smoothingFunction,
+				SmoothingFunction::SMOOTH_LINEAR
+			);
 
-    void reset() override;
-};
+			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder(maxRuntimeMs) {};
 
+			RandomFadeIn *build() override {
+				return new RandomFadeIn(
+					_minRuntimeMs,
+					_maxRuntimeMs,
+					_samplingFunction,
+					_smoothingFunction
+
+				);
+			};
+		};
+
+		private:
+			RandomFadeIn(
+				unsigned long minRuntimeMs,
+				unsigned long maxRuntimeMs,
+				SamplingFunction samplingFunction,
+				SmoothingFunction smoothingFunction
+			);
+	};
 }

@@ -1,61 +1,80 @@
-
 #pragma once
 
 #include "BaseLedPipeline.h"
 
 namespace ledpipelines::effects {
-class WrapperEffect : public BaseLedPipelineStage {
-protected:
-    BaseLedPipelineStage *stage;
-public:
-    explicit WrapperEffect(BaseLedPipelineStage *stage);
+	struct WrapperEffect : LedPipelineStage {
+		protected:
+			LedPipelineStage *stage;
 
-    ~WrapperEffect() override;
+		public:
+			explicit WrapperEffect(LedPipelineStage *stage);
 
-    void reset() override;
-};
+			~WrapperEffect() override;
 
+			void reset() override;
 
-class TimedEffect {
-public:
-    struct Config {
-        RequiredField<unsigned long> runtimeMs;
-    };
+			template<typename T> class Builder : public LedPipelineStage::Builder<T> {
+				public:
+					BUILDER_FIELD(LedPipelineStage *, stage);
 
-    unsigned long startTimeMillis;
-    float elapsedPercentage;
-    unsigned long runtimeMs;
+					template<typename U> Builder &setStage(
+						LedPipelineStage::Builder<U> &stage
+					) {
+						this->_stage = stage;
+						return *this;
+					}
 
-    TimedEffect(const Config &config);
-
-    void reset();
-};
-
-
-class RandomTimedEffect : public TimedEffect {
-public:
-
-    struct Config {
-        unsigned long minRuntimeMs;
-        RequiredField<unsigned long> maxRuntimeMs;
-        SamplingFunction samplingFunction = SamplingFunction::UNIFORM;
-    };
-
-    unsigned long minRuntime;
-    unsigned long maxRuntime;
-    SamplingFunction samplingFunction;
-
-    RandomTimedEffect(const Config &config);
+					T *build() override = 0;
+			};
+	};
 
 
-    void sampleRuntime();
+	struct TimedEffect {\
+		virtual ~TimedEffect() = default;
 
-    void reset();
-};
+		unsigned long startTimeMs;
+		float elapsedPercentage;
+		unsigned long runtimeMs;
 
+		virtual void resetTimer();
+
+		struct Builder : LedPipelineStage::Builder<TimedEffect> {
+			BUILDER_FIELD(unsigned long, runtimeMs);
+
+			explicit Builder(const unsigned long runtimeMs) : _runtimeMs(runtimeMs) {}
+		};
+
+		protected:
+			explicit TimedEffect(
+				unsigned long runtimeMs
+			);
+	};
+
+
+	struct RandomTimedEffect : TimedEffect {
+		unsigned long minRuntimeMs;
+		unsigned long maxRuntimeMs;
+		SamplingFunction samplingFunction;
+
+
+		void sampleRuntime();
+
+		void resetTimer() override;
+
+		struct Builder : LedPipelineStage::Builder<RandomTimedEffect> {
+			BUILDER_FIELD_DEFAULT(unsigned long, minRuntimeMs, 0);
+			BUILDER_FIELD(unsigned long, maxRuntimeMs);
+			BUILDER_FIELD_DEFAULT(SamplingFunction, samplingFunction, SamplingFunction::UNIFORM);
+
+			explicit Builder(const unsigned long maxRuntimeMs) : _maxRuntimeMs(maxRuntimeMs) {}
+		};
+
+		protected:
+			RandomTimedEffect(
+				unsigned long minRuntimeMs,
+				unsigned long maxRuntimeMs,
+				SamplingFunction samplingFunction
+			);
+	};
 }
-
-
-
-
-

@@ -3,33 +3,28 @@
 #include "BaseEffect.h"
 
 namespace ledpipelines::effects {
-class TimeBox : public WrapperEffect, public TimedEffect {
+	class TimeBox : public WrapperEffect, public TimedEffect {
+	public:
+		using Config = TimedEffect::Config;
 
-public:
+		TimeBox(LedPipelineStage *stage, const Config &config);
 
-    using Config = TimedEffect::Config;
+		void reset() override;
 
-    TimeBox(BaseLedPipelineStage *stage, const Config &config);
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
+	};
 
-    void reset() override;
+	class RandomTimeBoxedEffect : public WrapperEffect, public RandomTimedEffect {
+	public:
+		using Config = RandomTimedEffect::Config;
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-};
+		RandomTimeBoxedEffect(
+			LedPipelineStage *stage,
+			const Config &config
+		);
 
-class RandomTimeBoxedEffect : public WrapperEffect, public RandomTimedEffect {
+		void reset() override;
 
-public:
-    using Config = RandomTimedEffect::Config;
-
-    RandomTimeBoxedEffect(
-            BaseLedPipelineStage *stage,
-            const Config &config
-    );
-
-    void reset() override;
-
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-};
-
-
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
+	};
 }

@@ -4,24 +4,25 @@
 
 
 namespace ledpipelines::effects {
-class Loop : public WrapperEffect {
+	struct Loop : public WrapperEffect {
+		size_t numLoops = 0;
+		size_t currentNumLoops = 0;
 
-public:
-    struct Config {
-        size_t numLoops = 0;
-    };
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-private:
-    size_t numLoops = 0;
-    size_t currentNumLoops = 0;
+		void reset() override;
 
-public:
+		struct Builder : WrapperEffect::Builder<Loop> {
+			BUILDER_FIELD_DEFAULT(size_t, numLoops, 0);
 
-    explicit Loop(BaseLedPipelineStage *stage, const Config &config = {.numLoops = 0});
+			Builder() {};
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+			Loop *build() override {
+				return new Loop(_stage, _numLoops);
+			};
+		};
 
-    void reset() override;
-};
-
+		private:
+			explicit Loop(LedPipelineStage *stage, size_t numLoops);
+	};
 }

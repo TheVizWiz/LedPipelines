@@ -5,21 +5,35 @@
 
 
 namespace ledpipelines::effects {
-class Mask : public BaseLedPipelineStage {
+	struct Mask : LedPipelineStage {
+		LedPipelineStage *base;
+		LedPipelineStage *mask;
+		bool useMaskRuntime;
 
-public:
-    BaseLedPipelineStage *mask;
-    BaseLedPipelineStage *base;
-    bool useMaskRuntime;
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    Mask(
-            BaseLedPipelineStage *base,
-            BaseLedPipelineStage *mask,
-            bool useMaskRuntime = false);
+		void reset() override;
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+		struct Builder : LedPipelineStage::Builder<Mask> {
+			BUILDER_FIELD(LedPipelineStage *, base);
+			BUILDER_FIELD(LedPipelineStage *, mask);
+			BUILDER_FIELD_DEFAULT(bool, useMaskRuntime, false);
 
-    void reset() override;
-};
+			Builder(LedPipelineStage *base, LedPipelineStage *mask) : _base(base), _mask(mask) {};
 
+			Mask *build() override {
+				return new Mask(
+					_base,
+					_mask,
+					_useMaskRuntime
+				);
+			}
+		};
+
+		private:
+			Mask(
+				LedPipelineStage *base,
+				LedPipelineStage *mask,
+				bool useMaskRuntime);
+	};
 }

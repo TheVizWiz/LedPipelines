@@ -4,49 +4,47 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 Mask::Mask(
-        BaseLedPipelineStage *base,
-        BaseLedPipelineStage *mask,
-        bool useMaskRuntime
+	LedPipelineStage *base,
+	LedPipelineStage *mask,
+	bool useMaskRuntime
 ) : base(base),
     mask(mask),
-    useMaskRuntime(useMaskRuntime) {
-}
+    useMaskRuntime(useMaskRuntime) {}
 
 
 void Mask::calculate(float startIndex, TemporaryLedData &tempData) {
+	if (this->state == LedPipelineRunningState::DONE) {
+		return;
+	}
 
-    if (this->state == LedPipelineRunningState::DONE) {
-        return;
-    }
+	if (this->state == LedPipelineRunningState::NOT_STARTED) {
+		this->state = LedPipelineRunningState::RUNNING;
+	}
 
-    if (this->state == LedPipelineRunningState::NOT_STARTED) {
-        this->state =  LedPipelineRunningState::RUNNING;
-    }
+	TemporaryLedData maskData = TemporaryLedData();
+	TemporaryLedData baseData = TemporaryLedData();
+	this->mask->calculate(startIndex, maskData);
+	this->base->calculate(startIndex, baseData);
 
-    TemporaryLedData maskData = TemporaryLedData();
-    TemporaryLedData baseData = TemporaryLedData();
-    this->mask->calculate(startIndex, maskData);
-    this->base->calculate(startIndex, baseData);
+	// merge the two layers.
+	baseData.merge(maskData, BlendingMode::MASK);
+	tempData.merge(baseData, BlendingMode::NORMAL);
 
-    // merge the two layers.
-    baseData.merge(maskData, BlendingMode::MASK);
-    tempData.merge(baseData, this->base->blendingMode);
-
-    // The effect finishes when the base is done, so we check if the base effect is done here.
-    if (useMaskRuntime) {
-        if (this->mask->state == LedPipelineRunningState::DONE) {
-            this->state = LedPipelineRunningState::DONE;
-        }
-    } else {
-        if (this->base->state == LedPipelineRunningState::DONE) {
-            this->state = LedPipelineRunningState::DONE;
-        }
-    }
+	// The effect finishes when the base is done, so we check if the base effect is done here.
+	if (useMaskRuntime) {
+		if (this->mask->state == LedPipelineRunningState::DONE) {
+			this->state = LedPipelineRunningState::DONE;
+		}
+	} else {
+		if (this->base->state == LedPipelineRunningState::DONE) {
+			this->state = LedPipelineRunningState::DONE;
+		}
+	}
 }
 
 
 void Mask::reset() {
-    BaseLedPipelineStage::reset();
-    base->reset();
-    mask->reset();
+	LedPipelineStage::reset();
+	base->reset();
+	mask->reset();
 }

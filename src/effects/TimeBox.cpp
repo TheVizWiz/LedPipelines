@@ -4,101 +4,81 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-TimeBox::TimeBox(BaseLedPipelineStage *stage, const Config &config)
-        : WrapperEffect(stage), TimedEffect(config) {}
+TimeBox::TimeBox(LedPipelineStage *stage, const Config &config)
+	: WrapperEffect(stage), TimedEffect(config) {
+}
 
 
 void TimeBox::calculate(float startIndex, TemporaryLedData &tempData) {
-    if (this->state == LedPipelineRunningState::DONE) return;
+	if (this->state == LedPipelineRunningState::DONE) return;
 
-    if (this->state == LedPipelineRunningState::NOT_STARTED) {
-        LPLogger::log(String("starting time boxed effect. Running for ") + runtimeMs + " seconds");
-        this->state = LedPipelineRunningState::RUNNING;
-        startTimeMillis = millis();
-    }
+	if (this->state == LedPipelineRunningState::NOT_STARTED) {
+		LPLogger::log(String("starting time boxed effect. Running for ") + runtimeMs + " seconds");
+		this->state = LedPipelineRunningState::RUNNING;
+		startTimeMs = millis();
+	}
 
-    unsigned long elapsedTime = millis() - startTimeMillis;
+	unsigned long elapsedTime = millis() - startTimeMs;
 
 
-    this->elapsedPercentage = elapsedTime / 1000.0f / runtimeMs;
-    this->stage->calculate(startIndex, tempData);
-    // if the internal stage is done, we set it to done.
-    if (this->stage->state == LedPipelineRunningState::DONE) {
-        this->state = LedPipelineRunningState::DONE;
-    }
+	this->elapsedPercentage = elapsedTime / 1000.0f / runtimeMs;
+	this->stage->calculate(startIndex, tempData);
+	// if the internal stage is done, we set it to done.
+	if (this->stage->state == LedPipelineRunningState::DONE) {
+		this->state = LedPipelineRunningState::DONE;
+	}
 
-    if (elapsedTime / 1000.0 >= runtimeMs) {
-        LPLogger::log("done state time boxed effect.");
-        this->elapsedPercentage = 1;
-        this->state = LedPipelineRunningState::DONE;
-        return;
-    }
+	if (elapsedTime / 1000.0 >= runtimeMs) {
+		LPLogger::log("done state time boxed effect.");
+		this->elapsedPercentage = 1;
+		this->state = LedPipelineRunningState::DONE;
+		return;
+	}
 }
 
 
 void TimeBox::reset() {
-    WrapperEffect::reset();
-    TimedEffect::reset();
+	WrapperEffect::reset();
+	TimedEffect::resetTimer();
 }
 
 RandomTimeBoxedEffect::RandomTimeBoxedEffect(
-        BaseLedPipelineStage *stage,
-        const Config &config)
-        : WrapperEffect(stage), RandomTimedEffect(config) {}
+	LedPipelineStage *stage,
+	const Config &config)
+	: WrapperEffect(stage), RandomTimedEffect(config) {
+}
 
 
 void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData &tempData) {
-    if (this->state == LedPipelineRunningState::DONE) return;
+	if (this->state == LedPipelineRunningState::DONE) return;
 
-    if (this->state == LedPipelineRunningState::NOT_STARTED) {
-        this->state = LedPipelineRunningState::RUNNING;
-        this->sampleRuntime();
-        LPLogger::log(String("running random time boxed effect for ") + this->runtimeMs + " seconds");
-        startTimeMillis = millis();
-    }
+	if (this->state == LedPipelineRunningState::NOT_STARTED) {
+		this->state = LedPipelineRunningState::RUNNING;
+		this->sampleRuntime();
+		LPLogger::log(String("running random time boxed effect for ") + this->runtimeMs + " seconds");
+		startTimeMs = millis();
+	}
 
-    unsigned long elapsedTime = millis() - startTimeMillis;
+	unsigned long elapsedTime = millis() - startTimeMs;
 
 
-    this->elapsedPercentage = elapsedTime / 1000.0f / runtimeMs;
-    this->stage->calculate(startIndex, tempData);
-    // if the internal stage is done, we set it to done.
-    if (this->stage->state == LedPipelineRunningState::DONE) {
-        this->state = LedPipelineRunningState::DONE;
-    }
+	this->elapsedPercentage = elapsedTime / 1000.0f / runtimeMs;
+	this->stage->calculate(startIndex, tempData);
+	// if the internal stage is done, we set it to done.
+	if (this->stage->state == LedPipelineRunningState::DONE) {
+		this->state = LedPipelineRunningState::DONE;
+	}
 
-    if (elapsedTime / 1000.0 >= runtimeMs) {
-        LPLogger::log("done running random time boxed effect.");
-        this->elapsedPercentage = 1;
-        this->state = LedPipelineRunningState::DONE;
-        return;
-    }
+	if (elapsedTime / 1000.0 >= runtimeMs) {
+		LPLogger::log("done running random time boxed effect.");
+		this->elapsedPercentage = 1;
+		this->state = LedPipelineRunningState::DONE;
+		return;
+	}
 }
 
 
 void RandomTimeBoxedEffect::reset() {
-    WrapperEffect::reset();
-    RandomTimedEffect::reset();
+	WrapperEffect::reset();
+	RandomTimedEffect::reset();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

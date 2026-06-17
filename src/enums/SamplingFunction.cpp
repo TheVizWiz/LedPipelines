@@ -3,20 +3,24 @@
 
 using namespace ledpipelines;
 
-float SamplingFunction::operator()(float min, float max) const{
+SamplingFunction & SamplingFunction::operator=(SamplingFunction &other) {
+	this->value = other.value;
+	return *this;
+}
 
-    float originalRandomValue = (float) rand() / (float) RAND_MAX;
+float SamplingFunction::operator()(float min, float max) const {
+	float originalRandomValue = (float) rand() / (float) RAND_MAX;
 
-    float randomFunctionOutput;
+	float randomFunctionOutput;
 
-    switch (value) {
-        case UNIFORM:
-            randomFunctionOutput = originalRandomValue;
-            break;
-        case CENTERED:
-            randomFunctionOutput = tanh(5 * (originalRandomValue - 0.5)) / tanh_range;
-            break;
-    }
+	switch (value) {
+		case UNIFORM:
+			randomFunctionOutput = originalRandomValue;
+			break;
+		case CENTERED:
+			randomFunctionOutput = tanh(5 * (originalRandomValue - 0.5)) / tanh_range;
+			break;
+	}
 
-    return (max - min) * randomFunctionOutput + min;
+	return (max - min) * randomFunctionOutput + min;
 }

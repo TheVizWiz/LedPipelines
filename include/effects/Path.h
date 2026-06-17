@@ -5,19 +5,38 @@
 
 
 namespace ledpipelines::effects {
+	struct Path : WrapperEffect {
+		using Segments = std::vector<std::pair<int, int> >;
 
+		Segments segments;
 
-struct Path : public WrapperEffect {
+		Path *addSegment(int start, int end);
 
-    std::vector<std::pair<int, int>> segments;
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    Path(BaseLedPipelineStage *stage);
+		void reset() override;
 
-    Path *addSegment(int start, int end);
+		struct Builder : WrapperEffect::Builder<Path> {
+			BUILDER_FIELD_DEFAULT(Segments, segments, Segments());
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
+			Builder &addSegment(int start, int end) {
+				this->_segments.push_back(std::make_pair(start, end));
+				return *this;
+			}
 
-    void reset() override;
-};
+			explicit Builder();
 
+			Path *build() override {
+				return new Path(
+					_stage,
+					std::move(_segments)
+				);
+			}
+		};
+
+		protected:
+			Path(LedPipelineStage *stage, const Segments &segments);
+
+			Path(LedPipelineStage *stage, Segments &&segments);
+	};
 }

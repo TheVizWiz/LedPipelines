@@ -3,20 +3,36 @@
 #include "BaseEffect.h"
 
 namespace ledpipelines::effects {
-class Repeat : public WrapperEffect {
-public:
+	struct Repeat : WrapperEffect {
+		int numRepeats;
+		float repeatDistance;
+		BlendingMode blendingMode;
 
-    struct Config {
-        RequiredField<float> repeatDistance;
-        int numRepeats = 0;
-    };
+		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-    int numRepeats = 1;
-    float repeatDistance = 0;
+		struct Builder : WrapperEffect::Builder<Repeat> {
+			BUILDER_FIELD_DEFAULT(int, numRepeats, 0);
+			BUILDER_FIELD(float, repeatDistance);
+			BUILDER_FIELD_DEFAULT(BlendingMode, blendingMode, BlendingMode::NORMAL);
 
-    Repeat(BaseLedPipelineStage *stage, const Config &config);
+			Builder(float repeatDistance) : _repeatDistance(repeatDistance) {};
 
-    void calculate(float startIndex, TemporaryLedData &tempData) override;
-};
+			Repeat *build() override {
+				return new Repeat(
+					_stage,
+					_numRepeats,
+					_repeatDistance,
+					_blendingMode
+				);
+			}
+		};
 
+		protected:
+			Repeat(
+				LedPipelineStage *stage,
+				int numRepeats,
+				float repeatDistance,
+				BlendingMode blendingMode
+			);
+	};
 }
