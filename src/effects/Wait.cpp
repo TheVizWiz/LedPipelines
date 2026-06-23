@@ -6,11 +6,10 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-Wait::Wait(const Wait::Config &config) : TimedEffect(config) {
-}
+Wait::Wait(const Wait::Config& config) : TimedEffect(config) {}
 
 
-void Wait::calculate(float startIndex, TemporaryLedData &tempData) {
+void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -26,7 +25,7 @@ void Wait::calculate(float startIndex, TemporaryLedData &tempData) {
 		return;
 	}
 
-	this->elapsedPercentage = ((float) totalTimeWaited / 1000.0f) / this->runtimeMs; // convert ms to seconds
+	this->elapsedPercentage = ((float)totalTimeWaited / 1000.0f) / this->runtimeMs; // convert ms to seconds
 	this->state = LedPipelineRunningState::RUNNING;
 }
 
@@ -36,10 +35,9 @@ void Wait::reset() {
 }
 
 
-RandomWaitEffect::RandomWaitEffect(const RandomWaitEffect::Config &config) : RandomTimedEffect(config) {
-}
+RandomWaitEffect::RandomWaitEffect(const RandomWaitEffect::Config& config) : RandomTimedEffect(config) {}
 
-void RandomWaitEffect::calculate(float startIndex, TemporaryLedData &tempData) {
+void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) {
 		return;
 	}
@@ -60,7 +58,7 @@ void RandomWaitEffect::calculate(float startIndex, TemporaryLedData &tempData) {
 		return;
 	}
 
-	this->elapsedPercentage = ((float) totalTimeWaited / 1000.0f) / this->runtimeMs; // convert ms to seconds
+	this->elapsedPercentage = ((float)totalTimeWaited / 1000.0f) / this->runtimeMs; // convert ms to seconds
 	this->state = LedPipelineRunningState::RUNNING;
 }
 

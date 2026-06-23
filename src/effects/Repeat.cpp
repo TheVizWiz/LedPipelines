@@ -3,23 +3,13 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Repeat::Repeat(
-	LedPipelineStage *stage,
-	int numRepeats,
-	float repeatDistance,
-	BlendingMode blendingMode
-)
-	: WrapperEffect(stage),
-	  numRepeats(numRepeats),
-	  repeatDistance(repeatDistance),
-	  blendingMode(blendingMode) {}
+Repeat::Repeat(LedPipelineStage* stage, int numRepeats, float repeatDistance, BlendingMode blendingMode) :
+	WrapperEffect(stage), numRepeats(numRepeats), repeatDistance(repeatDistance), blendingMode(blendingMode) {}
 
-void Repeat::calculate(float startIndex, TemporaryLedData &tempData) {
-	if (this->state == LedPipelineRunningState::DONE)
-		return;
+void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
+	if (this->state == LedPipelineRunningState::DONE) return;
 
-	if (this->state == LedPipelineRunningState::NOT_STARTED)
-		this->state = LedPipelineRunningState::RUNNING;
+	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
 	//    // only calculate the data once. We first calculate it at 0, and then shift it by how much
 	//    TemporaryLedData stageData = TemporaryLedData();

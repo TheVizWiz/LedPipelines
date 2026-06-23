@@ -3,16 +3,11 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Mask::Mask(
-	LedPipelineStage *base,
-	LedPipelineStage *mask,
-	bool useMaskRuntime
-) : base(base),
-    mask(mask),
-    useMaskRuntime(useMaskRuntime) {}
+Mask::Mask(LedPipelineStage* base, LedPipelineStage* mask, bool useMaskRuntime) :
+	base(base), mask(mask), useMaskRuntime(useMaskRuntime) {}
 
 
-void Mask::calculate(float startIndex, TemporaryLedData &tempData) {
+void Mask::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) {
 		return;
 	}

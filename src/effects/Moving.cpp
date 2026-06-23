@@ -5,21 +5,13 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Moving::Moving(
-	LedPipelineStage *stage,
-	const unsigned long runtimeMs,
-	const float startPosition,
-	const float endPosition,
-	SmoothingFunction smoothingFunction)
-	: WrapperEffect(stage),
-	  TimedEffect(runtimeMs),
-	  currentPosition(startPosition),
-	  startPosition(startPosition),
-	  endPosition(endPosition),
-	  smoothingFunction(smoothingFunction) {}
+Moving::Moving(LedPipelineStage* stage, const unsigned long runtimeMs, const float startPosition,
+			   const float endPosition, SmoothingFunction smoothingFunction) :
+	WrapperEffect(stage), TimedEffect(runtimeMs), currentPosition(startPosition), startPosition(startPosition),
+	endPosition(endPosition), smoothingFunction(smoothingFunction) {}
 
 
-void Moving::calculate(float startIndex, TemporaryLedData &tempData) {
+void Moving::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -27,7 +19,7 @@ void Moving::calculate(float startIndex, TemporaryLedData &tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	this->elapsedPercentage = (float) (millis() - this->startTimeMs) / (float) runtimeMs;
+	this->elapsedPercentage = (float)(millis() - this->startTimeMs) / (float)runtimeMs;
 
 	this->currentPosition = smoothingFunction(elapsedPercentage, startPosition, endPosition);
 

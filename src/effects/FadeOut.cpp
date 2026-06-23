@@ -4,10 +4,10 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-FadeOut::FadeOut(unsigned long runtimeMs, SmoothingFunction smoothingFunction)
-	: TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {}
+FadeOut::FadeOut(unsigned long runtimeMs, SmoothingFunction smoothingFunction) :
+	TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {}
 
-void FadeOut::calculate(float startIndex, TemporaryLedData &tempData) {
+void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -32,13 +32,7 @@ void FadeOut::calculate(float startIndex, TemporaryLedData &tempData) {
 	}
 	elapsedPercentage = timeFadingSeconds / runtimeMs;
 
-	float opacityMultiplier = smoothingFunction(
-		runtimeMs,
-		0,
-		timeFadingSeconds,
-		UINT8_MAX,
-		0
-	);
+	float opacityMultiplier = smoothingFunction(runtimeMs, 0, timeFadingSeconds, UINT8_MAX, 0);
 
 	for (int i = 0; i < TemporaryLedData::size; i++) {
 		tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
@@ -50,15 +44,12 @@ void FadeOut::reset() {
 	TimedEffect::resetTimer();
 }
 
-RandomFadeOut::RandomFadeOut(
-	unsigned long minRuntimeMs,
-	unsigned long maxRuntimeMs,
-	SamplingFunction samplingFunction,
-	SmoothingFunction smoothingFunction)
-	: RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction), smoothingFunction(smoothingFunction) {}
+RandomFadeOut::RandomFadeOut(unsigned long minRuntimeMs, unsigned long maxRuntimeMs, SamplingFunction samplingFunction,
+							 SmoothingFunction smoothingFunction) :
+	RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction), smoothingFunction(smoothingFunction) {}
 
 
-void RandomFadeOut::calculate(float startIndex, TemporaryLedData &tempData) {
+void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -86,15 +77,9 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData &tempData) {
 		return;
 	}
 
-	elapsedPercentage = (float) timeFadingMs / (float) runtimeMs;
+	elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
 
-	float currentOpacity = smoothingFunction(
-		timeFadingMs,
-		0,
-		runtimeMs,
-		UINT8_MAX,
-		0
-	);
+	float currentOpacity = smoothingFunction(timeFadingMs, 0, runtimeMs, UINT8_MAX, 0);
 
 	for (int i = 0; i < TemporaryLedData::size; i++) {
 		tempData.opacity[i] = currentOpacity;

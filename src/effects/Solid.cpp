@@ -7,30 +7,29 @@ Solid::Solid(const CRGB color, const uint8_t opacity) : color(color), opacity(op
 	this->state = LedPipelineRunningState::RUNNING;
 }
 
-void Solid::calculate(const float startIndex, TemporaryLedData &tempData) {
+void Solid::calculate(const float startIndex, TemporaryLedData& tempData) {
 	for (int i = startIndex; i < TemporaryLedData::size; i++) {
 		tempData.set(i, color, opacity);
 	}
 }
 
-SolidSegment::SolidSegment(const CRGB color, uint8_t opacity, float length)
-	: Solid(color, opacity), length(length) {}
+SolidSegment::SolidSegment(const CRGB color, uint8_t opacity, float length) : Solid(color, opacity), length(length) {}
 
-void SolidSegment::calculate(float startIndex, TemporaryLedData &tempData) {
+void SolidSegment::calculate(float startIndex, TemporaryLedData& tempData) {
 	const float endIndex = startIndex + length;
 
-	const int startIndexFloor = (int) startIndex;
-	const int endIndexFloor = (int) endIndex;
+	const int startIndexFloor = (int)startIndex;
+	const int endIndexFloor = (int)endIndex;
 
 	/**
-     * Two cases:
-     *
-     * if the start and end of the segment are in the same pixel, then we need to only light up that pixel, and only
-     * partially based on how large the pixel value is.
-     *
-     * if the start is on a different pixel than the end, we can light up the first pixel partially, then light up
-     * all pixels between start and end completely, and then light up the last pixel partially as well.
-     */
+	 * Two cases:
+	 *
+	 * if the start and end of the segment are in the same pixel, then we need to only light up that pixel, and only
+	 * partially based on how large the pixel value is.
+	 *
+	 * if the start is on a different pixel than the end, we can light up the first pixel partially, then light up
+	 * all pixels between start and end completely, and then light up the last pixel partially as well.
+	 */
 	if (startIndexFloor == endIndexFloor) {
 		// both are on the same pixel, we can light it up partially.
 		const float amountToLightUp = length;

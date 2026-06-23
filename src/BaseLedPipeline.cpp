@@ -2,14 +2,11 @@
 
 using namespace ledpipelines;
 
-LedPipelineStage::LedPipelineStage(BlendingMode blendingMode)
-	: lastUpdateTimeMicros(micros()) {}
+LedPipelineStage::LedPipelineStage(BlendingMode blendingMode) : lastUpdateTimeMicros(micros()) {}
 
 LedPipelineStage::~LedPipelineStage() = default;
 
-void LedPipelineStage::reset() {
-	this->state = LedPipelineRunningState::NOT_STARTED;
-}
+void LedPipelineStage::reset() { this->state = LedPipelineRunningState::NOT_STARTED; }
 
 void LedPipelineStage::run() {
 	if (this->state == LedPipelineRunningState::DONE) {
@@ -32,9 +29,9 @@ void LedPipelineStage::run() {
 
 LedPipeline::LedPipeline(BlendingMode mode) : LedPipelineStage(mode) {}
 
-LedPipeline *LedPipeline::addStage(std::unique_ptr<LedPipelineStage> stage) {}
+LedPipeline* LedPipeline::addStage(std::unique_ptr<LedPipelineStage> stage) {}
 
-LedPipeline *LedPipeline::addStage(LedPipelineStage *stage) {
+LedPipeline* LedPipeline::addStage(LedPipelineStage* stage) {
 	this->stages.push_back(std::unique_ptr<LedPipelineStage>(stage));
 	return this;
 }
@@ -42,24 +39,22 @@ LedPipeline *LedPipeline::addStage(LedPipelineStage *stage) {
 void LedPipeline::reset() {
 	LedPipelineStage::reset();
 
-	for (auto &stage: stages) {
+	for (auto& stage : stages) {
 		stage.reset();
 	}
 }
 
 ParallelLedPipeline::ParallelLedPipeline(BlendingMode mode) : LedPipeline(mode) {}
 
-void ParallelLedPipeline::calculate(float startIndex, TemporaryLedData &tempData) {
-	if (this->state == LedPipelineRunningState::DONE)
-		return;
+void ParallelLedPipeline::calculate(float startIndex, TemporaryLedData& tempData) {
+	if (this->state == LedPipelineRunningState::DONE) return;
 
-	if (this->state == LedPipelineRunningState::NOT_STARTED)
-		this->state = LedPipelineRunningState::RUNNING;
+	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
 
 	LedPipelineRunningState anyArePlaying = LedPipelineRunningState::DONE;
 
-	for (auto &stage: stages) {
+	for (auto& stage : stages) {
 		stage->calculate(startIndex, tempData);
 
 		TemporaryLedData currentData = TemporaryLedData();
@@ -76,9 +71,8 @@ void ParallelLedPipeline::calculate(float startIndex, TemporaryLedData &tempData
 
 SeriesLedPipeline::SeriesLedPipeline(const BlendingMode mode) : LedPipeline(mode) {}
 
-void SeriesLedPipeline::calculate(const float startIndex, TemporaryLedData &tempData) {
-	if (this->state == LedPipelineRunningState::DONE)
-		return;
+void SeriesLedPipeline::calculate(const float startIndex, TemporaryLedData& tempData) {
+	if (this->state == LedPipelineRunningState::DONE) return;
 
 	// this is the first time we are state, so currentStage hasn't been set to the first stage yet.
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {

@@ -4,13 +4,10 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-FadeIn::FadeIn(
-	unsigned long runtimeMs,
-	SmoothingFunction smoothingFunction
-) : TimedEffect(runtimeMs),
-    smoothingFunction(smoothingFunction) {}
+FadeIn::FadeIn(unsigned long runtimeMs, SmoothingFunction smoothingFunction) :
+	TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {}
 
-void FadeIn::calculate(float startIndex, TemporaryLedData &tempData) {
+void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -34,16 +31,10 @@ void FadeIn::calculate(float startIndex, TemporaryLedData &tempData) {
 		return;
 	} else {
 		this->state = LedPipelineRunningState::RUNNING;
-		elapsedPercentage = (float) timeFadingMs / (float) runtimeMs;
+		elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
 	}
 
-	float opacityMultiplier = smoothingFunction(
-		timeFadingMs,
-		0,
-		runtimeMs,
-		0,
-		UINT8_MAX
-	);
+	float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
 
 	for (int i = 0; i < TemporaryLedData::size; i++) {
 		tempData.opacity[i] = opacityMultiplier * 255;
@@ -56,19 +47,11 @@ void FadeIn::reset() {
 }
 
 
-RandomFadeIn::RandomFadeIn(
-	const unsigned long minRuntimeMs,
-	const unsigned long maxRuntimeMs,
-	SamplingFunction samplingFunction,
-	SmoothingFunction smoothingFunction
-) : RandomTimedEffect(
-	    minRuntimeMs,
-	    maxRuntimeMs,
-	    samplingFunction
-    ),
-    smoothingFunction(smoothingFunction) {}
+RandomFadeIn::RandomFadeIn(const unsigned long minRuntimeMs, const unsigned long maxRuntimeMs,
+						   SamplingFunction samplingFunction, SmoothingFunction smoothingFunction) :
+	RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction), smoothingFunction(smoothingFunction) {}
 
-void RandomFadeIn::calculate(float startIndex, TemporaryLedData &tempData) {
+void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -98,13 +81,7 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData &tempData) {
 		elapsedPercentage = static_cast<float>(timeFadingMs) / static_cast<float>(runtimeMs);
 	}
 
-	const float currentOpacity = smoothingFunction(
-		timeFadingMs,
-		0,
-		runtimeMs,
-		0,
-		UINT8_MAX
-	);
+	const float currentOpacity = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
 
 	for (int i = 0; i < TemporaryLedData::size; i++) {
 		tempData.opacity[i] = currentOpacity;

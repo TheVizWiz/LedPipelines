@@ -2,40 +2,34 @@
 
 
 namespace ledpipelines::effects {
-	Spawner::Spawner(const Config &config)
-		: LedPipelineStage(),
-		  factory(config.factory),
-		  maxChildren(config.maxChildren),
-		  activeChildren(),
-		  keepOldOnSpawn(config.keepOldOnSpawn) {
-	}
+	Spawner::Spawner(const Config& config) :
+		LedPipelineStage(), factory(config.factory), maxChildren(config.maxChildren), activeChildren(),
+		keepOldOnSpawn(config.keepOldOnSpawn) {}
 
 
-	void Spawner::calculate(float startIndex, TemporaryLedData &tempData) {
-		for (auto &child: activeChildren) {
+	void Spawner::calculate(float startIndex, TemporaryLedData& tempData) {
+		for (auto& child : activeChildren) {
 			TemporaryLedData childData = TemporaryLedData();
 			child->calculate(startIndex, childData);
 			tempData.merge(childData, child->blendingMode);
 		}
 
 
-		activeChildren.erase(
-			std::remove_if(activeChildren.begin(), activeChildren.end(),
-			               [](LedPipelineStage *child) {
-				               if (child->state == LedPipelineRunningState::DONE) {
-					               delete child;
-					               return true;
-				               };
-				               return false;
-			               }),
-			activeChildren.end()
-		);
+		activeChildren.erase(std::remove_if(activeChildren.begin(), activeChildren.end(),
+											[](LedPipelineStage* child) {
+												if (child->state == LedPipelineRunningState::DONE) {
+													delete child;
+													return true;
+												};
+												return false;
+											}),
+							 activeChildren.end());
 	}
 
 
 	void Spawner::reset() {
 		LedPipelineStage::reset();
-		for (auto &child: activeChildren) {
+		for (auto& child : activeChildren) {
 			delete child;
 		}
 		activeChildren.clear();
@@ -52,23 +46,22 @@ namespace ledpipelines::effects {
 			activeChildren.erase(activeChildren.begin());
 		}
 
-		LedPipelineStage *newChild = factory();
+		LedPipelineStage* newChild = factory();
 		activeChildren.push_back(newChild);
 	}
 
 
-	TimedSpawner::TimedSpawner(const Config &config)
-		: Spawner({
-			  .factory = config.factory,
-			  .maxChildren = config.maxChildren,
-			  .keepOldOnSpawn = config.keepOldOnSpawn,
+	TimedSpawner::TimedSpawner(const Config& config) :
+		Spawner({
+			.factory = config.factory,
+			.maxChildren = config.maxChildren,
+			.keepOldOnSpawn = config.keepOldOnSpawn,
 
-		  }),
-		  spawnTimeMs(config.spawnTimeMs) {
-	}
+		}),
+		spawnTimeMs(config.spawnTimeMs) {}
 
 
-	void TimedSpawner::calculate(float startIndex, TemporaryLedData &tempData) {
+	void TimedSpawner::calculate(float startIndex, TemporaryLedData& tempData) {
 		auto currentTimeMs = millis();
 		if (currentTimeMs - lastSpawnTimeMs >= spawnTimeMs) {
 			lastSpawnTimeMs = currentTimeMs;
@@ -78,23 +71,18 @@ namespace ledpipelines::effects {
 	}
 
 
-	RandomTimedSpawner::RandomTimedSpawner(const Config &config)
-		: TimedSpawner({
-			  .factory = config.factory,
-			  .maxChildren = config.maxChildren,
-			  .spawnTimeMs = config.spawnTimeSamplingFunction(
-				  config.minSpawnTimeMs,
-				  config.maxSpawnTimeMs
-			  ),
-			  .keepOldOnSpawn = config.keepOldOnSpawn,
-		  }),
-		  minSpawnTimeMs(config.minSpawnTimeMs),
-		  maxSpawnTimeMs(config.maxSpawnTimeMs),
-		  spawnTimeSamplingFunction(config.spawnTimeSamplingFunction) {
-	}
+	RandomTimedSpawner::RandomTimedSpawner(const Config& config) :
+		TimedSpawner({
+			.factory = config.factory,
+			.maxChildren = config.maxChildren,
+			.spawnTimeMs = config.spawnTimeSamplingFunction(config.minSpawnTimeMs, config.maxSpawnTimeMs),
+			.keepOldOnSpawn = config.keepOldOnSpawn,
+		}),
+		minSpawnTimeMs(config.minSpawnTimeMs), maxSpawnTimeMs(config.maxSpawnTimeMs),
+		spawnTimeSamplingFunction(config.spawnTimeSamplingFunction) {}
 
 
-	void RandomTimedSpawner::calculate(float startIndex, TemporaryLedData &tempData) {
+	void RandomTimedSpawner::calculate(float startIndex, TemporaryLedData& tempData) {
 		auto currentTimeMs = millis();
 		if (currentTimeMs - lastSpawnTimeMs >= spawnTimeMs) {
 			lastSpawnTimeMs = currentTimeMs;
@@ -103,4 +91,4 @@ namespace ledpipelines::effects {
 		}
 		Spawner::calculate(startIndex, tempData);
 	}
-}
+} // namespace ledpipelines::effects

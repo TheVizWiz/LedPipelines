@@ -2,19 +2,16 @@
 
 
 namespace ledpipelines::effects {
-	Path::Path(LedPipelineStage *stage, const Segments &segments) : WrapperEffect(stage),
-	                                                                segments(segments) {}
+	Path::Path(LedPipelineStage* stage, const Segments& segments) : WrapperEffect(stage), segments(segments) {}
 
-	Path::Path(LedPipelineStage *stage, Segments &&segments)
-		: WrapperEffect(stage),
-		  segments(std::move(segments)) {}
+	Path::Path(LedPipelineStage* stage, Segments&& segments) : WrapperEffect(stage), segments(std::move(segments)) {}
 
-	Path *Path::addSegment(int start, int end) {
+	Path* Path::addSegment(int start, int end) {
 		segments.emplace_back(start, end);
 		return this;
 	}
 
-	void Path::calculate(float startIndex, TemporaryLedData &tempData) {
+	void Path::calculate(float startIndex, TemporaryLedData& tempData) {
 		if (this->state == LedPipelineRunningState::DONE) return;
 
 		if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -27,14 +24,12 @@ namespace ledpipelines::effects {
 
 		int currentIndex = 0;
 
-		for (auto &segment: segments) {
+		for (auto& segment : segments) {
 			auto start = segment.first;
 			auto end = segment.second;
 
 
-			for (int i = start;
-			     (start < end ? i < end : i > end);
-			     (start < end ? i++ : i--)) {
+			for (int i = start; (start < end ? i < end : i > end); (start < end ? i++ : i--)) {
 				auto opacity = tempData.getOpacity(currentIndex);
 				auto color = tempData.get(currentIndex);
 				currentIndex++;
@@ -52,7 +47,5 @@ namespace ledpipelines::effects {
 		this->state = stage->state;
 	}
 
-	void Path::reset() {
-		WrapperEffect::reset();
-	}
-}
+	void Path::reset() { WrapperEffect::reset(); }
+} // namespace ledpipelines::effects

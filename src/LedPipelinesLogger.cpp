@@ -23,7 +23,7 @@ static String getFormattedTime() {
 	return buffer;
 }
 
-void LPLogger::logInternal(LogLevel logLevel, String &log) {
+void LPLogger::logInternal(LogLevel logLevel, String& log) {
 	if (LPLogger::internalLogLevel < logLevel) return;
 	Serial.println("[" + getFormattedTime() + "] (" + logLevel.toString() + ") " + log);
 }

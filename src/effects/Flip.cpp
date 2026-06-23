@@ -3,15 +3,12 @@
 
 using namespace ledpipelines::effects;
 
-Flip::Flip(LedPipelineStage *stage, long min, long max)
-	: WrapperEffect(stage),
-	  min(std::min(min, max)),
-	  max(std::max(min, max)) {}
+Flip::Flip(LedPipelineStage* stage, long min, long max) :
+	WrapperEffect(stage), min(std::min(min, max)), max(std::max(min, max)) {}
 
 
-void Flip::calculate(float startIndex, ledpipelines::TemporaryLedData &tempData) {
-	if (this->state == LedPipelineRunningState::DONE)
-		return;
+void Flip::calculate(float startIndex, ledpipelines::TemporaryLedData& tempData) {
+	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
 		this->state = LedPipelineRunningState::RUNNING;

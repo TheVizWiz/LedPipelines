@@ -6,18 +6,21 @@
 namespace ledpipelines::effects {
 	struct AbsolutePosition : WrapperEffect {
 		struct Builder : WrapperEffect::Builder<AbsolutePosition> {
-			float position = 0;
 
-			Builder(float position = 0);
+			BUILDER_FIELD_DEFAULT(float, position, 0);
 
-			AbsolutePosition *build() override;
+			explicit Builder(float position = 0) : _position(position) {};
+
+			AbsolutePosition* build() override {
+				return new AbsolutePosition(_stage, _position);
+			};
 		};
 
 		float position;
 
-		void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
-		private:
-			explicit AbsolutePosition(LedPipelineStage *stage, float position = 0);
+	private:
+		explicit AbsolutePosition(LedPipelineStage* stage, float position = 0);
 	};
-}
+} // namespace ledpipelines::effects

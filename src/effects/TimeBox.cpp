@@ -4,12 +4,10 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-TimeBox::TimeBox(LedPipelineStage *stage, const Config &config)
-	: WrapperEffect(stage), TimedEffect(config) {
-}
+TimeBox::TimeBox(LedPipelineStage* stage, const Config& config) : WrapperEffect(stage), TimedEffect(config) {}
 
 
-void TimeBox::calculate(float startIndex, TemporaryLedData &tempData) {
+void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -42,14 +40,11 @@ void TimeBox::reset() {
 	TimedEffect::resetTimer();
 }
 
-RandomTimeBoxedEffect::RandomTimeBoxedEffect(
-	LedPipelineStage *stage,
-	const Config &config)
-	: WrapperEffect(stage), RandomTimedEffect(config) {
-}
+RandomTimeBoxedEffect::RandomTimeBoxedEffect(LedPipelineStage* stage, const Config& config) :
+	WrapperEffect(stage), RandomTimedEffect(config) {}
 
 
-void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData &tempData) {
+void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
