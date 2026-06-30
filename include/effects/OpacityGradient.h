@@ -5,12 +5,6 @@
 
 namespace ledpipelines::effects {
 	struct OpacityGradient : WrapperEffect {
-		struct Config {
-			float startIndex = 0;
-			RequiredField<float> endIndex;
-			SmoothingFunction smoothingFunction = SmoothingFunction::SMOOTH_LINEAR;
-		};
-
 		float startIndex;
 		float endIndex;
 		SmoothingFunction smoothingFunction;

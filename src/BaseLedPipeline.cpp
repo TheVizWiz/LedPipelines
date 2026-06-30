@@ -29,7 +29,12 @@ void LedPipelineStage::run() {
 
 LedPipeline::LedPipeline(BlendingMode mode) : LedPipelineStage(mode) {}
 
-LedPipeline* LedPipeline::addStage(std::unique_ptr<LedPipelineStage> stage) {}
+LedPipeline::~LedPipeline() = default;
+
+LedPipeline* LedPipeline::addStage(std::unique_ptr<LedPipelineStage> stage) {
+	this->stages.push_back(std::move(stage));
+	return this;
+}
 
 LedPipeline* LedPipeline::addStage(LedPipelineStage* stage) {
 	this->stages.push_back(std::unique_ptr<LedPipelineStage>(stage));

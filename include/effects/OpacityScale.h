@@ -5,12 +5,22 @@
 
 
 namespace ledpipelines::effects {
-	class OpacityScale : public WrapperEffect {
-	public:
+	struct OpacityScale : public WrapperEffect {
 		uint8_t maxOpacity;
 
-		OpacityScale(LedPipelineStage *stage, uint8_t maxOpacity);
-
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
+
+		struct Builder : WrapperEffect::Builder<OpacityScale> {
+			BUILDER_FIELD_DEFAULT(uint8_t, maxOpacity, 0xFF);
+
+			explicit Builder(const uint8_t maxOpacity) : _maxOpacity(maxOpacity) {}
+
+			OpacityScale *build() override {
+				return new OpacityScale(_stage, _maxOpacity);
+			}
+		};
+
+		private:
+			OpacityScale(LedPipelineStage *stage, uint8_t maxOpacity);
 	};
 }

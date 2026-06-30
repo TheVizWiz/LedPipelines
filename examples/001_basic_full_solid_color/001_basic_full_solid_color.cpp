@@ -25,10 +25,10 @@ CRGB leds[100];
 
 /**
  * This object will store our pipeline once we initialize it. All objects in LedPipelines derive from the base class of
- * BaseLedPipelineStage, so no matter what our pipeline looks like, we can use BaseLedPipelineStage to store it. Since
- * BaseLedPipelineStage is an abstract class, we need to use a pointer here.
+ * LedPipelineStage, so no matter what our pipeline looks like, we can use LedPipelineStage to store it. Since
+ * LedPipelineStage is an abstract class, we need to use a pointer here.
  */
-ledpipelines::BaseLedPipelineStage *pipeline;
+ledpipelines::LedPipelineStage *pipeline;
 
 
 void setup() {
@@ -54,10 +54,10 @@ void setup() {
      *
      * For now, we just want to use a single effect that sets up the entire strip to run in a single color, so we only need
      * the one effect/stage. In LedPipelines, the effect that lights up the entire strip in a single color is called
-     * SolidEffect. We can set the pipeline to be the one stage that we want, by also passing in the color that we want
-     * to set it to.
+     * Solid. Every effect is created through its Builder: we pass the color we want into the Builder, then call
+     * build() to get the actual effect. We can set the pipeline to be that one stage.
      */
-	pipeline = new ledpipelines::effects::SolidEffect({CRGB::Red});
+	pipeline = ledpipelines::effects::Solid::Builder(CRGB::Red).build();
 }
 
 

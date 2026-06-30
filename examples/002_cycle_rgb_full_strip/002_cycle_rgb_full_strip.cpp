@@ -5,7 +5,7 @@
 
 
 // these just make it easier to make effects without having to write out the entire thing every time.
-// e.g. now we can do SolidEffect instead of ledpipelines::effects::SolidEffect. totally optional.
+// e.g. now we can do Solid instead of ledpipelines::effects::Solid. totally optional.
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
@@ -32,7 +32,7 @@ CRGB leds[100];
 /**
  * This object will store our LedPipeline once we initialize it.
  */
-BaseLedPipelineStage *pipeline;
+LedPipelineStage *pipeline;
 
 
 void setup() {
@@ -66,42 +66,46 @@ void setup() {
      * of a WrapperEffect. A WrapperEffect is an effect that wraps around another effect, and applies some modifier to it.
      * For example, there is a WrapperEffect called OpacityGradient that gradually fades in the effect that's passed to it
      * over a given number of LEDs. LedPipelines comes with a library of WrapperEffects. In this case, we can make use of
-     * the TimeBoxedEffect, which sets the max duration of the internal effect to be a certain number of seconds.
+     * the TimeBox effect, which sets the max duration of the internal effect to be a certain number of seconds.
+     *
+     * To wrap one effect in another, every stage has a wrap() method. You build the inner effect, then call wrap() on
+     * it with the Builder of the WrapperEffect you want to apply. wrap() attaches the inner effect to the wrapper and
+     * returns the wrapper, so you can keep chaining more wrappers on top.
      */
 
-	auto redEffect = new SolidEffect({CRGB::Red});
-	auto redEffectLimited = new TimeBoxedEffect(redEffect, {2});
+	auto redEffect = Solid::Builder(CRGB::Red).build();
+	auto redEffectLimited = redEffect->wrap(TimeBox::Builder(2));
 
 
 	/**
-     * The two lines above first set up a red effect, then wrap it in a TimeBoxedEffect that limits it to run for 2
+     * The two lines above first build a red effect, then wrap it in a TimeBox that limits it to run for 2
      * seconds. If we were to add this to the pipeline like we did last time, we would get a red light for two seconds,
      * and then nothing until we reset the microcontroller.
      *
      * Let's set up the blue and green effects. I'll do these on one line, just to show what that looks like.
      */
-	auto greenEffectLimited = new TimeBoxedEffect(new SolidEffect({CRGB::Green}), {2});
-	auto blueEffectLimited = new TimeBoxedEffect(new SolidEffect({CRGB::Blue}), {2});
+	auto greenEffectLimited = Solid::Builder(CRGB::Green).build()->wrap(TimeBox::Builder(2));
+	auto blueEffectLimited = Solid::Builder(CRGB::Blue).build()->wrap(TimeBox::Builder(2));
 
 
 	/**
      * Now that we have all of our effects, we can think about the next part - making them play one at a time, and then
      * loop back around. When we set up more complicated effects like this, the order that we set up our pipelines matters
      * for what the final effect will look like. To make this effect, we'll need to use two new things: a SeriesLedPipeline,
-     * and a LoopEffect.
+     * and a Loop effect.
      *
      * The SeriesLedPipeline will run all of its stages, one at a time. It'll run each stage until the stage says that
-     * it's done. In this case, if we add a TimeBoxedEffect, it'll run until the TimeBoxedEffect finishes, then move on
+     * it's done. In this case, if we add a TimeBox, it'll run until the TimeBox finishes, then move on
      * to the next stage, and so on.
      *
-     * The LoopEffect is another WrapperEffect that will run the effect that it wraps until the internal effect finishes,
+     * The Loop is another WrapperEffect that will run the effect that it wraps until the internal effect finishes,
      * and then run it again. And again. It'll run a specified number of times, or it'll run it until an indefinite number
      * of times if no number is specified.
      *
      *
      * Here, we have a choice - we could:
-     * 1. add all the R/G/B TimeBoxedEffects to the SeriesLedPipeline, and then wrap it in a LoopEffect.
-     * 2. wrap each R/G/B TimeBoxedEffect in a LoopEffect, and then add each LoopEffect to a SeriesLedPipeline.
+     * 1. add all the R/G/B TimeBox effects to the SeriesLedPipeline, and then wrap it in a Loop.
+     * 2. wrap each R/G/B TimeBox effect in a Loop, and then add each Loop to a SeriesLedPipeline.
      *
      * If we think about the control flow of option 2, it'll try to run the first stage in the pipeline, which would
      * loop the TimeBoxed red effect until it finishes, and then loop over it again, and again, and again. That's not
@@ -109,17 +113,18 @@ void setup() {
      * what that looks like:
      */
 
-	pipeline = new LoopEffect(
+	pipeline =
 		/**
-             * inside the loop effect, we can supply the pipeline we talked about before. We could set up another variable
+             * inside the loop, we can supply the pipeline we talked about before. We could set up another variable
              * for the internal pipeline, and then add each stage separately, but the addStage method returns a reference
-             * to the pipeline itself so that we can chain multiple calls.
+             * to the pipeline itself so that we can chain multiple calls. Once the pipeline is built up, we wrap it in a
+             * Loop using its wrap() method.
              */
 		(new SeriesLedPipeline) // yes, the parentheses here are required :(
-		->addStage(redEffectLimited)
-		->addStage(greenEffectLimited)
-		->addStage(blueEffectLimited)
-	);
+			->addStage(redEffectLimited)
+			->addStage(greenEffectLimited)
+			->addStage(blueEffectLimited)
+			->wrap(Loop::Builder());
 
 
 	/**

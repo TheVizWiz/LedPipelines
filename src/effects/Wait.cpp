@@ -6,7 +6,7 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-Wait::Wait(const Wait::Config& config) : TimedEffect(config) {}
+Wait::Wait(unsigned long runtimeMs) : TimedEffect(runtimeMs) {}
 
 
 void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -35,7 +35,9 @@ void Wait::reset() {
 }
 
 
-RandomWaitEffect::RandomWaitEffect(const RandomWaitEffect::Config& config) : RandomTimedEffect(config) {}
+RandomWaitEffect::RandomWaitEffect(unsigned long minRuntimeMs, unsigned long maxRuntimeMs,
+								   SamplingFunction samplingFunction) :
+	RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
 
 void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) {
@@ -64,5 +66,5 @@ void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 
 void RandomWaitEffect::reset() {
 	LedPipelineStage::reset();
-	RandomTimedEffect::reset();
+	RandomTimedEffect::resetTimer();
 }

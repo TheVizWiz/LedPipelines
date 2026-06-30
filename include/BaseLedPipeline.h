@@ -44,9 +44,13 @@ namespace ledpipelines {
 
 		virtual ~LedPipelineStage();
 
-		template<class T, typename... Args> fl::enable_if_t<std::is_base_of_v<effects::WrapperEffect, T>, T *> wrap(
-			Args &&... args) {
-			return new T(this, std::forward<Args>(args)...);
+		/**
+		 * Wrap this stage in a WrapperEffect, configured via its Builder. The builder's inner stage is set to this
+		 * stage, and the wrapper is built and returned. This allows linear, outside-in chaining of wrapper effects,
+		 * e.g. stage->wrap(Moving::Builder(1000))->wrap(Loop::Builder()).
+		 */
+		template<class B> auto wrap(B &&builder) -> decltype(builder.stage(this).build()) {
+			return builder.stage(this).build();
 		}
 
 		private:

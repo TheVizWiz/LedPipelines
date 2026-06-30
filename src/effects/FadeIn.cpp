@@ -90,5 +90,5 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 
 void RandomFadeIn::reset() {
 	LedPipelineStage::reset();
-	RandomTimedEffect::reset();
+	RandomTimedEffect::resetTimer();
 }

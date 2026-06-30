@@ -1,17 +1,19 @@
 #include "effects/Spawner.h"
 
+#include <utility>
+
 
 namespace ledpipelines::effects {
-	Spawner::Spawner(const Config& config) :
-		LedPipelineStage(), factory(config.factory), maxChildren(config.maxChildren), activeChildren(),
-		keepOldOnSpawn(config.keepOldOnSpawn) {}
+
+	Spawner::Spawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn)
+		: factory(std::move(factory)), maxChildren(maxChildren), keepOldOnSpawn(keepOldOnSpawn) {}
 
 
 	void Spawner::calculate(float startIndex, TemporaryLedData& tempData) {
 		for (auto& child : activeChildren) {
 			TemporaryLedData childData = TemporaryLedData();
 			child->calculate(startIndex, childData);
-			tempData.merge(childData, child->blendingMode);
+			tempData.merge(childData, BlendingMode::NORMAL);
 		}
 
 
@@ -51,14 +53,9 @@ namespace ledpipelines::effects {
 	}
 
 
-	TimedSpawner::TimedSpawner(const Config& config) :
-		Spawner({
-			.factory = config.factory,
-			.maxChildren = config.maxChildren,
-			.keepOldOnSpawn = config.keepOldOnSpawn,
-
-		}),
-		spawnTimeMs(config.spawnTimeMs) {}
+	TimedSpawner::TimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
+							   unsigned long spawnTimeMs)
+		: Spawner(std::move(factory), maxChildren, keepOldOnSpawn), spawnTimeMs(spawnTimeMs) {}
 
 
 	void TimedSpawner::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -71,15 +68,14 @@ namespace ledpipelines::effects {
 	}
 
 
-	RandomTimedSpawner::RandomTimedSpawner(const Config& config) :
-		TimedSpawner({
-			.factory = config.factory,
-			.maxChildren = config.maxChildren,
-			.spawnTimeMs = config.spawnTimeSamplingFunction(config.minSpawnTimeMs, config.maxSpawnTimeMs),
-			.keepOldOnSpawn = config.keepOldOnSpawn,
-		}),
-		minSpawnTimeMs(config.minSpawnTimeMs), maxSpawnTimeMs(config.maxSpawnTimeMs),
-		spawnTimeSamplingFunction(config.spawnTimeSamplingFunction) {}
+	RandomTimedSpawner::RandomTimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
+										   unsigned long minSpawnTimeMs, unsigned long maxSpawnTimeMs,
+										   SamplingFunction spawnTimeSamplingFunction)
+		: TimedSpawner(std::move(factory), maxChildren, keepOldOnSpawn,
+					   spawnTimeSamplingFunction(minSpawnTimeMs, maxSpawnTimeMs)),
+		  minSpawnTimeMs(minSpawnTimeMs),
+		  maxSpawnTimeMs(maxSpawnTimeMs),
+		  spawnTimeSamplingFunction(spawnTimeSamplingFunction) {}
 
 
 	void RandomTimedSpawner::calculate(float startIndex, TemporaryLedData& tempData) {

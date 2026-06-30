@@ -4,7 +4,7 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-TimeBox::TimeBox(LedPipelineStage* stage, const Config& config) : WrapperEffect(stage), TimedEffect(config) {}
+TimeBox::TimeBox(LedPipelineStage* stage, unsigned long runtimeMs) : WrapperEffect(stage), TimedEffect(runtimeMs) {}
 
 
 void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -40,8 +40,9 @@ void TimeBox::reset() {
 	TimedEffect::resetTimer();
 }
 
-RandomTimeBoxedEffect::RandomTimeBoxedEffect(LedPipelineStage* stage, const Config& config) :
-	WrapperEffect(stage), RandomTimedEffect(config) {}
+RandomTimeBoxedEffect::RandomTimeBoxedEffect(LedPipelineStage* stage, unsigned long minRuntimeMs,
+											 unsigned long maxRuntimeMs, SamplingFunction samplingFunction) :
+	WrapperEffect(stage), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
 
 
 void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -75,5 +76,5 @@ void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData& tempDa
 
 void RandomTimeBoxedEffect::reset() {
 	WrapperEffect::reset();
-	RandomTimedEffect::reset();
+	RandomTimedEffect::resetTimer();
 }

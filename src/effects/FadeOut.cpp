@@ -88,5 +88,5 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 
 void RandomFadeOut::reset() {
 	LedPipelineStage::reset();
-	RandomTimedEffect::reset();
+	RandomTimedEffect::resetTimer();
 }

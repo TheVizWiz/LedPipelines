@@ -21,7 +21,7 @@ namespace ledpipelines::effects {
 					template<typename U> Builder &setStage(
 						LedPipelineStage::Builder<U> &stage
 					) {
-						this->_stage = stage;
+						this->_stage = stage.build();
 						return *this;
 					}
 

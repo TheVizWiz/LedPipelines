@@ -3,28 +3,47 @@
 #include "BaseEffect.h"
 
 namespace ledpipelines::effects {
-	class TimeBox : public WrapperEffect, public TimedEffect {
-	public:
-		using Config = TimedEffect::Config;
-
-		TimeBox(LedPipelineStage *stage, const Config &config);
-
+	struct TimeBox : public WrapperEffect, TimedEffect {
 		void reset() override;
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
+
+		struct Builder : WrapperEffect::Builder<TimeBox>, TimedEffect::Builder {
+			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder(runtimeMs) {};
+
+			TimeBox *build() override {
+				return new TimeBox(_stage, _runtimeMs);
+			}
+		};
+
+		protected:
+			TimeBox(LedPipelineStage *stage, unsigned long runtimeMs);
 	};
 
-	class RandomTimeBoxedEffect : public WrapperEffect, public RandomTimedEffect {
-	public:
-		using Config = RandomTimedEffect::Config;
-
-		RandomTimeBoxedEffect(
-			LedPipelineStage *stage,
-			const Config &config
-		);
-
+	struct RandomTimeBoxedEffect : public WrapperEffect, RandomTimedEffect {
 		void reset() override;
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
+
+		struct Builder : WrapperEffect::Builder<RandomTimeBoxedEffect>, RandomTimedEffect::Builder {
+			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder(maxRuntimeMs) {};
+
+			RandomTimeBoxedEffect *build() override {
+				return new RandomTimeBoxedEffect(
+					_stage,
+					_minRuntimeMs,
+					_maxRuntimeMs,
+					_samplingFunction
+				);
+			}
+		};
+
+		protected:
+			RandomTimeBoxedEffect(
+				LedPipelineStage *stage,
+				unsigned long minRuntimeMs,
+				unsigned long maxRuntimeMs,
+				SamplingFunction samplingFunction
+			);
 	};
 }
