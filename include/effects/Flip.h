@@ -11,7 +11,7 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-		struct Builder : WrapperEffect::Builder<Flip> {
+		struct Builder : WrapperEffect::Builder<Flip, Builder> {
 			BUILDER_FIELD_DEFAULT(long, min, 0);
 			BUILDER_FIELD(long, max);
 

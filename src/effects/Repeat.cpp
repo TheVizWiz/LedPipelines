@@ -3,8 +3,9 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Repeat::Repeat(LedPipelineStage* stage, int numRepeats, float repeatDistance, BlendingMode blendingMode) :
-	WrapperEffect(stage), numRepeats(numRepeats), repeatDistance(repeatDistance), blendingMode(blendingMode) {}
+Repeat::Repeat(LedPipelineStage* stage, int numRepeats, float repeatDistance, BlendingMode repeatBlendingMode) :
+	WrapperEffect(stage), numRepeats(numRepeats), repeatDistance(repeatDistance),
+	repeatBlendingMode(repeatBlendingMode) {}
 
 void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -22,33 +23,42 @@ void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 	//    }
 	//
 
-	// shift it by x amount.
+	// Render the wrapped stage exactly once per frame, then tile that result by shifting copies of the rendered buffer.
+	// Rendering once (rather than re-running the stage at each offset) keeps stateful/timed children - Loop, Series,
+	// Moving - advancing at the correct rate instead of numRepeats times per frame.
+	TemporaryLedData stageData = TemporaryLedData();
+	this->stage->calculate(startIndex, stageData);
+	this->state = this->stage->state;
+
+	if (numRepeats == 0 && repeatDistance <= 0) {
+		// In infinite-repeat mode a non-positive repeatDistance would never advance the offset in the loops below,
+		// spinning forever (and, with pooled buffers, allocating without bound). Emit the single render instead.
+		tempData.merge(stageData, this->repeatBlendingMode);
+		return;
+	}
+
 	if (numRepeats == 0) {
-		// if num repeats isn't specified, then we use infinite repeats. Do this both forwards and backwards.
-		float currentIndex = startIndex;
-		bool currentStageSetsData = true;
-		while (currentStageSetsData) {
-			TemporaryLedData stageData = TemporaryLedData();
-			this->stage->calculate(currentIndex, stageData);
-			currentStageSetsData = stageData.anyAreModified || currentIndex < 0;
-			tempData.merge(stageData, this->blendingMode);
-			currentIndex += repeatDistance;
+		// Infinite repeats: tile the rendered buffer both forward and backward until a shifted copy lights nothing.
+		float offset = 0;
+		while (true) {
+			TemporaryLedData copy = stageData.shift(offset);
+			bool setsData = copy.anyAreModified;
+			tempData.merge(copy, this->repeatBlendingMode);
+			// Keep going while still on-strip in the negative direction even if this copy happened to light nothing.
+			if (!setsData && offset >= 0) break;
+			offset += repeatDistance;
 		}
-		currentStageSetsData = true;
-		currentIndex = startIndex - repeatDistance;
-		while (currentStageSetsData) {
-			TemporaryLedData stageData = TemporaryLedData();
-			this->stage->calculate(currentIndex, stageData);
-			currentStageSetsData = stageData.anyAreModified;
-			tempData.merge(stageData, this->blendingMode);
-			currentIndex -= repeatDistance;
+		offset = -repeatDistance;
+		while (true) {
+			TemporaryLedData copy = stageData.shift(offset);
+			if (!copy.anyAreModified) break;
+			tempData.merge(copy, this->repeatBlendingMode);
+			offset -= repeatDistance;
 		}
 	} else {
 		for (int i = 0; i < numRepeats; i++) {
-			TemporaryLedData stageData = TemporaryLedData();
-			this->stage->calculate(startIndex + i * repeatDistance, stageData);
-			tempData.merge(stageData, this->blendingMode);
+			TemporaryLedData copy = stageData.shift(i * repeatDistance);
+			tempData.merge(copy, this->repeatBlendingMode);
 		}
 	}
-	this->state = this->stage->state;
 }

@@ -10,7 +10,7 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-		struct Builder : LedPipelineStage::Builder<Solid> {
+		struct Builder : LedPipelineStage::Builder<Solid, Builder> {
 			BUILDER_FIELD(CRGB, color);
 			BUILDER_FIELD_DEFAULT(uint8_t, opacity, 0xFF);
 
@@ -19,13 +19,14 @@ namespace ledpipelines::effects {
 			Solid *build() override {
 				return new Solid(
 					_color,
-					_opacity
+					_opacity,
+					_blendingMode
 				);
 			}
 		};
 
 		protected:
-			Solid(CRGB color, uint8_t opacity);
+			Solid(CRGB color, uint8_t opacity, BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 
 
@@ -34,7 +35,7 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-		struct Builder : LedPipelineStage::Builder<SolidSegment> {
+		struct Builder : LedPipelineStage::Builder<SolidSegment, Builder> {
 			BUILDER_FIELD(CRGB, color);
 			BUILDER_FIELD_DEFAULT(uint8_t, opacity, 0xFF);
 			BUILDER_FIELD(float, length);
@@ -44,7 +45,8 @@ namespace ledpipelines::effects {
 				return new SolidSegment(
 					_color,
 					_opacity,
-					_length
+					_length,
+					_blendingMode
 				);
 			}
 		};
@@ -53,7 +55,8 @@ namespace ledpipelines::effects {
 			SolidSegment(
 				const CRGB color,
 				uint8_t opacity,
-				float length
+				float length,
+				BlendingMode blendingMode = BlendingMode::NORMAL
 			);
 	};
 }

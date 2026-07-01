@@ -14,7 +14,9 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<Mask> {
+		~Mask() override;
+
+		struct Builder : LedPipelineStage::Builder<Mask, Builder> {
 			BUILDER_FIELD(LedPipelineStage *, base);
 			BUILDER_FIELD(LedPipelineStage *, mask);
 			BUILDER_FIELD_DEFAULT(bool, useMaskRuntime, false);
@@ -25,7 +27,8 @@ namespace ledpipelines::effects {
 				return new Mask(
 					_base,
 					_mask,
-					_useMaskRuntime
+					_useMaskRuntime,
+					_blendingMode
 				);
 			}
 		};
@@ -34,6 +37,7 @@ namespace ledpipelines::effects {
 			Mask(
 				LedPipelineStage *base,
 				LedPipelineStage *mask,
-				bool useMaskRuntime);
+				bool useMaskRuntime,
+				BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 }

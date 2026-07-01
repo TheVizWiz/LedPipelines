@@ -2,7 +2,8 @@
 
 using namespace ledpipelines;
 
-LedPipelineStage::LedPipelineStage(BlendingMode blendingMode) : lastUpdateTimeMicros(micros()) {}
+LedPipelineStage::LedPipelineStage(BlendingMode blendingMode) :
+	blendingMode(blendingMode), lastUpdateTimeMicros(micros()) {}
 
 LedPipelineStage::~LedPipelineStage() = default;
 
@@ -60,11 +61,9 @@ void ParallelLedPipeline::calculate(float startIndex, TemporaryLedData& tempData
 	LedPipelineRunningState anyArePlaying = LedPipelineRunningState::DONE;
 
 	for (auto& stage : stages) {
-		stage->calculate(startIndex, tempData);
-
 		TemporaryLedData currentData = TemporaryLedData();
 		stage->calculate(startIndex, currentData);
-		tempData.merge(currentData, this->blendingMode);
+		tempData.merge(currentData, stage->blendingMode);
 
 		if (stage->state != LedPipelineRunningState::DONE) {
 			anyArePlaying = LedPipelineRunningState::RUNNING;

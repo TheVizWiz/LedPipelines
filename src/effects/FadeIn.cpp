@@ -4,8 +4,8 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-FadeIn::FadeIn(unsigned long runtimeMs, SmoothingFunction smoothingFunction) :
-	TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {}
+FadeIn::FadeIn(unsigned long runtimeMs, SmoothingFunction smoothingFunction, BlendingMode blendingMode) :
+	LedPipelineStage(blendingMode), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {}
 
 void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -48,8 +48,10 @@ void FadeIn::reset() {
 
 
 RandomFadeIn::RandomFadeIn(const unsigned long minRuntimeMs, const unsigned long maxRuntimeMs,
-						   SamplingFunction samplingFunction, SmoothingFunction smoothingFunction) :
-	RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction), smoothingFunction(smoothingFunction) {}
+						   SamplingFunction samplingFunction, SmoothingFunction smoothingFunction,
+						   BlendingMode blendingMode) :
+	LedPipelineStage(blendingMode), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
+	smoothingFunction(smoothingFunction) {}
 
 void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -57,7 +59,7 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
 		this->startTimeMs = millis();
 		this->sampleRuntime();
-		LPLogger::log(String("running random fade in effect for ") + this->runtimeMs + " seconds");
+		LPLogger::log(String("running random fade in effect for ") + this->runtimeMs + " ms");
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 

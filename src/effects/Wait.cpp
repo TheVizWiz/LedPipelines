@@ -6,7 +6,8 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-Wait::Wait(unsigned long runtimeMs) : TimedEffect(runtimeMs) {}
+Wait::Wait(unsigned long runtimeMs, BlendingMode blendingMode) :
+	LedPipelineStage(blendingMode), TimedEffect(runtimeMs) {}
 
 
 void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -19,13 +20,13 @@ void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	unsigned long totalTimeWaited = millis() - this->startTimeMs;
 
-	if (totalTimeWaited / 1000.0 >= this->runtimeMs) {
+	if (totalTimeWaited >= this->runtimeMs) {
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 		return;
 	}
 
-	this->elapsedPercentage = ((float)totalTimeWaited / 1000.0f) / this->runtimeMs; // convert ms to seconds
+	this->elapsedPercentage = (float)totalTimeWaited / (float)this->runtimeMs;
 	this->state = LedPipelineRunningState::RUNNING;
 }
 
@@ -36,8 +37,8 @@ void Wait::reset() {
 
 
 RandomWaitEffect::RandomWaitEffect(unsigned long minRuntimeMs, unsigned long maxRuntimeMs,
-								   SamplingFunction samplingFunction) :
-	RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
+								   SamplingFunction samplingFunction, BlendingMode blendingMode) :
+	LedPipelineStage(blendingMode), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
 
 void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) {
@@ -48,19 +49,19 @@ void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 		this->startTimeMs = millis();
 		this->sampleRuntime();
-		LPLogger::log(String("running random wait effect for ") + this->runtimeMs + " seconds");
+		LPLogger::log(String("running random wait effect for ") + this->runtimeMs + " ms");
 	}
 
 	unsigned long totalTimeWaited = millis() - this->startTimeMs;
 
-	if (totalTimeWaited / 1000.0 >= this->runtimeMs) {
+	if (totalTimeWaited >= this->runtimeMs) {
 		LPLogger::log("done running random wait effect.");
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 		return;
 	}
 
-	this->elapsedPercentage = ((float)totalTimeWaited / 1000.0f) / this->runtimeMs; // convert ms to seconds
+	this->elapsedPercentage = (float)totalTimeWaited / (float)this->runtimeMs;
 	this->state = LedPipelineRunningState::RUNNING;
 }
 

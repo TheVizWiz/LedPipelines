@@ -10,7 +10,7 @@ namespace ledpipelines::effects {
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
 
-		struct Builder : WrapperEffect::Builder<Shift> {
+		struct Builder : WrapperEffect::Builder<Shift, Builder> {
 			BUILDER_FIELD(float, offset);
 
 			Builder(float offset) : _offset(offset) {}

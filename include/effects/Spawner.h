@@ -20,7 +20,7 @@ namespace ledpipelines::effects {
 
 		void spawn();
 
-		struct Builder : LedPipelineStage::Builder<Spawner> {
+		struct Builder : LedPipelineStage::Builder<Spawner, Builder> {
 			BUILDER_FIELD(EffectSpawnerFactory, factory);
 			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
 			BUILDER_FIELD_DEFAULT(bool, keepOldOnSpawn, true);
@@ -28,12 +28,13 @@ namespace ledpipelines::effects {
 			explicit Builder(EffectSpawnerFactory factory) : _factory(std::move(factory)) {};
 
 			Spawner* build() override {
-				return new Spawner(_factory, _maxChildren, _keepOldOnSpawn);
+				return new Spawner(_factory, _maxChildren, _keepOldOnSpawn, _blendingMode);
 			}
 		};
 
 	protected:
-		Spawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn);
+		Spawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
+				BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 
 
@@ -44,7 +45,7 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
-		struct Builder : LedPipelineStage::Builder<TimedSpawner> {
+		struct Builder : LedPipelineStage::Builder<TimedSpawner, Builder> {
 			BUILDER_FIELD(EffectSpawnerFactory, factory);
 			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
 			BUILDER_FIELD(unsigned long, spawnTimeMs);
@@ -54,13 +55,13 @@ namespace ledpipelines::effects {
 				_factory(std::move(factory)), _spawnTimeMs(spawnTimeMs) {};
 
 			TimedSpawner* build() override {
-				return new TimedSpawner(_factory, _maxChildren, _keepOldOnSpawn, _spawnTimeMs);
+				return new TimedSpawner(_factory, _maxChildren, _keepOldOnSpawn, _spawnTimeMs, _blendingMode);
 			}
 		};
 
 	protected:
 		TimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
-					 unsigned long spawnTimeMs);
+					 unsigned long spawnTimeMs, BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 
 
@@ -71,7 +72,7 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
-		struct Builder : LedPipelineStage::Builder<RandomTimedSpawner> {
+		struct Builder : LedPipelineStage::Builder<RandomTimedSpawner, Builder> {
 			BUILDER_FIELD(EffectSpawnerFactory, factory);
 			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
 			BUILDER_FIELD_DEFAULT(unsigned long, minSpawnTimeMs, 0);
@@ -84,13 +85,14 @@ namespace ledpipelines::effects {
 
 			RandomTimedSpawner* build() override {
 				return new RandomTimedSpawner(_factory, _maxChildren, _keepOldOnSpawn, _minSpawnTimeMs,
-											  _maxSpawnTimeMs, _spawnTimeSamplingFunction);
+											  _maxSpawnTimeMs, _spawnTimeSamplingFunction, _blendingMode);
 			}
 		};
 
 	protected:
 		RandomTimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
 						   unsigned long minSpawnTimeMs, unsigned long maxSpawnTimeMs,
-						   SamplingFunction spawnTimeSamplingFunction);
+						   SamplingFunction spawnTimeSamplingFunction,
+						   BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 } // namespace ledpipelines::effects

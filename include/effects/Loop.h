@@ -12,7 +12,7 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : WrapperEffect::Builder<Loop> {
+		struct Builder : WrapperEffect::Builder<Loop, Builder> {
 			BUILDER_FIELD_DEFAULT(size_t, numLoops, 0);
 
 			Builder() {};

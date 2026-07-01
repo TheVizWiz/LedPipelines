@@ -5,7 +5,7 @@
 
 namespace ledpipelines::effects {
 	struct AbsolutePosition : WrapperEffect {
-		struct Builder : WrapperEffect::Builder<AbsolutePosition> {
+		struct Builder : WrapperEffect::Builder<AbsolutePosition, Builder> {
 
 			BUILDER_FIELD_DEFAULT(float, position, 0);
 

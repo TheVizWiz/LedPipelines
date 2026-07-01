@@ -30,13 +30,12 @@ namespace ledpipelines::effects {
 
 
 			for (int i = start; (start < end ? i < end : i > end); (start < end ? i++ : i--)) {
-				auto opacity = tempData.getOpacity(currentIndex);
-				auto color = tempData.get(currentIndex);
+				auto opacity = stageData.getOpacity(currentIndex);
+				auto color = stageData.get(currentIndex);
 				currentIndex++;
 
 				if (opacity == 0) {
-					// continue, don't rewrite this segment in case it's being written
-					// in this path effect already.
+					// the wrapped stage didn't light this source pixel, so there's nothing to lay along the path.
 					continue;
 				}
 

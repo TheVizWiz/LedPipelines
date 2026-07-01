@@ -5,15 +5,17 @@
 
 namespace ledpipelines::effects {
 
-	Spawner::Spawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn)
-		: factory(std::move(factory)), maxChildren(maxChildren), keepOldOnSpawn(keepOldOnSpawn) {}
+	Spawner::Spawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
+					 BlendingMode blendingMode)
+		: LedPipelineStage(blendingMode), factory(std::move(factory)), maxChildren(maxChildren),
+		  keepOldOnSpawn(keepOldOnSpawn) {}
 
 
 	void Spawner::calculate(float startIndex, TemporaryLedData& tempData) {
 		for (auto& child : activeChildren) {
 			TemporaryLedData childData = TemporaryLedData();
 			child->calculate(startIndex, childData);
-			tempData.merge(childData, BlendingMode::NORMAL);
+			tempData.merge(childData, child->blendingMode);
 		}
 
 
@@ -54,8 +56,8 @@ namespace ledpipelines::effects {
 
 
 	TimedSpawner::TimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
-							   unsigned long spawnTimeMs)
-		: Spawner(std::move(factory), maxChildren, keepOldOnSpawn), spawnTimeMs(spawnTimeMs) {}
+							   unsigned long spawnTimeMs, BlendingMode blendingMode)
+		: Spawner(std::move(factory), maxChildren, keepOldOnSpawn, blendingMode), spawnTimeMs(spawnTimeMs) {}
 
 
 	void TimedSpawner::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -70,9 +72,9 @@ namespace ledpipelines::effects {
 
 	RandomTimedSpawner::RandomTimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
 										   unsigned long minSpawnTimeMs, unsigned long maxSpawnTimeMs,
-										   SamplingFunction spawnTimeSamplingFunction)
+										   SamplingFunction spawnTimeSamplingFunction, BlendingMode blendingMode)
 		: TimedSpawner(std::move(factory), maxChildren, keepOldOnSpawn,
-					   spawnTimeSamplingFunction(minSpawnTimeMs, maxSpawnTimeMs)),
+					   spawnTimeSamplingFunction(minSpawnTimeMs, maxSpawnTimeMs), blendingMode),
 		  minSpawnTimeMs(minSpawnTimeMs),
 		  maxSpawnTimeMs(maxSpawnTimeMs),
 		  spawnTimeSamplingFunction(spawnTimeSamplingFunction) {}

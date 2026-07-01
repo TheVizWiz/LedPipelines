@@ -47,8 +47,8 @@ void setup() {
 		(new ParallelLedPipeline())
 			->addStage(Solid::Builder(CRGB::Black).build())
 			->addStage(((new SeriesLedPipeline())
-							->addStage(SolidSegment::Builder(CRGB::Blue, 1).build()->wrap(TimeBox::Builder(1)))
-							->addStage(SolidSegment::Builder(CRGB::Green, 1).build()->wrap(TimeBox::Builder(1))))
+							->addStage(SolidSegment::Builder(CRGB::Blue, 1).build()->wrap(TimeBox::Builder(1000)))
+							->addStage(SolidSegment::Builder(CRGB::Green, 1).build()->wrap(TimeBox::Builder(1000))))
 						   ->wrap(Loop::Builder()));
 
 	onPipeline =
@@ -58,8 +58,8 @@ void setup() {
 						   ->wrap(OpacityGradient::Builder(0, TemporaryLedData::size)
 									  .smoothingFunction(SmoothingFunction::LINEAR)))
 			->addStage(((new SeriesLedPipeline())
-							->addStage(SolidSegment::Builder(CRGB::Red, 1).build()->wrap(TimeBox::Builder(1)))
-							->addStage(SolidSegment::Builder(CRGB::Red, 1).build()->wrap(TimeBox::Builder(1))))
+							->addStage(SolidSegment::Builder(CRGB::Red, 1).build()->wrap(TimeBox::Builder(1000)))
+							->addStage(SolidSegment::Builder(CRGB::Red, 1).build()->wrap(TimeBox::Builder(1000))))
 						   ->wrap(Loop::Builder()))
 			->addStage(
 				SolidSegment::Builder(CRGB::White, 10)

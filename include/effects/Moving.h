@@ -17,7 +17,7 @@ namespace ledpipelines::effects {
 
 			void reset() override;
 
-			struct Builder : WrapperEffect::Builder<Moving>, TimedEffect::Builder {
+			struct Builder : WrapperEffect::Builder<Moving, Builder>, TimedEffect::Builder<Builder> {
 				BUILDER_FIELD_DEFAULT(float, startPosition, 0.0f);
 				BUILDER_FIELD_DEFAULT(float, endPosition, TemporaryLedData::size);
 				BUILDER_FIELD_DEFAULT(
@@ -27,7 +27,7 @@ namespace ledpipelines::effects {
 
 				explicit Builder(
 					unsigned long runtimeMs
-				) : TimedEffect::Builder(runtimeMs) {};
+				) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
 				Moving *build() override {
 					return new Moving(

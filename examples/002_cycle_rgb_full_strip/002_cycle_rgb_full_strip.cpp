@@ -74,7 +74,7 @@ void setup() {
      */
 
 	auto redEffect = Solid::Builder(CRGB::Red).build();
-	auto redEffectLimited = redEffect->wrap(TimeBox::Builder(2));
+	auto redEffectLimited = redEffect->wrap(TimeBox::Builder(2000));
 
 
 	/**
@@ -84,8 +84,8 @@ void setup() {
      *
      * Let's set up the blue and green effects. I'll do these on one line, just to show what that looks like.
      */
-	auto greenEffectLimited = Solid::Builder(CRGB::Green).build()->wrap(TimeBox::Builder(2));
-	auto blueEffectLimited = Solid::Builder(CRGB::Blue).build()->wrap(TimeBox::Builder(2));
+	auto greenEffectLimited = Solid::Builder(CRGB::Green).build()->wrap(TimeBox::Builder(2000));
+	auto blueEffectLimited = Solid::Builder(CRGB::Blue).build()->wrap(TimeBox::Builder(2000));
 
 
 	/**

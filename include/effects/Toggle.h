@@ -18,7 +18,7 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-		struct Builder : WrapperEffect::Builder<Toggle> {
+		struct Builder : WrapperEffect::Builder<Toggle, Builder> {
 			Builder() {};
 
 			Toggle *build() override {

@@ -11,19 +11,20 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<FadeIn>, TimedEffect::Builder {
+		struct Builder : LedPipelineStage::Builder<FadeIn, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD_DEFAULT(
 				SmoothingFunction,
 				smoothingFunction,
 				SmoothingFunction::SMOOTH_LINEAR
 			);
 
-			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder(runtimeMs) {};
+			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
 			FadeIn *build() override {
 				return new FadeIn(
 					_runtimeMs,
-					_smoothingFunction
+					_smoothingFunction,
+					_blendingMode
 				);
 			}
 		};
@@ -31,7 +32,8 @@ namespace ledpipelines::effects {
 		private:
 			FadeIn(
 				unsigned long runtimeMs,
-				SmoothingFunction smoothingFunction
+				SmoothingFunction smoothingFunction,
+				BlendingMode blendingMode = BlendingMode::NORMAL
 			);
 	};
 
@@ -43,22 +45,22 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<RandomFadeIn>, RandomTimedEffect::Builder {
+		struct Builder : LedPipelineStage::Builder<RandomFadeIn, Builder>, RandomTimedEffect::Builder<Builder> {
 			BUILDER_FIELD_DEFAULT(
 				SmoothingFunction,
 				smoothingFunction,
 				SmoothingFunction::SMOOTH_LINEAR
 			);
 
-			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder(maxRuntimeMs) {};
+			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
 			RandomFadeIn *build() override {
 				return new RandomFadeIn(
 					_minRuntimeMs,
 					_maxRuntimeMs,
 					_samplingFunction,
-					_smoothingFunction
-
+					_smoothingFunction,
+					_blendingMode
 				);
 			};
 		};
@@ -68,7 +70,8 @@ namespace ledpipelines::effects {
 				unsigned long minRuntimeMs,
 				unsigned long maxRuntimeMs,
 				SamplingFunction samplingFunction,
-				SmoothingFunction smoothingFunction
+				SmoothingFunction smoothingFunction,
+				BlendingMode blendingMode = BlendingMode::NORMAL
 			);
 	};
 }

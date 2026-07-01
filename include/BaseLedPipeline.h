@@ -25,13 +25,27 @@ namespace ledpipelines {
 
 
 	struct LedPipelineStage {
-		template<typename T> struct Builder {
+		/**
+		 * Base builder for all stages. The second template parameter, ConcreteBuilder, is the leaf builder type that
+		 * derives from this one (CRTP). Setters defined here return ConcreteBuilder& so that fluent chaining keeps the
+		 * leaf type, letting base-level and leaf-level setters be called in any order.
+		 */
+		template<typename T, typename ConcreteBuilder> struct Builder {
 			virtual ~Builder() = default;
+
+			BlendingMode _blendingMode = BlendingMode::NORMAL;
+
+			ConcreteBuilder &blendingMode(BlendingMode v) {
+				this->_blendingMode = v;
+				return static_cast<ConcreteBuilder &>(*this);
+			}
 
 			virtual T *build() = 0;
 		};
 
 		LedPipelineRunningState state = LedPipelineRunningState::NOT_STARTED;
+
+		BlendingMode blendingMode;
 
 
 		virtual void calculate(float startIndex, TemporaryLedData &tempData) = 0;
@@ -74,8 +88,6 @@ namespace ledpipelines {
 		~LedPipeline() override;
 
 		std::vector<std::unique_ptr<LedPipelineStage> > stages = std::vector<std::unique_ptr<LedPipelineStage> >();
-
-		BlendingMode blendingMode;
 	};
 
 

@@ -11,7 +11,7 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-		struct Builder : WrapperEffect::Builder<OpacityGradient> {
+		struct Builder : WrapperEffect::Builder<OpacityGradient, Builder> {
 			BUILDER_FIELD_DEFAULT(float, startIndex, 0);
 			BUILDER_FIELD(float, endIndex);
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::SMOOTH_LINEAR);

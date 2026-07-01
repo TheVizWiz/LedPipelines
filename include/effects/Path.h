@@ -16,7 +16,7 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : WrapperEffect::Builder<Path> {
+		struct Builder : WrapperEffect::Builder<Path, Builder> {
 			BUILDER_FIELD_DEFAULT(Segments, segments, Segments());
 
 			Builder &addSegment(int start, int end) {

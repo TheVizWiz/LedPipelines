@@ -65,7 +65,26 @@ namespace ledpipelines {
 
 		~TemporaryLedData();
 
+		// Each instance uniquely owns its backing buffers (returned to the pool on destruction). Copying would alias
+		// those buffers and double-release them into the pool, so copying is forbidden.
+		TemporaryLedData(const TemporaryLedData &) = delete;
+
+		TemporaryLedData &operator=(const TemporaryLedData &) = delete;
+
+		// Movable so buffers can be returned by value (e.g. from shift()) without copying or double-releasing to the
+		// pool: the moved-from instance relinquishes ownership and releases nothing on destruction.
+		TemporaryLedData(TemporaryLedData &&other) noexcept;
+
 		void merge(TemporaryLedData &other, BlendingMode blendingMode);
+
+		/**
+		 * Shift the contents of this buffer by `offset` pixels (positive shifts toward higher indices, negative toward
+		 * lower) and return the result as a new buffer, leaving this one untouched. Fractional offsets are resampled
+		 * so a lit pixel that lands between two output pixels spreads across both at proportional opacity, keeping the
+		 * color and conserving total light - the same "partial coverage scales opacity" convention used elsewhere
+		 * (e.g. SolidSegment, OpacityGradient). Pixels shifted off either end are dropped.
+		 */
+		TemporaryLedData shift(float offset) const;
 
 		void populateFastLed() const;
 

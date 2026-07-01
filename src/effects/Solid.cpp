@@ -3,17 +3,22 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Solid::Solid(const CRGB color, const uint8_t opacity) : color(color), opacity(opacity) {
+Solid::Solid(const CRGB color, const uint8_t opacity, BlendingMode blendingMode) :
+	LedPipelineStage(blendingMode), color(color), opacity(opacity) {
 	this->state = LedPipelineRunningState::RUNNING;
 }
 
 void Solid::calculate(const float startIndex, TemporaryLedData& tempData) {
-	for (int i = startIndex; i < TemporaryLedData::size; i++) {
+	// A Solid fills the entire strip regardless of where it's positioned, so clamp the start to the strip bounds.
+	// Without this, a negative startIndex (e.g. from a Moving/Shift wrapper) would start the loop at a negative index.
+	int start = startIndex < 0 ? 0 : (int)startIndex;
+	for (int i = start; i < TemporaryLedData::size; i++) {
 		tempData.set(i, color, opacity);
 	}
 }
 
-SolidSegment::SolidSegment(const CRGB color, uint8_t opacity, float length) : Solid(color, opacity), length(length) {}
+SolidSegment::SolidSegment(const CRGB color, uint8_t opacity, float length, BlendingMode blendingMode) :
+	Solid(color, opacity, blendingMode), length(length) {}
 
 void SolidSegment::calculate(float startIndex, TemporaryLedData& tempData) {
 	const float endIndex = startIndex + length;

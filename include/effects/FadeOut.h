@@ -11,37 +11,39 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<FadeOut>, TimedEffect::Builder {
+		struct Builder : LedPipelineStage::Builder<FadeOut, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD_DEFAULT(
 				SmoothingFunction,
 				smoothingFunction,
 				SmoothingFunction::SMOOTH_LINEAR
 			);
 
-			Builder(const unsigned long runtimeMs) : TimedEffect::Builder(runtimeMs) {};
+			Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
-			FadeOut *build() override { return new FadeOut(_runtimeMs, _smoothingFunction); }
+			FadeOut *build() override { return new FadeOut(_runtimeMs, _smoothingFunction, _blendingMode); }
 		};
 
 		private:
 			FadeOut(
 				unsigned long runtimeMs,
-				SmoothingFunction smoothingFunction
+				SmoothingFunction smoothingFunction,
+				BlendingMode blendingMode = BlendingMode::NORMAL
 			);
 	};
 
 	struct RandomFadeOut : public LedPipelineStage, RandomTimedEffect {
-		struct Builder : LedPipelineStage::Builder<RandomFadeOut>, RandomTimedEffect::Builder {
+		struct Builder : LedPipelineStage::Builder<RandomFadeOut, Builder>, RandomTimedEffect::Builder<Builder> {
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::LINEAR);
 
-			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder(maxRuntimeMs) {};
+			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
 			RandomFadeOut *build() override {
 				return new RandomFadeOut(
 					_minRuntimeMs,
 					_maxRuntimeMs,
 					_samplingFunction,
-					_smoothingFunction
+					_smoothingFunction,
+					_blendingMode
 				);
 			}
 		};
@@ -58,7 +60,8 @@ namespace ledpipelines::effects {
 				unsigned long minRuntimeMs,
 				unsigned long maxRuntimeMs,
 				SamplingFunction samplingFunction,
-				SmoothingFunction smoothingFunction
+				SmoothingFunction smoothingFunction,
+				BlendingMode blendingMode = BlendingMode::NORMAL
 			);
 	};
 }

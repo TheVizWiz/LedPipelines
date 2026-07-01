@@ -10,7 +10,7 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
-		struct Builder : WrapperEffect::Builder<OpacityScale> {
+		struct Builder : WrapperEffect::Builder<OpacityScale, Builder> {
 			BUILDER_FIELD_DEFAULT(uint8_t, maxOpacity, 0xFF);
 
 			explicit Builder(const uint8_t maxOpacity) : _maxOpacity(maxOpacity) {}

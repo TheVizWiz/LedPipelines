@@ -16,12 +16,16 @@ void Flip::calculate(float startIndex, ledpipelines::TemporaryLedData& tempData)
 
 	stage->calculate(startIndex, tempData);
 
-	for (int i = min; i < max / 2; i++) {
+	// Mirror the region [min, max] about its true center. Pixel i maps to (min + max - i). Looping up to the midpoint
+	// swaps each pair once; when (min + max) is even the exact center pixel maps to itself and is left untouched.
+	for (int i = min; i < (min + max) / 2; i++) {
+		int mirror = min + max - i;
+
 		auto leftOpacity = tempData.getOpacity(i);
 		auto leftRGB = tempData.get(i);
 
-		tempData.set(i, tempData.get(max - i), tempData.getOpacity(max - i));
-		tempData.set(max - i, leftRGB, leftOpacity);
+		tempData.set(i, tempData.get(mirror), tempData.getOpacity(mirror));
+		tempData.set(mirror, leftRGB, leftOpacity);
 	}
 	this->state = this->stage->state;
 }

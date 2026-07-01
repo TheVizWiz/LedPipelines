@@ -10,16 +10,16 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<Wait>, TimedEffect::Builder {
-			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder(runtimeMs) {};
+		struct Builder : LedPipelineStage::Builder<Wait, Builder>, TimedEffect::Builder<Builder> {
+			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
 			Wait *build() override {
-				return new Wait(_runtimeMs);
+				return new Wait(_runtimeMs, _blendingMode);
 			}
 		};
 
 		private:
-			explicit Wait(unsigned long runtimeMs);
+			explicit Wait(unsigned long runtimeMs, BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 
 
@@ -28,14 +28,15 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<RandomWaitEffect>, RandomTimedEffect::Builder {
-			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder(maxRuntimeMs) {};
+		struct Builder : LedPipelineStage::Builder<RandomWaitEffect, Builder>, RandomTimedEffect::Builder<Builder> {
+			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
 			RandomWaitEffect *build() override {
 				return new RandomWaitEffect(
 					_minRuntimeMs,
 					_maxRuntimeMs,
-					_samplingFunction
+					_samplingFunction,
+					_blendingMode
 				);
 			}
 		};
@@ -44,7 +45,8 @@ namespace ledpipelines::effects {
 			RandomWaitEffect(
 				unsigned long minRuntimeMs,
 				unsigned long maxRuntimeMs,
-				SamplingFunction samplingFunction
+				SamplingFunction samplingFunction,
+				BlendingMode blendingMode = BlendingMode::NORMAL
 			);
 	};
 }
