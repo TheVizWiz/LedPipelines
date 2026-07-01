@@ -62,10 +62,15 @@ TemporaryLedData::TemporaryLedData(CRGB color) {
 	opacity = buffer.opacity;
 	// Buffers are reused, so they carry stale data from a previous owner. Clear to defaults so each effect starts with
 	// its own clean buffer and cannot bleed into another effect's pixels.
+	clear(color);
+}
+
+void TemporaryLedData::clear(CRGB color) {
 	for (int i = 0; i < size; i++) {
-		(*this)[i] = color;
-		opacity[i] = false;
+		data[i] = color;
+		opacity[i] = 0;
 	}
+	anyAreModified = false;
 }
 
 

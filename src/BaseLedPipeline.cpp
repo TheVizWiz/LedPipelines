@@ -84,19 +84,18 @@ void SeriesLedPipeline::calculate(const float startIndex, TemporaryLedData& temp
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	// finished with all stages. Can set to done and return early.
-	if (currentStage == stages.size()) {
-		this->state = LedPipelineRunningState::DONE;
-		return;
-	}
-
-	// run the current stage. If the current stage is done state, we set the current stage to the next stage.
-	stages[currentStage]->calculate(startIndex, tempData);
-	if (stages[currentStage]->state == LedPipelineRunningState::DONE) {
+	// Run the current stage; if it reports done, advance and run the next one in the SAME frame. Without this loop, the
+	// frame on which a stage finishes would still show that finished stage's last output (a one-frame stall) before the
+	// next stage got a chance to render. Looping also skips any stage that completes instantly on its first calculate.
+	while (currentStage < stages.size()) {
+		stages[currentStage]->calculate(startIndex, tempData);
+		if (stages[currentStage]->state != LedPipelineRunningState::DONE) break;
 		currentStage++;
+		// Discard the finished stage's pixels so the next stage renders onto a clean buffer instead of layering over
+		// leftover output. Only needed when we actually advance to another stage this frame.
+		if (currentStage < stages.size()) tempData.clear();
 	}
 
-	// if the current stage is null, we know that the pipeline is done state. We can set state to false.
 	if (currentStage == stages.size()) {
 		this->state = LedPipelineRunningState::DONE;
 	}

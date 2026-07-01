@@ -5,8 +5,6 @@ using namespace ledpipelines;
 LogLevel LPLogger::internalLogLevel = LogLevel::NONE;
 
 
-static char formattedTimeBuffer[20];
-
 static String getFormattedTime() {
 	unsigned long currentMillis = millis();
 

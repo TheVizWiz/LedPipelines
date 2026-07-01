@@ -5,26 +5,26 @@
 
 namespace ledpipelines::effects {
 	struct Flip : public WrapperEffect {
-		long min;
-		long max;
+		long minIndex;
+		long maxIndex;
 
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
 		struct Builder : WrapperEffect::Builder<Flip, Builder> {
-			BUILDER_FIELD_DEFAULT(long, min, 0);
-			BUILDER_FIELD(long, max);
+			BUILDER_FIELD_DEFAULT(long, minIndex, 0);
+			BUILDER_FIELD(long, maxIndex);
 
-			explicit Builder(const long max) {
-				this->_max = max;
+			explicit Builder(const long maxIndex) {
+				this->_maxIndex = maxIndex;
 			}
 
 			Flip *build() override {
-				return new Flip(_stage, _min, _max);
+				return new Flip(_stage, _minIndex, _maxIndex);
 			}
 		};
 
 		private:
-			Flip(LedPipelineStage *stage, long min, long max);
+			Flip(LedPipelineStage *stage, long minIndex, long maxIndex);
 	};
 }

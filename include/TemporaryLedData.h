@@ -78,6 +78,12 @@ namespace ledpipelines {
 		void merge(TemporaryLedData &other, BlendingMode blendingMode);
 
 		/**
+		 * Reset every pixel back to `color` at zero opacity, as if freshly constructed. Used to discard a buffer's
+		 * contents for reuse within a frame without releasing and reacquiring it from the pool.
+		 */
+		void clear(CRGB color = CRGB::Black);
+
+		/**
 		 * Shift the contents of this buffer by `offset` pixels (positive shifts toward higher indices, negative toward
 		 * lower) and return the result as a new buffer, leaving this one untouched. Fractional offsets are resampled
 		 * so a lit pixel that lands between two output pixels spreads across both at proportional opacity, keeping the
