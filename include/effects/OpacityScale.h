@@ -16,7 +16,7 @@ namespace ledpipelines::effects {
 			explicit Builder(const uint8_t maxOpacity) : _maxOpacity(maxOpacity) {}
 
 			OpacityScale *create() override {
-				return new OpacityScale(_stage, _maxOpacity);
+				return new OpacityScale(buildInner(), _maxOpacity);
 			}
 		};
 

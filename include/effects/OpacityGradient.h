@@ -23,7 +23,7 @@ namespace ledpipelines::effects {
 
 			OpacityGradient *create() override {
 				return new OpacityGradient(
-					_stage,
+					buildInner(),
 					_startIndex,
 					_endIndex,
 					_smoothingFunction

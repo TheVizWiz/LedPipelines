@@ -31,7 +31,7 @@ namespace ledpipelines::effects {
 
 				Moving *create() override {
 					return new Moving(
-						_stage,
+						buildInner(),
 						_runtimeMs,
 						_startPosition,
 						_endPosition,

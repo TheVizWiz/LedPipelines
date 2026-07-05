@@ -21,7 +21,7 @@ namespace ledpipelines::effects {
 
 			Repeat *create() override {
 				return new Repeat(
-					_stage,
+					buildInner(),
 					_numRepeats,
 					_repeatDistance,
 					_repeatBlendingMode

@@ -18,7 +18,7 @@ namespace ledpipelines::effects {
 			Builder() {};
 
 			Loop *create() override {
-				return new Loop(_stage, _numLoops);
+				return new Loop(buildInner(), _numLoops);
 			};
 		};
 

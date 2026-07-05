@@ -22,7 +22,7 @@ namespace ledpipelines::effects {
 			Builder() {};
 
 			Toggle *create() override {
-				return new Toggle(_stage);
+				return new Toggle(buildInner());
 			}
 		};
 

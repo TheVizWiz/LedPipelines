@@ -12,7 +12,7 @@ namespace ledpipelines::effects {
 			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
 			TimeBox *create() override {
-				return new TimeBox(_stage, _runtimeMs);
+				return new TimeBox(buildInner(), _runtimeMs);
 			}
 		};
 
@@ -30,7 +30,7 @@ namespace ledpipelines::effects {
 
 			RandomTimeBoxedEffect *create() override {
 				return new RandomTimeBoxedEffect(
-					_stage,
+					buildInner(),
 					_minRuntimeMs,
 					_maxRuntimeMs,
 					_samplingFunction

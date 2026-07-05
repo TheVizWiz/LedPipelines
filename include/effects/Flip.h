@@ -20,7 +20,7 @@ namespace ledpipelines::effects {
 			}
 
 			Flip *create() override {
-				return new Flip(_stage, _minIndex, _maxIndex);
+				return new Flip(buildInner(), _minIndex, _maxIndex);
 			}
 		};
 

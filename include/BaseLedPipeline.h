@@ -24,6 +24,32 @@ namespace ledpipelines {
 		struct WrapperEffect;
 	}
 
+	struct LedPipelineStage;
+
+
+	/**
+	 * Non-template base shared by every stage builder. LedPipelineStage::Builder<T, ConcreteBuilder> is a template, so
+	 * distinct effects produce unrelated builder types with no common base to store polymorphically. This base erases
+	 * the product type down to LedPipelineStage*, letting one builder hold another (e.g. a WrapperEffect builder
+	 * holding its inner effect's builder) via unique_ptr<StageBuilder> without knowing the concrete builder type.
+	 */
+	struct StageBuilder {
+		StageBuilder() = default;
+
+		virtual ~StageBuilder() = default;
+
+		// Declaring the destructor suppresses the implicit move members; redeclare them so derived builders (which are
+		// returned by value from wrap()) stay movable rather than silently falling back to (deleted) copy.
+		StageBuilder(StageBuilder &&) = default;
+		StageBuilder &operator=(StageBuilder &&) = default;
+		StageBuilder(const StageBuilder &) = default;
+		StageBuilder &operator=(const StageBuilder &) = default;
+
+		// Build the product as a base LedPipelineStage*. Implemented by Builder<T, ConcreteBuilder> by delegating to
+		// its typed build().
+		virtual LedPipelineStage *buildStage() = 0;
+	};
+
 
 	struct LedPipelineStage {
 		/**
@@ -31,14 +57,14 @@ namespace ledpipelines {
 		 * derives from this one (CRTP). Setters defined here return ConcreteBuilder& so that fluent chaining keeps the
 		 * leaf type, letting base-level and leaf-level setters be called in any order.
 		 */
-		template<typename T, typename ConcreteBuilder> struct Builder {
+		template<typename T, typename ConcreteBuilder> struct Builder : StageBuilder {
 			Builder() = default;
 
-			virtual ~Builder() = default;
+			~Builder() override = default;
 
-			// Move-only. A built builder caches a raw pointer to its product (_built) that it does not own; copying
-			// would duplicate that pointer into two builders, each of which could hand the same stage to a wrapper or
-			// pipeline and cause a double-free. Moving transfers the cache to a single owner instead.
+			// Move-only. Builders own move-only state (a wrapper builder owns its inner builder via
+			// unique_ptr<StageBuilder>, a pipeline builder owns a vector of unique_ptr stages), and wrap() moves
+			// builders into one another. Copying is meaningless here and would try to duplicate that owned state.
 			Builder(const Builder &) = delete;
 			Builder &operator=(const Builder &) = delete;
 			Builder(Builder &&) = default;
@@ -52,39 +78,45 @@ namespace ledpipelines {
 			}
 
 			/**
-			 * Build the product of this builder. Memoized: the first call delegates to create() (implemented by the
-			 * leaf builder) and caches the result; every subsequent call returns that same instance. This makes build()
-			 * idempotent, so handing the same builder to addStage() twice, or calling build() after a wrap() already
-			 * built it, yields one object rather than several that would alias/double-free a shared inner stage. The
-			 * builder does NOT own the returned pointer - ownership passes to the wrapper/pipeline that receives it.
+			 * Build the product of this builder. Each call delegates to create() (implemented by the leaf builder) and
+			 * returns a brand-new, independent stage - the builder is a factory, not a cache. Calling build() twice
+			 * yields two separate trees that share nothing, so each is owned and deleted exactly once by whoever
+			 * receives it. For wrappers, this rebuilds the inner effect too (see wrap()), so no stage is ever shared
+			 * across builds. The builder does NOT own the returned pointer; ownership passes to the receiver.
 			 *
-			 * NOTE: Each builder can be built once. Calling build() more than once on a builder will return the same
-			 * stage that was originally built, regardless of any settings changes on the builder.
+			 * NOTE: A builder can be built any number of times; each build() reflects the builder's current settings and
+			 * produces a fresh, fully independent stage.
 			 */
-			T *build() {
-				if (_built == nullptr) _built = this->create();
-				return _built;
-			}
+			T *build() { return this->create(); }
+
+			// Type-erased build() for the StageBuilder base: returns the product as a LedPipelineStage*. Lets code
+			// holding a StageBuilder (e.g. a wrapper holding its inner builder) build without the concrete type.
+			LedPipelineStage *buildStage() override { return build(); }
 
 			/**
-			 * Wrap the product of this builder in a WrapperEffect, staying in "builder land": builds this stage,
-			 * attaches it to the wrapper builder, and returns that wrapper builder (not a built stage). This lets wrap()
-			 * chains compose entirely with '.' and defer the final build() to the end (or to addStage), e.g.
+			 * Wrap this builder in a WrapperEffect's builder, staying entirely in "builder land": nothing is built
+			 * here. This builder is moved onto the heap and adopted as the wrapper's inner builder; the wrapper builder
+			 * is then returned by value so more setters or wrap()s can follow with '.', deferring build() to the end
+			 * (or to addStage), e.g.
 			 * Solid::Builder(CRGB::Red).wrap(OpacityGradient::Builder(4)).wrap(Loop::Builder()).build().
-			 * The return type is deduced so it is only resolved when wrap() is called (where T is complete), not at
-			 * class-instantiation time.
+			 *
+			 * Because the inner is stored as a builder (not a built stage), each build() of the resulting chain
+			 * produces a fresh, independent tree. The wrapper argument is moved (builders are move-only); it is
+			 * consumed by this call. B is deduced (often an lvalue ref, since fluent setters return Builder&), so we
+			 * move via a remove_reference cast rather than forward.
 			 */
-			template<class B> auto wrap(B &&wrapper) {
-				return this->build()->wrap(static_cast<B &&>(wrapper));
+			template<class B> auto wrap(B &&wrapper) -> std::remove_reference_t<B> {
+				// Move this builder (the concrete leaf type, via CRTP) onto the heap so the wrapper can own it through
+				// the type-erased StageBuilder base.
+				std::unique_ptr<StageBuilder> inner(new ConcreteBuilder(std::move(static_cast<ConcreteBuilder &>(*this))));
+				wrapper.innerBuilder(std::move(inner));
+				return std::move(wrapper);
 			}
 
 			protected:
-				// Actually construct the product. Implemented by each leaf builder (return new T(...)); callers use the
-				// memoizing build() above rather than calling this directly.
+				// Actually construct the product. Implemented by each leaf builder (return new T(...)); callers use
+				// build() above rather than calling this directly.
 				virtual T *create() = 0;
-
-				// Cached result of the first build(); nullptr until then. Not owned by the builder.
-				T *_built = nullptr;
 		};
 
 		LedPipelineRunningState state = LedPipelineRunningState::NOT_STARTED;
@@ -101,22 +133,6 @@ namespace ledpipelines {
 		explicit LedPipelineStage(BlendingMode blendingMode = BlendingMode::NORMAL);
 
 		virtual ~LedPipelineStage();
-
-		/**
-		 * Wrap this stage in a WrapperEffect, configured via its Builder. The wrapper builder's inner stage is set to
-		 * this stage, and the wrapper builder itself is returned (by value) - NOT built. Returning the builder keeps
-		 * the chain in "builder land" so more setters or wrap()s can follow with '.', deferring build() to the end,
-		 * e.g. stage->wrap(Moving::Builder(1000)).wrap(Loop::Builder()).build().
-		 *
-		 * The wrapper builder is moved into the return value (builders are move-only). We move unconditionally rather
-		 * than forward, because the argument is often an lvalue: fluent setters like Moving::Builder(1000).startPos(0)
-		 * return Builder&, so B deduces to an lvalue reference. Moving is safe here since the argument is always a
-		 * transient in a build-once chain, never a builder reused afterward.
-		 */
-		template<class B> auto wrap(B &&builder) -> std::remove_reference_t<B> {
-			builder.stage(this);
-			return std::move(builder);
-		}
 
 		private:
 			u_int64_t lastUpdateTimeMicros;
@@ -135,26 +151,24 @@ namespace ledpipelines {
 		 */
 		template<typename T, typename ConcreteBuilder>
 		struct Builder : LedPipelineStage::Builder<T, ConcreteBuilder> {
-			std::vector<std::unique_ptr<LedPipelineStage> > _stages;
+			// Child stages stored as builders (not built stages), mirroring how WrapperEffect::Builder defers its
+			// inner. create() rebuilds each child fresh into a new pipeline, so building a pipeline builder more than
+			// once yields fully independent trees rather than moving a fixed set of stages out on the first build.
+			std::vector<std::unique_ptr<StageBuilder> > _childBuilders;
 
-			// Add an already-built stage - the result of a wrap() chain, a bare Effect::Builder(...).build(), or a
-			// nested pipeline's build(). Takes ownership.
-			ConcreteBuilder &addStage(LedPipelineStage *stage) {
-				_stages.push_back(std::unique_ptr<LedPipelineStage>(stage));
-				return static_cast<ConcreteBuilder &>(*this);
-			}
-
-			// Convenience overloads: accept another builder directly and build it here, so callers can drop in a bare
-			// Effect::Builder(...) (or a stored wrap()-chain builder) without a trailing .build(). Both lvalue and
-			// rvalue builders are accepted, since wrap() results are often stored in locals before being added.
+			// Add a child stage builder. Accepts any builder (a bare Effect::Builder(...), a wrap()-chain builder, or
+			// a nested pipeline builder), by lvalue or rvalue since wrap() results are often stored in locals first.
+			// The child builder is moved onto the heap and owned via the type-erased StageBuilder base; it is built
+			// fresh each time this pipeline's create() runs.
 			template<typename U, typename V>
 			ConcreteBuilder &addStage(LedPipelineStage::Builder<U, V> &builder) {
-				return addStage(builder.build());
+				_childBuilders.push_back(std::unique_ptr<StageBuilder>(new V(std::move(static_cast<V &>(builder)))));
+				return static_cast<ConcreteBuilder &>(*this);
 			}
 
 			template<typename U, typename V>
 			ConcreteBuilder &addStage(LedPipelineStage::Builder<U, V> &&builder) {
-				return addStage(builder.build());
+				return addStage(builder);
 			}
 		};
 
@@ -182,7 +196,7 @@ namespace ledpipelines {
 			struct Builder : LedPipeline::Builder<ParallelLedPipeline, Builder> {
 				ParallelLedPipeline *create() override {
 					auto *pipeline = new ParallelLedPipeline(this->_blendingMode);
-					for (auto &stage : _stages) pipeline->addStage(std::move(stage));
+					for (auto &childBuilder : _childBuilders) pipeline->addStage(childBuilder->buildStage());
 					return pipeline;
 				}
 			};
@@ -202,7 +216,7 @@ namespace ledpipelines {
 			struct Builder : LedPipeline::Builder<SeriesLedPipeline, Builder> {
 				SeriesLedPipeline *create() override {
 					auto *pipeline = new SeriesLedPipeline(this->_blendingMode);
-					for (auto &stage : _stages) pipeline->addStage(std::move(stage));
+					for (auto &childBuilder : _childBuilders) pipeline->addStage(childBuilder->buildStage());
 					return pipeline;
 				}
 			};
