@@ -11,7 +11,7 @@ namespace ledpipelines::effects {
 
 			explicit Builder(float position = 0) : _position(position) {};
 
-			AbsolutePosition* build() override {
+			AbsolutePosition* create() override {
 				return new AbsolutePosition(_stage, _position);
 			};
 		};

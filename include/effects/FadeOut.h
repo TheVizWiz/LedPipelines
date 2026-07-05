@@ -20,7 +20,7 @@ namespace ledpipelines::effects {
 
 			Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
-			FadeOut *build() override { return new FadeOut(_runtimeMs, _smoothingFunction, _blendingMode); }
+			FadeOut *create() override { return new FadeOut(_runtimeMs, _smoothingFunction, _blendingMode); }
 		};
 
 		private:
@@ -37,7 +37,7 @@ namespace ledpipelines::effects {
 
 			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
-			RandomFadeOut *build() override {
+			RandomFadeOut *create() override {
 				return new RandomFadeOut(
 					_minRuntimeMs,
 					_maxRuntimeMs,

@@ -44,35 +44,35 @@ void setup() {
 	Serial.println(TemporaryLedData::size);
 
 	offPipeline =
-		(new ParallelLedPipeline())
-			->addStage(Solid::Builder(CRGB::Black).build())
-			->addStage(((new SeriesLedPipeline())
-							->addStage(SolidSegment::Builder(CRGB::Blue, 1).build()->wrap(TimeBox::Builder(1000)))
-							->addStage(SolidSegment::Builder(CRGB::Green, 1).build()->wrap(TimeBox::Builder(1000))))
-						   ->wrap(Loop::Builder()));
+		ParallelLedPipeline::Builder()
+			.addStage(Solid::Builder(CRGB::Black))
+			.addStage(SeriesLedPipeline::Builder()
+						  .addStage(SolidSegment::Builder(CRGB::Blue, 1).wrap(TimeBox::Builder(1000)))
+						  .addStage(SolidSegment::Builder(CRGB::Green, 1).wrap(TimeBox::Builder(1000)))
+						  .wrap(Loop::Builder()))
+			.build();
 
 	onPipeline =
-		(new ParallelLedPipeline())
-			->addStage(Solid::Builder(CRGB::White)
-						   .build()
-						   ->wrap(OpacityGradient::Builder(0, TemporaryLedData::size)
+		ParallelLedPipeline::Builder()
+			.addStage(Solid::Builder(CRGB::White)
+						   .wrap(OpacityGradient::Builder(0, TemporaryLedData::size)
 									  .smoothingFunction(SmoothingFunction::LINEAR)))
-			->addStage(((new SeriesLedPipeline())
-							->addStage(SolidSegment::Builder(CRGB::Red, 1).build()->wrap(TimeBox::Builder(1000)))
-							->addStage(SolidSegment::Builder(CRGB::Red, 1).build()->wrap(TimeBox::Builder(1000))))
-						   ->wrap(Loop::Builder()))
-			->addStage(
+			.addStage(SeriesLedPipeline::Builder()
+						  .addStage(SolidSegment::Builder(CRGB::Red, 1).wrap(TimeBox::Builder(1000)))
+						  .addStage(SolidSegment::Builder(CRGB::Red, 1).wrap(TimeBox::Builder(1000)))
+						  .wrap(Loop::Builder()))
+			.addStage(
 				SolidSegment::Builder(CRGB::White, 10)
 					.opacity(0xFF)
-					.build()
-					->wrap(OpacityGradient::Builder(1))
-					->wrap(OpacityGradient::Builder(1))
-					->wrap(Moving::Builder(10000)
-							   .startPosition(0)
-							   .endPosition(10)
-							   .smoothingFunction(SmoothingFunction::LINEAR))
-					->wrap(Moving::Builder(10).startPosition(-10).endPosition(LED_COUNT + 10))
-					->wrap(Loop::Builder()));
+					.wrap(OpacityGradient::Builder(1))
+					.wrap(OpacityGradient::Builder(1))
+					.wrap(Moving::Builder(10000)
+							  .startPosition(0)
+							  .endPosition(10)
+							  .smoothingFunction(SmoothingFunction::LINEAR))
+					.wrap(Moving::Builder(10).startPosition(-10).endPosition(LED_COUNT + 10))
+					.wrap(Loop::Builder()))
+			.build();
 
 	Serial.println("done initializing onPipeline and offPipeline");
 	onPipeline->reset();

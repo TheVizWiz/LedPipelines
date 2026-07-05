@@ -29,7 +29,7 @@ namespace ledpipelines::effects {
 					unsigned long runtimeMs
 				) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
-				Moving *build() override {
+				Moving *create() override {
 					return new Moving(
 						_stage,
 						_runtimeMs,

@@ -68,24 +68,25 @@ void setup() {
      * over a given number of LEDs. LedPipelines comes with a library of WrapperEffects. In this case, we can make use of
      * the TimeBox effect, which sets the max duration of the internal effect to be a certain number of seconds.
      *
-     * To wrap one effect in another, every stage has a wrap() method. You build the inner effect, then call wrap() on
-     * it with the Builder of the WrapperEffect you want to apply. wrap() attaches the inner effect to the wrapper and
-     * returns the wrapper, so you can keep chaining more wrappers on top.
+     * To wrap one effect in another, every Builder has a wrap() method. You call wrap() on the inner effect's Builder
+     * with the Builder of the WrapperEffect you want to apply. wrap() attaches the inner effect to the wrapper and
+     * returns the wrapper's Builder, so you can keep chaining more wrap()s (and other setters) on top and only call
+     * build() once at the very end.
      */
 
-	auto redEffect = Solid::Builder(CRGB::Red).build();
-	auto redEffectLimited = redEffect->wrap(TimeBox::Builder(2000));
+	auto redEffectLimited = Solid::Builder(CRGB::Red).wrap(TimeBox::Builder(2000));
 
 
 	/**
-     * The two lines above first build a red effect, then wrap it in a TimeBox that limits it to run for 2
-     * seconds. If we were to add this to the pipeline like we did last time, we would get a red light for two seconds,
+     * The line above sets up a red effect wrapped in a TimeBox that limits it to run for 2 seconds. Note that
+     * redEffectLimited is still a Builder, not a built stage - we'll let the pipeline's addStage() build it for us
+     * below. If we were to add this to the pipeline like we did last time, we would get a red light for two seconds,
      * and then nothing until we reset the microcontroller.
      *
-     * Let's set up the blue and green effects. I'll do these on one line, just to show what that looks like.
+     * Let's set up the blue and green effects the same way.
      */
-	auto greenEffectLimited = Solid::Builder(CRGB::Green).build()->wrap(TimeBox::Builder(2000));
-	auto blueEffectLimited = Solid::Builder(CRGB::Blue).build()->wrap(TimeBox::Builder(2000));
+	auto greenEffectLimited = Solid::Builder(CRGB::Green).wrap(TimeBox::Builder(2000));
+	auto blueEffectLimited = Solid::Builder(CRGB::Blue).wrap(TimeBox::Builder(2000));
 
 
 	/**
@@ -115,16 +116,18 @@ void setup() {
 
 	pipeline =
 		/**
-             * inside the loop, we can supply the pipeline we talked about before. We could set up another variable
-             * for the internal pipeline, and then add each stage separately, but the addStage method returns a reference
-             * to the pipeline itself so that we can chain multiple calls. Once the pipeline is built up, we wrap it in a
-             * Loop using its wrap() method.
+             * inside the loop, we can supply the pipeline we talked about before. Pipelines have a Builder just like
+             * effects do. We could set up another variable for the internal pipeline and add each stage separately, but
+             * addStage returns the builder itself so we can chain multiple calls. Once the pipeline is built up, we
+             * wrap it in a Loop using the builder's wrap() method. wrap() returns another builder (the Loop's), so we
+             * finish by calling build() to produce the actual stage we assign to `pipeline`.
              */
-		(new SeriesLedPipeline) // yes, the parentheses here are required :(
-			->addStage(redEffectLimited)
-			->addStage(greenEffectLimited)
-			->addStage(blueEffectLimited)
-			->wrap(Loop::Builder());
+		SeriesLedPipeline::Builder()
+			.addStage(redEffectLimited)
+			.addStage(greenEffectLimited)
+			.addStage(blueEffectLimited)
+			.wrap(Loop::Builder())
+			.build();
 
 
 	/**

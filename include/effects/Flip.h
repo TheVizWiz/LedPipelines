@@ -19,7 +19,7 @@ namespace ledpipelines::effects {
 				this->_maxIndex = maxIndex;
 			}
 
-			Flip *build() override {
+			Flip *create() override {
 				return new Flip(_stage, _minIndex, _maxIndex);
 			}
 		};

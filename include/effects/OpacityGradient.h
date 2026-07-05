@@ -21,7 +21,7 @@ namespace ledpipelines::effects {
 			explicit Builder(const float startIndex, const float endIndex) : _startIndex(startIndex),
 			                                                                 _endIndex(endIndex) {}
 
-			OpacityGradient *build() override {
+			OpacityGradient *create() override {
 				return new OpacityGradient(
 					_stage,
 					_startIndex,

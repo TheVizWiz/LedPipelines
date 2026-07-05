@@ -27,7 +27,7 @@ namespace ledpipelines::effects {
 
 			explicit Builder(EffectSpawnerFactory factory) : _factory(std::move(factory)) {};
 
-			Spawner* build() override {
+			Spawner* create() override {
 				return new Spawner(_factory, _maxChildren, _keepOldOnSpawn, _blendingMode);
 			}
 		};
@@ -54,7 +54,7 @@ namespace ledpipelines::effects {
 			Builder(EffectSpawnerFactory factory, const unsigned long spawnTimeMs) :
 				_factory(std::move(factory)), _spawnTimeMs(spawnTimeMs) {};
 
-			TimedSpawner* build() override {
+			TimedSpawner* create() override {
 				return new TimedSpawner(_factory, _maxChildren, _keepOldOnSpawn, _spawnTimeMs, _blendingMode);
 			}
 		};
@@ -83,7 +83,7 @@ namespace ledpipelines::effects {
 			Builder(EffectSpawnerFactory factory, const unsigned long maxSpawnTimeMs) :
 				_factory(std::move(factory)), _maxSpawnTimeMs(maxSpawnTimeMs) {};
 
-			RandomTimedSpawner* build() override {
+			RandomTimedSpawner* create() override {
 				return new RandomTimedSpawner(_factory, _maxChildren, _keepOldOnSpawn, _minSpawnTimeMs,
 											  _maxSpawnTimeMs, _spawnTimeSamplingFunction, _blendingMode);
 			}

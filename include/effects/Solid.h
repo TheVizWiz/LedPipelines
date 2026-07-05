@@ -16,7 +16,7 @@ namespace ledpipelines::effects {
 
 			explicit Builder(const CRGB color) : _color(color) {}
 
-			Solid *build() override {
+			Solid *create() override {
 				return new Solid(
 					_color,
 					_opacity,
@@ -41,7 +41,7 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD(float, length);
 			explicit Builder(const CRGB color, const float length) : _color(color), _length(length) {}
 
-			SolidSegment *build() override {
+			SolidSegment *create() override {
 				return new SolidSegment(
 					_color,
 					_opacity,

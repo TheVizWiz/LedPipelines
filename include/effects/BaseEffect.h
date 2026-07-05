@@ -26,7 +26,7 @@ namespace ledpipelines::effects {
 						return *this;
 					}
 
-					T *build() override = 0;
+					T *create() override = 0;
 			};
 	};
 
