@@ -26,7 +26,7 @@ namespace ledpipelines::effects {
 
 			explicit Builder();
 
-			Path *create() override {
+			Path *build() override {
 				return new Path(
 					buildInner(),
 					std::move(_segments)

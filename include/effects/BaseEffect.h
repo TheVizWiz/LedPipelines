@@ -24,27 +24,33 @@ namespace ledpipelines::effects {
 					Builder &operator=(Builder &&) = default;
 
 					// The builder for the inner (wrapped) effect. Stored as a builder rather than a built stage so the
-					// inner effect is (re)built fresh each time this wrapper's create() runs - every build() produces an
+					// inner effect is (re)built fresh each time this wrapper's build() runs - every build() produces an
 					// independent inner tree, so nothing is shared across builds. Owned via unique_ptr<StageBuilder>
 					// (the type-erased builder base) because the concrete inner builder type varies per effect.
 					std::unique_ptr<StageBuilder> _innerBuilder;
 
 					// Adopt the inner builder. Called by LedPipelineStage::Builder::wrap() when this wrapper wraps an
-					// inner builder; ownership of the inner builder moves here.
-					ConcreteBuilder &innerBuilder(std::unique_ptr<StageBuilder> inner) {
+					// inner builder; ownership of the inner builder moves here. Ref-qualified like the other fluent
+					// setters (lvalue chains in place; rvalue temporary moves out by value).
+					ConcreteBuilder &innerBuilder(std::unique_ptr<StageBuilder> inner) & {
 						this->_innerBuilder = std::move(inner);
 						return static_cast<ConcreteBuilder &>(*this);
 					}
 
+					ConcreteBuilder innerBuilder(std::unique_ptr<StageBuilder> inner) && {
+						this->_innerBuilder = std::move(inner);
+						return std::move(static_cast<ConcreteBuilder &>(*this));
+					}
+
 				protected:
-					// Build the inner effect as a fresh stage. Leaf create()s pass the result into their product's
+					// Build the inner effect as a fresh stage. Leaf build()s pass the result into their product's
 					// constructor (the product then owns and deletes it). Returns nullptr if no inner was set.
 					LedPipelineStage *buildInner() {
 						return _innerBuilder ? _innerBuilder->buildStage() : nullptr;
 					}
 
 				public:
-					T *create() override = 0;
+					T *build() override = 0;
 			};
 	};
 

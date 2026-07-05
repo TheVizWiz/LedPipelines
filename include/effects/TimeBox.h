@@ -11,7 +11,7 @@ namespace ledpipelines::effects {
 		struct Builder : WrapperEffect::Builder<TimeBox, Builder>, TimedEffect::Builder<Builder> {
 			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
-			TimeBox *create() override {
+			TimeBox *build() override {
 				return new TimeBox(buildInner(), _runtimeMs);
 			}
 		};
@@ -28,7 +28,7 @@ namespace ledpipelines::effects {
 		struct Builder : WrapperEffect::Builder<RandomTimeBoxedEffect, Builder>, RandomTimedEffect::Builder<Builder> {
 			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
-			RandomTimeBoxedEffect *create() override {
+			RandomTimeBoxedEffect *build() override {
 				return new RandomTimeBoxedEffect(
 					buildInner(),
 					_minRuntimeMs,

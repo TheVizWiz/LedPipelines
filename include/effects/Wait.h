@@ -13,7 +13,7 @@ namespace ledpipelines::effects {
 		struct Builder : LedPipelineStage::Builder<Wait, Builder>, TimedEffect::Builder<Builder> {
 			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
-			Wait *create() override {
+			Wait *build() override {
 				return new Wait(_runtimeMs, _blendingMode);
 			}
 		};
@@ -31,7 +31,7 @@ namespace ledpipelines::effects {
 		struct Builder : LedPipelineStage::Builder<RandomWaitEffect, Builder>, RandomTimedEffect::Builder<Builder> {
 			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
-			RandomWaitEffect *create() override {
+			RandomWaitEffect *build() override {
 				return new RandomWaitEffect(
 					_minRuntimeMs,
 					_maxRuntimeMs,

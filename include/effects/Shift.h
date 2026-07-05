@@ -15,7 +15,7 @@ namespace ledpipelines::effects {
 
 			Builder(float offset) : _offset(offset) {}
 
-			Shift *create() override {
+			Shift *build() override {
 				return new Shift(buildInner(), _offset);
 			}
 		};

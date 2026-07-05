@@ -19,7 +19,7 @@ namespace ledpipelines::effects {
 
 			Builder(float repeatDistance) : _repeatDistance(repeatDistance) {};
 
-			Repeat *create() override {
+			Repeat *build() override {
 				return new Repeat(
 					buildInner(),
 					_numRepeats,
