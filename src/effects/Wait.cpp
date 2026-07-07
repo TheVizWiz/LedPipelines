@@ -18,7 +18,7 @@ void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->startTimeMs = millis();
 	}
 
-	unsigned long totalTimeWaited = millis() - this->startTimeMs;
+	unsigned long totalTimeWaited = elapsedMs();
 
 	if (totalTimeWaited >= this->runtimeMs) {
 		this->elapsedPercentage = 1;
@@ -52,7 +52,7 @@ void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 		LPLogger::log(String("running random wait effect for ") + this->runtimeMs + " ms");
 	}
 
-	unsigned long totalTimeWaited = millis() - this->startTimeMs;
+	unsigned long totalTimeWaited = elapsedMs();
 
 	if (totalTimeWaited >= this->runtimeMs) {
 		LPLogger::log("done running random wait effect.");

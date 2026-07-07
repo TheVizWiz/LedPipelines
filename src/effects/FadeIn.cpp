@@ -4,8 +4,11 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-FadeIn::FadeIn(unsigned long runtimeMs, SmoothingFunction smoothingFunction, BlendingMode blendingMode) :
-	LedPipelineStage(blendingMode), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {}
+FadeIn::FadeIn(LedPipelineStage* stage, unsigned long runtimeMs, SmoothingFunction smoothingFunction,
+			   BlendingMode blendingMode) :
+	WrapperEffect(stage), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {
+	this->blendingMode = blendingMode;
+}
 
 void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -15,43 +18,46 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	unsigned long currentTimeMillis = millis();
+	// Render the wrapped effect first, then scale its opacity by the fade ramp.
+	this->stage->calculate(startIndex, tempData);
 
-	unsigned long timeFadingMs = (currentTimeMillis - startTimeMs);
+	// elapsedMs() is 0 during the lead-in delay, so a delayed FadeIn keeps its inner invisible until the delay elapses,
+	// then ramps in.
+	unsigned long timeFadingMs = elapsedMs();
 
-	// in this case, we have already finished fading, and can stop here.
 	if (timeFadingMs >= runtimeMs) {
+		// Ramp complete: full opacity, so leave the inner effect's opacity untouched (multiplier == 1). We do NOT go
+		// DONE here - FadeIn is a pass-through once faded in, and terminating would hide the wrapped content.
 		elapsedPercentage = 1;
-		// when it's done, we still have to set it to done for the last frame.
-		// so opacity is set to 255.
-		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-			tempData.opacity[i] = UINT8_MAX;
-		}
-		this->state = LedPipelineRunningState::DONE;
-		return;
 	} else {
-		this->state = LedPipelineRunningState::RUNNING;
 		elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
+		float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
+		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
+			tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
+		}
 	}
 
-	float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
-
-	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-		tempData.opacity[i] = opacityMultiplier * 255;
+	// Defer termination to the inner effect: FadeIn is DONE only when the wrapped effect finishes. We do NOT copy the
+	// inner's state wholesale - an inner that reports NOT_STARTED every frame (e.g. Solid, whose calculate() never sets
+	// RUNNING) would otherwise keep re-initializing our fade timer, freezing the ramp.
+	if (this->stage->state == LedPipelineRunningState::DONE) {
+		this->state = LedPipelineRunningState::DONE;
 	}
 }
 
 void FadeIn::reset() {
-	LedPipelineStage::reset();
+	WrapperEffect::reset();
 	TimedEffect::resetTimer();
 }
 
 
-RandomFadeIn::RandomFadeIn(const unsigned long minRuntimeMs, const unsigned long maxRuntimeMs,
+RandomFadeIn::RandomFadeIn(LedPipelineStage* stage, const unsigned long minRuntimeMs, const unsigned long maxRuntimeMs,
 						   SamplingFunction samplingFunction, SmoothingFunction smoothingFunction,
 						   BlendingMode blendingMode) :
-	LedPipelineStage(blendingMode), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
-	smoothingFunction(smoothingFunction) {}
+	WrapperEffect(stage), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
+	smoothingFunction(smoothingFunction) {
+	this->blendingMode = blendingMode;
+}
 
 void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -63,34 +69,28 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	unsigned long currentTimeMillis = millis();
+	this->stage->calculate(startIndex, tempData);
 
-	unsigned long timeFadingMs = (currentTimeMillis - startTimeMs);
+	unsigned long timeFadingMs = elapsedMs();
 
-	// in this case, we have already finished fading, and can stop here.
 	if (timeFadingMs >= runtimeMs) {
 		LPLogger::log("done running random fade in effect.");
 		elapsedPercentage = 1;
-		// when it's done, we still have to set it to done for the last frame.
-		// so opacity is set to 255.
-		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-			tempData.opacity[i] = UINT8_MAX;
-		}
-		this->state = LedPipelineRunningState::DONE;
-		return;
 	} else {
-		this->state = LedPipelineRunningState::RUNNING;
 		elapsedPercentage = static_cast<float>(timeFadingMs) / static_cast<float>(runtimeMs);
+		float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
+		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
+			tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
+		}
 	}
 
-	const float currentOpacity = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
-
-	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-		tempData.opacity[i] = currentOpacity;
+	// Defer termination to the inner effect (see FadeIn::calculate for why we don't copy the inner state wholesale).
+	if (this->stage->state == LedPipelineRunningState::DONE) {
+		this->state = LedPipelineRunningState::DONE;
 	}
 }
 
 void RandomFadeIn::reset() {
-	LedPipelineStage::reset();
+	WrapperEffect::reset();
 	RandomTimedEffect::resetTimer();
 }

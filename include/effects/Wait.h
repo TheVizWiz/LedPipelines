@@ -14,7 +14,7 @@ namespace ledpipelines::effects {
 			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
 			Wait *build() override {
-				return new Wait(_runtimeMs, _blendingMode);
+				return applyTiming(new Wait(_runtimeMs, _blendingMode));
 			}
 		};
 
@@ -32,12 +32,12 @@ namespace ledpipelines::effects {
 			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
 			RandomWaitEffect *build() override {
-				return new RandomWaitEffect(
+				return applyTiming(new RandomWaitEffect(
 					_minRuntimeMs,
 					_maxRuntimeMs,
 					_samplingFunction,
 					_blendingMode
-				);
+				));
 			}
 		};
 

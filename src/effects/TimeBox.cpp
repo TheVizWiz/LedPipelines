@@ -16,7 +16,9 @@ void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 		startTimeMs = millis();
 	}
 
-	unsigned long elapsedTime = millis() - startTimeMs;
+	// elapsedMs() holds at 0 during the lead-in delay, so a delayed TimeBox shows its inner for the delay before its
+	// own runtime clock starts counting.
+	unsigned long elapsedTime = elapsedMs();
 
 
 	this->elapsedPercentage = (float)elapsedTime / (float)runtimeMs;
@@ -55,7 +57,7 @@ void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData& tempDa
 		startTimeMs = millis();
 	}
 
-	unsigned long elapsedTime = millis() - startTimeMs;
+	unsigned long elapsedTime = elapsedMs();
 
 
 	this->elapsedPercentage = (float)elapsedTime / (float)runtimeMs;

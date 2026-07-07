@@ -9,6 +9,8 @@
 #include "Shift.h"
 #include "OpacityGradient.h"
 #include "OpacityScale.h"
+#include "FadeIn.h"
+#include "FadeOut.h"
 #include "Repeat.h"
 #include "TimeBox.h"
 #include "Toggle.h"
@@ -18,7 +20,6 @@
 
 // mask effects
 #include "Mask.h"
-#include "FadeIn.h"
 
 
 // basic effects

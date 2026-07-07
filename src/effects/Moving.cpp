@@ -19,7 +19,9 @@ void Moving::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	this->elapsedPercentage = (float)(millis() - this->startTimeMs) / (float)runtimeMs;
+	// elapsedMs() holds at 0 during the lead-in delay, so a delayed Moving sits at its startPosition until the delay
+	// elapses, then begins moving.
+	this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs;
 
 	this->currentPosition = smoothingFunction(elapsedPercentage, startPosition, endPosition);
 

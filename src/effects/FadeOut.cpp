@@ -4,8 +4,11 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-FadeOut::FadeOut(unsigned long runtimeMs, SmoothingFunction smoothingFunction, BlendingMode blendingMode) :
-	LedPipelineStage(blendingMode), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {}
+FadeOut::FadeOut(LedPipelineStage* stage, unsigned long runtimeMs, SmoothingFunction smoothingFunction,
+				 BlendingMode blendingMode) :
+	WrapperEffect(stage), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {
+	this->blendingMode = blendingMode;
+}
 
 void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -15,14 +18,17 @@ void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	unsigned long currentTimeMillis = millis();
+	// Render the wrapped effect first, then scale its opacity down by the fade ramp.
+	this->stage->calculate(startIndex, tempData);
 
-	unsigned long timeFadingMs = (currentTimeMillis - startTimeMs);
+	// elapsedMs() is the time on our own timeline: 0 during the lead-in delay (so the content shows at full opacity),
+	// then counting up once the delay elapses. This is what makes `content.wrap(FadeOut(1000).delayMs(5000))` hold the
+	// content for 5s before ramping out.
+	unsigned long timeFadingMs = elapsedMs();
 
-	// in this case, we have already finished fading, and can stop here.
 	if (timeFadingMs >= runtimeMs) {
-		// when it's done, we still have to set it to done for the last frame.
-		// so opacity is set to 0.
+		// Ramp complete: fully faded out. Zero the buffer and finish - fading content away to nothing is the point of
+		// FadeOut, so it terminates on its own timer rather than deferring to the inner effect.
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.opacity[i] = 0;
 		}
@@ -30,24 +36,31 @@ void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::DONE;
 		return;
 	}
+
 	elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
-
 	float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, UINT8_MAX, 0);
-
 	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 		tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
+	}
+
+	// Also finish if the wrapped effect finished before the fade ran out.
+	if (this->stage->state == LedPipelineRunningState::DONE) {
+		this->state = LedPipelineRunningState::DONE;
 	}
 }
 
 void FadeOut::reset() {
-	LedPipelineStage::reset();
+	WrapperEffect::reset();
 	TimedEffect::resetTimer();
 }
 
-RandomFadeOut::RandomFadeOut(unsigned long minRuntimeMs, unsigned long maxRuntimeMs, SamplingFunction samplingFunction,
-							 SmoothingFunction smoothingFunction, BlendingMode blendingMode) :
-	LedPipelineStage(blendingMode), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
-	smoothingFunction(smoothingFunction) {}
+RandomFadeOut::RandomFadeOut(LedPipelineStage* stage, unsigned long minRuntimeMs, unsigned long maxRuntimeMs,
+							 SamplingFunction samplingFunction, SmoothingFunction smoothingFunction,
+							 BlendingMode blendingMode) :
+	WrapperEffect(stage), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
+	smoothingFunction(smoothingFunction) {
+	this->blendingMode = blendingMode;
+}
 
 
 void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -60,16 +73,12 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	unsigned long currentTimeMillis = millis();
+	this->stage->calculate(startIndex, tempData);
 
-	float timeFadingMs = (currentTimeMillis - startTimeMs);
+	float timeFadingMs = elapsedMs();
 
-	// in this case, we have already finished fading, and can stop here.
 	if (timeFadingMs >= runtimeMs) {
 		LPLogger::log("done running random fade out effect.");
-
-		// when it's done, we still have to set it to done for the last frame.
-		// so opacity is set to 0.
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.opacity[i] = 0;
 		}
@@ -79,15 +88,17 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	}
 
 	elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
-
-	float currentOpacity = smoothingFunction(timeFadingMs, 0, runtimeMs, UINT8_MAX, 0);
-
+	float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, UINT8_MAX, 0);
 	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-		tempData.opacity[i] = currentOpacity;
+		tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
+	}
+
+	if (this->stage->state == LedPipelineRunningState::DONE) {
+		this->state = LedPipelineRunningState::DONE;
 	}
 }
 
 void RandomFadeOut::reset() {
-	LedPipelineStage::reset();
+	WrapperEffect::reset();
 	RandomTimedEffect::resetTimer();
 }

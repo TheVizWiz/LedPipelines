@@ -4,14 +4,18 @@
 #include "BaseEffect.h"
 
 namespace ledpipelines::effects {
-	struct FadeIn : public LedPipelineStage, TimedEffect {
+	// FadeIn wraps an inner effect and ramps its opacity from 0 up to full over runtimeMs, then becomes a transparent
+	// pass-through. Like OpacityGradient/OpacityScale it is a WrapperEffect that multiplies the inner effect's opacity in
+	// place; it does NOT terminate on its own timer (that would make the wrapped content vanish once the ramp finished),
+	// so its done-state defers to the inner effect.
+	struct FadeIn : public WrapperEffect, TimedEffect {
 		SmoothingFunction smoothingFunction;
 
 		void calculate(float startIndex, TemporaryLedData &tempData) override;
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<FadeIn, Builder>, TimedEffect::Builder<Builder> {
+		struct Builder : WrapperEffect::Builder<FadeIn, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD_DEFAULT(
 				SmoothingFunction,
 				smoothingFunction,
@@ -21,23 +25,25 @@ namespace ledpipelines::effects {
 			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
 			FadeIn *build() override {
-				return new FadeIn(
+				return applyTiming(new FadeIn(
+					buildInner(),
 					_runtimeMs,
 					_smoothingFunction,
 					_blendingMode
-				);
+				));
 			}
 		};
 
 		private:
 			FadeIn(
+				LedPipelineStage *stage,
 				unsigned long runtimeMs,
 				SmoothingFunction smoothingFunction,
 				BlendingMode blendingMode = BlendingMode::NORMAL
 			);
 	};
 
-	struct RandomFadeIn : public LedPipelineStage, RandomTimedEffect {
+	struct RandomFadeIn : public WrapperEffect, RandomTimedEffect {
 		SmoothingFunction smoothingFunction;
 
 
@@ -45,7 +51,7 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<RandomFadeIn, Builder>, RandomTimedEffect::Builder<Builder> {
+		struct Builder : WrapperEffect::Builder<RandomFadeIn, Builder>, RandomTimedEffect::Builder<Builder> {
 			BUILDER_FIELD_DEFAULT(
 				SmoothingFunction,
 				smoothingFunction,
@@ -56,6 +62,7 @@ namespace ledpipelines::effects {
 
 			RandomFadeIn *build() override {
 				return new RandomFadeIn(
+					buildInner(),
 					_minRuntimeMs,
 					_maxRuntimeMs,
 					_samplingFunction,
@@ -67,6 +74,7 @@ namespace ledpipelines::effects {
 
 		private:
 			RandomFadeIn(
+				LedPipelineStage *stage,
 				unsigned long minRuntimeMs,
 				unsigned long maxRuntimeMs,
 				SamplingFunction samplingFunction,

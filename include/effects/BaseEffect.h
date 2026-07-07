@@ -62,6 +62,27 @@ namespace ledpipelines::effects {
 		float elapsedPercentage;
 		unsigned long runtimeMs;
 
+		/**
+		 * A lead-in delay, in ms, before the effect's own timeline begins. The effect still runs (and renders its inner)
+		 * from the moment it becomes RUNNING, but its clock is held at t=0 for the first delayMs. So a delayed effect sits
+		 * in its start state during the delay - FadeOut stays fully visible, FadeIn stays invisible, Moving sits at its
+		 * startPosition, TimeBox keeps showing its inner - and only begins progressing once the delay elapses. This lets
+		 * e.g. `content.wrap(FadeOut(1000).delayMs(5000))` show content for 5s and then fade it out over 1s. Defaults to 0
+		 * (no delay), so every existing effect is unchanged.
+		 */
+		unsigned long delayMs = 0;
+
+		/**
+		 * Milliseconds elapsed on the effect's OWN timeline: real time since it started, minus the lead-in delay, clamped
+		 * to 0 while still within the delay. Every timed effect drives its progress off this rather than
+		 * (millis() - startTimeMs), so honoring delayMs is centralized here instead of repeated per effect. Requires
+		 * startTimeMs to have been stamped (i.e. the effect is RUNNING).
+		 */
+		unsigned long elapsedMs() const {
+			unsigned long sinceStart = millis() - startTimeMs;
+			return sinceStart > delayMs ? sinceStart - delayMs : 0;
+		}
+
 		virtual void resetTimer();
 
 		/**
@@ -72,6 +93,7 @@ namespace ledpipelines::effects {
 		 */
 		template<typename ConcreteBuilder> struct Builder {
 			unsigned long _runtimeMs;
+			unsigned long _delayMs = 0;
 
 			explicit Builder(const unsigned long runtimeMs) : _runtimeMs(runtimeMs) {}
 
@@ -79,6 +101,23 @@ namespace ledpipelines::effects {
 				this->_runtimeMs = v;
 				return static_cast<ConcreteBuilder &>(*this);
 			}
+
+			// Lead-in delay before the effect's timeline begins (see TimedEffect::delayMs). Inherited by every timed
+			// effect's builder, so any of them - fades, Moving, TimeBox, Wait - can be delayed with .delayMs(...).
+			ConcreteBuilder &delayMs(unsigned long v) {
+				this->_delayMs = v;
+				return static_cast<ConcreteBuilder &>(*this);
+			}
+
+			protected:
+				// Copy this builder's timing config onto a freshly built product. Called by each leaf build() after
+				// constructing its product, so delayMs (and any future TimedEffect-level timing field) is applied in one
+				// place rather than threaded through every effect's constructor. Returns the product for convenience:
+				//   return applyTiming(new FadeOut(...));
+				template<typename Product> Product *applyTiming(Product *product) {
+					product->delayMs = this->_delayMs;
+					return product;
+				}
 		};
 
 		protected:
@@ -123,6 +162,22 @@ namespace ledpipelines::effects {
 				this->_samplingFunction = v;
 				return static_cast<ConcreteBuilder &>(*this);
 			}
+
+			// Lead-in delay before the effect's timeline begins (see TimedEffect::delayMs). Mirrors
+			// TimedEffect::Builder::delayMs so random timed effects can be delayed identically.
+			ConcreteBuilder &delayMs(unsigned long v) {
+				this->_delayMs = v;
+				return static_cast<ConcreteBuilder &>(*this);
+			}
+
+			unsigned long _delayMs = 0;
+
+			protected:
+				// See TimedEffect::Builder::applyTiming.
+				template<typename Product> Product *applyTiming(Product *product) {
+					product->delayMs = this->_delayMs;
+					return product;
+				}
 		};
 
 		protected:

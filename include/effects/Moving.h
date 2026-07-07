@@ -30,13 +30,13 @@ namespace ledpipelines::effects {
 				) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
 				Moving *build() override {
-					return new Moving(
+					return applyTiming(new Moving(
 						buildInner(),
 						_runtimeMs,
 						_startPosition,
 						_endPosition,
 						_smoothingFunction
-					);
+					));
 				}
 			};
 
