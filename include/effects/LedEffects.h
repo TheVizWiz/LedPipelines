@@ -16,6 +16,7 @@
 #include "Toggle.h"
 #include "Flip.h"
 #include "Path.h"
+#include "ResetBlocker.h"
 
 
 // mask effects
