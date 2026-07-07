@@ -46,7 +46,9 @@ void LedPipeline::reset() {
 	LedPipelineStage::reset();
 
 	for (auto& stage : stages) {
-		stage.reset();
+		// NOTE: stage->reset() (reset the pointed-to effect's state), NOT stage.reset() - the latter is
+		// unique_ptr::reset(), which would delete the child stage and null the pointer, crashing the next calculate().
+		stage->reset();
 	}
 }
 

@@ -37,9 +37,27 @@ namespace ledpipelines {
 		bool anyAreModified = false;
 
 		/**
-     *The total number of LEDs added to FastLED. This is populated in the initialize() method.
+     *The total number of LEDs added to FastLED (the logical strip length). This is populated in the initialize()
+     * method. Effects address pixels in logical coordinates 0..size (and, thanks to the padding below, may also write
+     * slightly off-strip into [-padding, size+padding) without their data being clipped).
      */
 		static int size;
+
+		/**
+     * Off-strip headroom on EACH side of the visible strip, in pixels (currently == size). The backing buffer is
+     * bufferSize = size + 2*padding wide, and a logical index L maps to physical index L + padding. This lets moving /
+     * repeating / shifting effects render into negative or past-the-end coordinates without losing pixels: the data
+     * survives in the padding and can be shifted back into view. Only the visible middle (logical 0..size) is sent to
+     * FastLED. Set in initialize().
+     */
+		static int padding;
+
+		/**
+     * The physical width of the backing buffers: size + 2*padding. Whole-buffer operations (clear, merge, shift, and
+     * full-strip effects like FadeIn/FadeOut) sweep 0..bufferSize in PHYSICAL coordinates so the padding regions stay
+     * consistent with the visible region. Set in initialize().
+     */
+		static int bufferSize;
 
 		/**
      * Initialize static information needed for all LED data. This should be called
@@ -49,13 +67,14 @@ namespace ledpipelines {
 
 
 		/**
-     * an operator to make accessing data as simple as it is for CRGB structs. It can be populated
-     * directly with CRGB data, the same as a normal CRGB array.
-     * @param index the index in the temporary data to access / write to.
-     * @return the CRGB data living at that index in the temporary buffer.
+     * Access a pixel by LOGICAL index (0..size for on-strip pixels; negative or >=size addresses the padding). The
+     * logical index is offset by `padding` to reach the physical buffer slot. No bounds checking - callers that may go
+     * out of the padded range should use set()/get(), which clamp.
+     * @param index the logical index in the temporary data to access / write to.
+     * @return the CRGB data living at that (offset) index in the temporary buffer.
      */
 		CRGB &operator[](int index) const {
-			return data[index];
+			return data[index + padding];
 		}
 
 		/**
@@ -76,6 +95,13 @@ namespace ledpipelines {
 		TemporaryLedData(TemporaryLedData &&other) noexcept;
 
 		void merge(TemporaryLedData &other, BlendingMode blendingMode);
+
+		/**
+		 * Whether any pixel in the VISIBLE strip (logical 0..size) has non-zero opacity. Distinct from anyAreModified,
+		 * which is set for writes anywhere in the padded buffer - a copy can light only the off-strip padding yet still
+		 * have anyAreModified true. Tiling loops (e.g. Repeat) use this to stop once shifted copies leave the screen.
+		 */
+		bool hasVisiblePixels() const;
 
 		/**
 		 * Reset every pixel back to `color` at zero opacity, as if freshly constructed. Used to discard a buffer's

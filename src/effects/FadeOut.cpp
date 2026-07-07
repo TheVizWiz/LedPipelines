@@ -23,7 +23,7 @@ void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (timeFadingMs >= runtimeMs) {
 		// when it's done, we still have to set it to done for the last frame.
 		// so opacity is set to 0.
-		for (int i = 0; i < TemporaryLedData::size; i++) {
+		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.opacity[i] = 0;
 		}
 		elapsedPercentage = 1;
@@ -34,7 +34,7 @@ void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, UINT8_MAX, 0);
 
-	for (int i = 0; i < TemporaryLedData::size; i++) {
+	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 		tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
 	}
 }
@@ -70,7 +70,7 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 
 		// when it's done, we still have to set it to done for the last frame.
 		// so opacity is set to 0.
-		for (int i = 0; i < TemporaryLedData::size; i++) {
+		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.opacity[i] = 0;
 		}
 		elapsedPercentage = 1;
@@ -82,7 +82,7 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	float currentOpacity = smoothingFunction(timeFadingMs, 0, runtimeMs, UINT8_MAX, 0);
 
-	for (int i = 0; i < TemporaryLedData::size; i++) {
+	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 		tempData.opacity[i] = currentOpacity;
 	}
 }

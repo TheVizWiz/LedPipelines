@@ -24,7 +24,7 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 		elapsedPercentage = 1;
 		// when it's done, we still have to set it to done for the last frame.
 		// so opacity is set to 255.
-		for (int i = 0; i < TemporaryLedData::size; i++) {
+		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.opacity[i] = UINT8_MAX;
 		}
 		this->state = LedPipelineRunningState::DONE;
@@ -36,7 +36,7 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
 
-	for (int i = 0; i < TemporaryLedData::size; i++) {
+	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 		tempData.opacity[i] = opacityMultiplier * 255;
 	}
 }
@@ -73,7 +73,7 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 		elapsedPercentage = 1;
 		// when it's done, we still have to set it to done for the last frame.
 		// so opacity is set to 255.
-		for (int i = 0; i < TemporaryLedData::size; i++) {
+		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.opacity[i] = UINT8_MAX;
 		}
 		this->state = LedPipelineRunningState::DONE;
@@ -85,7 +85,7 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	const float currentOpacity = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
 
-	for (int i = 0; i < TemporaryLedData::size; i++) {
+	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 		tempData.opacity[i] = currentOpacity;
 	}
 }

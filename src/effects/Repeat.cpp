@@ -1,7 +1,5 @@
 #include "effects/Repeat.h"
 
-#include <cmath>
-
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
@@ -35,52 +33,40 @@ void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 		return;
 	}
 
+	// Render the wrapped stage exactly once per frame, then tile that result by shifting copies. Rendering once (rather
+	// than re-running the stage at each offset) keeps stateful/timed children - Loop, Series, Moving - advancing at the
+	// correct rate instead of many times per frame. The base is rendered at the true startIndex; because
+	// TemporaryLedData now has off-strip padding on both sides, a segment pushed partly past an edge keeps its
+	// off-strip pixels intact in the padding, so the shifted copies below are faithful full copies rather than shifts
+	// of an already-clipped render.
+	TemporaryLedData stageData = TemporaryLedData();
+	this->stage->calculate(startIndex, stageData);
+	this->state = this->stage->state;
+
 	if (numRepeats == 0) {
-		// Infinite repeats. The tiled pattern is periodic with repeatDistance, so rendering the wrapped stage at
-		// `startIndex` and tiling gives the SAME on-strip result as rendering it at `startIndex - m*repeatDistance`
-		// for any integer m. We exploit that: render the base ONCE at a canonical offset reduced into [0,
-		// repeatDistance) and nudged toward strip center, so the base render isn't clipped by the strip edges the way
-		// it would be when startIndex pushes it off an end. Then we tile copies of that unclipped base both
-		// directions. This is what stops the repeats from inheriting the original's edge-cropping: the copies are
-		// shifts of a full render, not shifts of an already-truncated one.
-		//
-		// (Rendering once, rather than re-running the stage at each offset, also keeps stateful/timed children - Loop,
-		// Series, Moving - advancing at the correct rate instead of many times per frame.)
-		float canonical = fmodf(startIndex, repeatDistance);
-		if (canonical < 0) canonical += repeatDistance; // fmodf keeps the sign of the dividend; force into [0, dist)
-		// Center the canonical render within the strip: shift it by whole periods to sit as close to size/2 as
-		// possible, maximizing the room the wrapped effect has on both sides before it clips.
-		float center = TemporaryLedData::size / 2.0f;
-		canonical += repeatDistance * roundf((center - canonical) / repeatDistance);
-
-		TemporaryLedData stageData = TemporaryLedData();
-		this->stage->calculate(canonical, stageData);
-		this->state = this->stage->state;
-
-		// Tile forward from the canonical render until a copy lights nothing, then backward likewise. Offsets are
-		// relative to the canonical position; the pattern is identical to tiling from startIndex.
+		// Infinite repeats: tile the rendered buffer forward and backward, stopping in each direction once a shifted
+		// copy no longer lights any VISIBLE pixel. hasVisiblePixels() (not anyAreModified) is the right stop condition
+		// because a copy can still light the off-strip padding after it has scrolled out of the visible window.
 		float offset = 0;
 		while (true) {
 			TemporaryLedData copy = stageData.shift(offset);
-			bool setsData = copy.anyAreModified;
+			bool visible = copy.hasVisiblePixels();
 			tempData.merge(copy, this->repeatBlendingMode);
-			if (!setsData) break;
+			// Keep going while still visible; also take one step past the last visible copy on the very first
+			// iteration so a base that starts off-screen (fully in the negative padding) doesn't stop us immediately.
+			if (!visible && offset > 0) break;
 			offset += repeatDistance;
 		}
 		offset = -repeatDistance;
 		while (true) {
 			TemporaryLedData copy = stageData.shift(offset);
-			if (!copy.anyAreModified) break;
+			if (!copy.hasVisiblePixels()) break;
 			tempData.merge(copy, this->repeatBlendingMode);
 			offset -= repeatDistance;
 		}
 	} else {
-		// Finite repeats: absolute placement matters (N copies anchored at startIndex), so render at startIndex and
-		// tile forward. Copies still inherit any edge-clipping of the base render; fixing that for finite mode is
-		// deferred (see the infinite branch above for the unclipped-render approach).
-		TemporaryLedData stageData = TemporaryLedData();
-		this->stage->calculate(startIndex, stageData);
-		this->state = this->stage->state;
+		// Finite repeats: absolute placement matters (N copies anchored at startIndex), so tile forward exactly
+		// numRepeats times. Copies now also benefit from the padded render (no edge-clipping of the base).
 		for (int i = 0; i < numRepeats; i++) {
 			TemporaryLedData copy = stageData.shift(i * repeatDistance);
 			tempData.merge(copy, this->repeatBlendingMode);

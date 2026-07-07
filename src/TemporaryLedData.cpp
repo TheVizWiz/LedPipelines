@@ -8,6 +8,10 @@ using namespace ledpipelines;
 
 int TemporaryLedData::size = 0;
 
+int TemporaryLedData::padding = 0;
+
+int TemporaryLedData::bufferSize = 0;
+
 int* TemporaryLedData::startIndexes = nullptr;
 
 namespace {
@@ -33,7 +37,7 @@ namespace {
 			bufferPool.pop_back();
 			return buffer;
 		}
-		return {new CRGB[TemporaryLedData::size], new uint8_t[TemporaryLedData::size]};
+		return {new CRGB[TemporaryLedData::bufferSize], new uint8_t[TemporaryLedData::bufferSize]};
 	}
 
 	void releaseBuffer(PooledBuffer buffer) { bufferPool.push_back(buffer); }
@@ -47,6 +51,11 @@ void TemporaryLedData::initialize() {
 		TemporaryLedData::startIndexes[i] = size;
 		size += FastLED[i].size();
 	}
+
+	// One strip-width of off-strip headroom on each side, so moving/repeating effects can render past the strip edges
+	// without losing pixels (see the header). The backing buffer is therefore three strip-widths wide.
+	padding = size;
+	bufferSize = size + 2 * padding;
 
 	// Drop any pooled buffers: they were sized for a previous `size` and would be too small if re-initialized.
 	for (auto& buffer : bufferPool) {
@@ -66,7 +75,9 @@ TemporaryLedData::TemporaryLedData(CRGB color) {
 }
 
 void TemporaryLedData::clear(CRGB color) {
-	for (int i = 0; i < size; i++) {
+	// Physical sweep over the whole padded buffer so the off-strip padding is cleared too (a stale value left in the
+	// padding could otherwise be shifted into view by a later shift()/Repeat).
+	for (int i = 0; i < bufferSize; i++) {
 		data[i] = color;
 		opacity[i] = 0;
 	}
@@ -98,12 +109,15 @@ TemporaryLedData TemporaryLedData::shift(float offset) const {
 	int whole = (int)floorf(offset);
 	float frac = offset - whole;
 
-	for (int j = 0; j < size; j++) {
+	// Work in PHYSICAL buffer coordinates across the whole padded buffer, reading/writing the raw arrays directly.
+	// Because the source's off-strip data lives in the padding, a shift that brings a padded pixel into the visible
+	// window (e.g. a Repeat copy wrapping in from the left) carries the full, un-clipped pixel with it.
+	for (int j = 0; j < bufferSize; j++) {
 		int nearIndex = j - whole;
 		int farIndex = j - whole - 1;
 
-		float nearLight = (nearIndex >= 0 && nearIndex < size) ? this->opacity[nearIndex] * (1 - frac) : 0;
-		float farLight = (frac > 0 && farIndex >= 0 && farIndex < size) ? this->opacity[farIndex] * frac : 0;
+		float nearLight = (nearIndex >= 0 && nearIndex < bufferSize) ? this->opacity[nearIndex] * (1 - frac) : 0;
+		float farLight = (frac > 0 && farIndex >= 0 && farIndex < bufferSize) ? this->opacity[farIndex] * frac : 0;
 
 		float totalLight = nearLight + farLight;
 		if (totalLight == 0) continue;
@@ -119,14 +133,18 @@ TemporaryLedData TemporaryLedData::shift(float offset) const {
 					 nearColor.g * nearWeight + farColor.g * farWeight,
 					 nearColor.b * nearWeight + farColor.b * farWeight);
 
-		result.set(j, blended, (uint8_t)min(totalLight, (float)UINT8_MAX));
+		result.data[j] = blended;
+		result.opacity[j] = (uint8_t)min(totalLight, (float)UINT8_MAX);
+		result.anyAreModified = true;
 	}
 
 	return result;
 }
 
 void TemporaryLedData::merge(TemporaryLedData& other, BlendingMode blendingMode) {
-	for (int i = 0; i < TemporaryLedData::size; i++) {
+	// Physical sweep over the whole padded buffer: merging in the padding too keeps off-strip data consistent so a
+	// later shift() can bring correctly-merged pixels into view.
+	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 		auto A_alpha = this->opacity[i];
 		auto A_rgb = this->data[i];
 		auto B_alpha = other.opacity[i];
@@ -165,11 +183,22 @@ void TemporaryLedData::merge(TemporaryLedData& other, BlendingMode blendingMode)
 	}
 }
 
+bool TemporaryLedData::hasVisiblePixels() const {
+	// Scan only the visible middle third (logical 0..size -> physical padding..padding+size).
+	for (int i = padding; i < padding + size; i++) {
+		if (opacity[i]) return true;
+	}
+	return false;
+}
+
 void TemporaryLedData::set(int index, CRGB color, uint8_t opacity) {
-	if (index < 0 || index >= TemporaryLedData::size) return; // LED doesn't exist on specified strip
-	this->opacity[index] = opacity;
+	// `index` is a LOGICAL coordinate. Accept the padded range [-padding, size+padding) so an effect can write
+	// slightly off-strip (its pixels live in the padding rather than being discarded); reject anything beyond that.
+	if (index < -padding || index >= size + padding) return;
+	int physical = index + padding;
+	this->opacity[physical] = opacity;
 	anyAreModified = true;
-	(*this)[index] = color;
+	this->data[physical] = color;
 }
 
 void TemporaryLedData::set(int stripIndex, int ledIndex, CRGB& color, uint8_t opacity) {
@@ -179,15 +208,16 @@ void TemporaryLedData::set(int stripIndex, int ledIndex, CRGB& color, uint8_t op
 }
 
 CRGB TemporaryLedData::get(int index) const {
-	if (index < 0 || index >= size) return CRGB::Black;
+	// LOGICAL index; accept the padded range and offset into the physical buffer.
+	if (index < -padding || index >= size + padding) return CRGB::Black;
 
-	return this->data[index];
+	return this->data[index + padding];
 }
 
 uint8_t TemporaryLedData::getOpacity(int index) const {
-	if (index < 0 || index >= size) return 0;
+	if (index < -padding || index >= size + padding) return 0;
 
-	return this->opacity[index];
+	return this->opacity[index + padding];
 }
 
 void TemporaryLedData::populateFastLed() const {
@@ -204,7 +234,8 @@ void TemporaryLedData::populateFastLed() const {
 void TemporaryLedData::printData() const {
 	String data = "";
 	for (int i = 0; i < size; i++) {
-		data += ledpipelines::colorToHex(this->data[i], this->opacity[i]) + " ";
+		// Print the VISIBLE strip (logical 0..size) via the offset accessors, not the raw padding.
+		data += ledpipelines::colorToHex(this->get(i), this->getOpacity(i)) + " ";
 	}
 	LPLogger::debug(data);
 }
