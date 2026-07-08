@@ -2,12 +2,14 @@
 
 using namespace ledpipelines;
 
-LedPipelineStage::LedPipelineStage(BlendingMode blendingMode) :
-	blendingMode(blendingMode), lastUpdateTimeMicros(micros()) {}
+LedPipelineStage::LedPipelineStage(BlendingMode blendingMode)
+	: blendingMode(blendingMode), lastUpdateTimeMicros(micros()) {}
 
 LedPipelineStage::~LedPipelineStage() = default;
 
-void LedPipelineStage::reset() { this->state = LedPipelineRunningState::NOT_STARTED; }
+void LedPipelineStage::reset() {
+	this->state = LedPipelineRunningState::NOT_STARTED;
+}
 
 void LedPipelineStage::run() {
 	if (this->state == LedPipelineRunningState::DONE) {

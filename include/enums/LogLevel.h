@@ -12,41 +12,35 @@ public:
 		Debug,
 	};
 
-	LogLevel(const LogLevel_ logLevel) : value(logLevel) {
-	}
+	LogLevel(const LogLevel_ logLevel) : value(logLevel) {}
 
-	bool operator<=(const LogLevel &other) const {
+	bool operator<=(const LogLevel& other) const {
 		return this->value <= other.value;
 	}
 
-	bool operator>=(const LogLevel &other) const {
+	bool operator>=(const LogLevel& other) const {
 		return this->value >= other.value;
 	}
 
-	bool operator==(const LogLevel &other) const {
+	bool operator==(const LogLevel& other) const {
 		return this->value == other.value;
 	}
 
-	bool operator>(const LogLevel &other) const {
+	bool operator>(const LogLevel& other) const {
 		return this->value > other.value;
 	}
 
-	bool operator<(const LogLevel &other) const {
+	bool operator<(const LogLevel& other) const {
 		return this->value < other.value;
 	}
 
 	String toString() {
 		switch (value) {
-			case NONE:
-				return "NON";
-			case Debug:
-				return "DEB";
-			case ERROR:
-				return "ERR";
-			case WARN:
-				return "WAR";
-			case LOG:
-				return "LOG";
+		case NONE: return "NON";
+		case Debug: return "DEB";
+		case ERROR: return "ERR";
+		case WARN: return "WAR";
+		case LOG: return "LOG";
 		}
 
 		return "LOG";

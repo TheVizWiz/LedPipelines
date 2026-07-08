@@ -33,8 +33,12 @@ namespace ledpipelines::effects {
 		};
 
 	protected:
-		Spawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
-				BlendingMode blendingMode = BlendingMode::NORMAL);
+		Spawner(
+			EffectSpawnerFactory factory,
+			uint16_t maxChildren,
+			bool keepOldOnSpawn,
+			BlendingMode blendingMode = BlendingMode::NORMAL
+		);
 	};
 
 
@@ -51,8 +55,8 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD(unsigned long, spawnTimeMs);
 			BUILDER_FIELD_DEFAULT(bool, keepOldOnSpawn, true);
 
-			Builder(EffectSpawnerFactory factory, const unsigned long spawnTimeMs) :
-				_factory(std::move(factory)), _spawnTimeMs(spawnTimeMs) {};
+			Builder(EffectSpawnerFactory factory, const unsigned long spawnTimeMs)
+				: _factory(std::move(factory)), _spawnTimeMs(spawnTimeMs) {};
 
 			TimedSpawner* build() override {
 				return new TimedSpawner(_factory, _maxChildren, _keepOldOnSpawn, _spawnTimeMs, _blendingMode);
@@ -60,8 +64,13 @@ namespace ledpipelines::effects {
 		};
 
 	protected:
-		TimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
-					 unsigned long spawnTimeMs, BlendingMode blendingMode = BlendingMode::NORMAL);
+		TimedSpawner(
+			EffectSpawnerFactory factory,
+			uint16_t maxChildren,
+			bool keepOldOnSpawn,
+			unsigned long spawnTimeMs,
+			BlendingMode blendingMode = BlendingMode::NORMAL
+		);
 	};
 
 
@@ -80,19 +89,31 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD_DEFAULT(SamplingFunction, spawnTimeSamplingFunction, SamplingFunction::UNIFORM);
 			BUILDER_FIELD_DEFAULT(bool, keepOldOnSpawn, true);
 
-			Builder(EffectSpawnerFactory factory, const unsigned long maxSpawnTimeMs) :
-				_factory(std::move(factory)), _maxSpawnTimeMs(maxSpawnTimeMs) {};
+			Builder(EffectSpawnerFactory factory, const unsigned long maxSpawnTimeMs)
+				: _factory(std::move(factory)), _maxSpawnTimeMs(maxSpawnTimeMs) {};
 
 			RandomTimedSpawner* build() override {
-				return new RandomTimedSpawner(_factory, _maxChildren, _keepOldOnSpawn, _minSpawnTimeMs,
-											  _maxSpawnTimeMs, _spawnTimeSamplingFunction, _blendingMode);
+				return new RandomTimedSpawner(
+					_factory,
+					_maxChildren,
+					_keepOldOnSpawn,
+					_minSpawnTimeMs,
+					_maxSpawnTimeMs,
+					_spawnTimeSamplingFunction,
+					_blendingMode
+				);
 			}
 		};
 
 	protected:
-		RandomTimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
-						   unsigned long minSpawnTimeMs, unsigned long maxSpawnTimeMs,
-						   SamplingFunction spawnTimeSamplingFunction,
-						   BlendingMode blendingMode = BlendingMode::NORMAL);
+		RandomTimedSpawner(
+			EffectSpawnerFactory factory,
+			uint16_t maxChildren,
+			bool keepOldOnSpawn,
+			unsigned long minSpawnTimeMs,
+			unsigned long maxSpawnTimeMs,
+			SamplingFunction spawnTimeSamplingFunction,
+			BlendingMode blendingMode = BlendingMode::NORMAL
+		);
 	};
 } // namespace ledpipelines::effects

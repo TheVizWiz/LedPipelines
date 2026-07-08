@@ -9,7 +9,7 @@ namespace ledpipelines::effects {
 		float endIndex;
 		SmoothingFunction smoothingFunction;
 
-		void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		struct Builder : WrapperEffect::Builder<OpacityGradient, Builder> {
 			BUILDER_FIELD_DEFAULT(float, startIndex, 0);
@@ -18,30 +18,20 @@ namespace ledpipelines::effects {
 
 			explicit Builder(const float endIndex) : _endIndex(endIndex) {}
 
-			explicit Builder(const float startIndex, const float endIndex) : _startIndex(startIndex),
-			                                                                 _endIndex(endIndex) {}
+			explicit Builder(const float startIndex, const float endIndex)
+				: _startIndex(startIndex), _endIndex(endIndex) {}
 
-			OpacityGradient *build() override {
-				return new OpacityGradient(
-					buildInner(),
-					_startIndex,
-					_endIndex,
-					_smoothingFunction
-				);
+			OpacityGradient* build() override {
+				return new OpacityGradient(buildInner(), _startIndex, _endIndex, _smoothingFunction);
 			}
 		};
 
-		private:
-			void calculateForwardGradient(float startIndex, TemporaryLedData &tempData) const;
+	private:
+		void calculateForwardGradient(float startIndex, TemporaryLedData& tempData) const;
 
-			void calculateBackwardGradient(float startIndex, TemporaryLedData &tempData);
+		void calculateBackwardGradient(float startIndex, TemporaryLedData& tempData);
 
-		protected:
-			OpacityGradient(
-				LedPipelineStage *stage,
-				float startIndex,
-				float endIndex,
-				SmoothingFunction smoothingFunction
-			);
+	protected:
+		OpacityGradient(LedPipelineStage* stage, float startIndex, float endIndex, SmoothingFunction smoothingFunction);
 	};
-}
+} // namespace ledpipelines::effects

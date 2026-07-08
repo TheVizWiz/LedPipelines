@@ -17,8 +17,14 @@ void Toggle::calculate(float startIndex, TemporaryLedData& tempData) {
 	this->state = this->stage->state;
 }
 
-void Toggle::deactivate() { this->isActive = false; }
+void Toggle::deactivate() {
+	this->isActive = false;
+}
 
-void Toggle::activate() { this->isActive = true; }
+void Toggle::activate() {
+	this->isActive = true;
+}
 
-void Toggle::toggle() { this->isActive = !this->isActive; }
+void Toggle::toggle() {
+	this->isActive = !this->isActive;
+}

@@ -4,9 +4,13 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-FadeOut::FadeOut(LedPipelineStage* stage, unsigned long runtimeMs, SmoothingFunction smoothingFunction,
-				 BlendingMode blendingMode) :
-	WrapperEffect(stage), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {
+FadeOut::FadeOut(
+	LedPipelineStage* stage,
+	unsigned long runtimeMs,
+	SmoothingFunction smoothingFunction,
+	BlendingMode blendingMode
+)
+	: WrapperEffect(stage), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {
 	this->blendingMode = blendingMode;
 }
 
@@ -54,11 +58,17 @@ void FadeOut::reset() {
 	TimedEffect::resetTimer();
 }
 
-RandomFadeOut::RandomFadeOut(LedPipelineStage* stage, unsigned long minRuntimeMs, unsigned long maxRuntimeMs,
-							 SamplingFunction samplingFunction, SmoothingFunction smoothingFunction,
-							 BlendingMode blendingMode) :
-	WrapperEffect(stage), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
-	smoothingFunction(smoothingFunction) {
+RandomFadeOut::RandomFadeOut(
+	LedPipelineStage* stage,
+	unsigned long minRuntimeMs,
+	unsigned long maxRuntimeMs,
+	SamplingFunction samplingFunction,
+	SmoothingFunction smoothingFunction,
+	BlendingMode blendingMode
+)
+	: WrapperEffect(stage),
+	  RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
+	  smoothingFunction(smoothingFunction) {
 	this->blendingMode = blendingMode;
 }
 

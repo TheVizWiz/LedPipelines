@@ -4,9 +4,13 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-OpacityGradient::OpacityGradient(LedPipelineStage* stage, float startIndex, float endIndex,
-								 SmoothingFunction smoothingFunction) :
-	WrapperEffect(stage), startIndex(startIndex), endIndex(endIndex), smoothingFunction(smoothingFunction) {}
+OpacityGradient::OpacityGradient(
+	LedPipelineStage* stage,
+	float startIndex,
+	float endIndex,
+	SmoothingFunction smoothingFunction
+)
+	: WrapperEffect(stage), startIndex(startIndex), endIndex(endIndex), smoothingFunction(smoothingFunction) {}
 
 
 void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedData& tempData) const {
@@ -34,8 +38,11 @@ void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedDat
 		// are 0 and 1.
 		float amountToFadePixel = 0.5;
 
-		tempData.set(startIndexFloor, tempData.get(startIndexFloor),
-					 tempData.getOpacity(startIndexFloor) * amountToFadePixel);
+		tempData.set(
+			startIndexFloor,
+			tempData.get(startIndexFloor),
+			tempData.getOpacity(startIndexFloor) * amountToFadePixel
+		);
 	} else {
 		// first pixel calculations
 		float firstPixelLeftBound = 0;
@@ -49,8 +56,11 @@ void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedDat
 
 
 		// set first pixel
-		tempData.set(startIndexFloor, tempData.get(startIndexFloor),
-					 tempData.getOpacity(startIndexFloor) * firstPixelFadeAmount);
+		tempData.set(
+			startIndexFloor,
+			tempData.get(startIndexFloor),
+			tempData.getOpacity(startIndexFloor) * firstPixelFadeAmount
+		);
 
 
 		// for every pixel in between, we calculate what the left and right bounds are, and average them.
@@ -63,8 +73,8 @@ void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedDat
 		}
 
 		// set last pixel
-		tempData.set(endIndexFloor, tempData.get(endIndexFloor),
-					 tempData.getOpacity(endIndexFloor) * lastPixelFadeAmount);
+		tempData
+			.set(endIndexFloor, tempData.get(endIndexFloor), tempData.getOpacity(endIndexFloor) * lastPixelFadeAmount);
 	}
 }
 
@@ -96,8 +106,11 @@ void OpacityGradient::calculateBackwardGradient(float startIndex, TemporaryLedDa
 		// are 0 and 1.
 		float amountToFadePixel = 0.5;
 
-		tempData.set(startIndexFloor, tempData.get(startIndexFloor),
-					 tempData.getOpacity(startIndexFloor) * amountToFadePixel);
+		tempData.set(
+			startIndexFloor,
+			tempData.get(startIndexFloor),
+			tempData.getOpacity(startIndexFloor) * amountToFadePixel
+		);
 	} else {
 		// first pixel calculations
 		float firstPixelLeftBound = 1;
@@ -110,8 +123,11 @@ void OpacityGradient::calculateBackwardGradient(float startIndex, TemporaryLedDa
 		float lastPixelFadeAmount = (lastPixelLeftBound + lastPixelRightBound) / 2;
 
 		// set first pixel
-		tempData.set(startIndexFloor, tempData.get(startIndexFloor),
-					 tempData.getOpacity(startIndexFloor) * firstPixelFadeAmount);
+		tempData.set(
+			startIndexFloor,
+			tempData.get(startIndexFloor),
+			tempData.getOpacity(startIndexFloor) * firstPixelFadeAmount
+		);
 
 
 		// for every pixel in between, we calculate what the left and right bounds are, and average them.
@@ -124,8 +140,8 @@ void OpacityGradient::calculateBackwardGradient(float startIndex, TemporaryLedDa
 		}
 
 		// set last pixel
-		tempData.set(endIndexFloor, tempData.get(endIndexFloor),
-					 tempData.getOpacity(endIndexFloor) * lastPixelFadeAmount);
+		tempData
+			.set(endIndexFloor, tempData.get(endIndexFloor), tempData.getOpacity(endIndexFloor) * lastPixelFadeAmount);
 	}
 }
 

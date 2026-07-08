@@ -9,7 +9,7 @@ namespace ledpipelines::effects {
 		long maxIndex;
 
 
-		void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		struct Builder : WrapperEffect::Builder<Flip, Builder> {
 			BUILDER_FIELD_DEFAULT(long, minIndex, 0);
@@ -19,12 +19,12 @@ namespace ledpipelines::effects {
 				this->_maxIndex = maxIndex;
 			}
 
-			Flip *build() override {
+			Flip* build() override {
 				return new Flip(buildInner(), _minIndex, _maxIndex);
 			}
 		};
 
-		private:
-			Flip(LedPipelineStage *stage, long minIndex, long maxIndex);
+	private:
+		Flip(LedPipelineStage* stage, long minIndex, long maxIndex);
 	};
-}
+} // namespace ledpipelines::effects

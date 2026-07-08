@@ -7,7 +7,7 @@ namespace ledpipelines::effects {
 	struct Shift : WrapperEffect {
 		float offset;
 
-		void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 
 		struct Builder : WrapperEffect::Builder<Shift, Builder> {
@@ -15,12 +15,12 @@ namespace ledpipelines::effects {
 
 			Builder(float offset) : _offset(offset) {}
 
-			Shift *build() override {
+			Shift* build() override {
 				return new Shift(buildInner(), _offset);
 			}
 		};
 
-		protected:
-			Shift(LedPipelineStage *stage, float offset);
+	protected:
+		Shift(LedPipelineStage* stage, float offset);
 	};
-}
+} // namespace ledpipelines::effects

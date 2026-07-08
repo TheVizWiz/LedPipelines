@@ -3,8 +3,8 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-OpacityScale::OpacityScale(LedPipelineStage* stage, uint8_t maxOpacity) :
-	WrapperEffect(stage), maxOpacity(maxOpacity) {}
+OpacityScale::OpacityScale(LedPipelineStage* stage, uint8_t maxOpacity)
+	: WrapperEffect(stage), maxOpacity(maxOpacity) {}
 
 void OpacityScale::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;

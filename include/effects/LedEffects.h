@@ -4,19 +4,19 @@
 
 // wrapper effects
 #include "AbsolutePosition.h"
-#include "Loop.h"
-#include "Moving.h"
-#include "Shift.h"
-#include "OpacityGradient.h"
-#include "OpacityScale.h"
 #include "FadeIn.h"
 #include "FadeOut.h"
+#include "Flip.h"
+#include "Loop.h"
+#include "Moving.h"
+#include "OpacityGradient.h"
+#include "OpacityScale.h"
+#include "Path.h"
 #include "Repeat.h"
+#include "ResetBlocker.h"
+#include "Shift.h"
 #include "TimeBox.h"
 #include "Toggle.h"
-#include "Flip.h"
-#include "Path.h"
-#include "ResetBlocker.h"
 
 
 // mask effects
@@ -24,8 +24,8 @@
 
 
 // basic effects
-#include "Solid.h"
 #include "HSVGradient.h"
 #include "RGBGradient.h"
-#include "Wait.h"
+#include "Solid.h"
 #include "Spawner.h"
+#include "Wait.h"

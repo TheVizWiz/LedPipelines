@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include "LedPipelineUtils.h"
 #include "BaseLedPipeline.h"
+#include "LedPipelineUtils.h"
 #include "effects/LedEffects.h"
 
 
@@ -15,4 +15,4 @@ namespace ledpipelines {
 	int ledCount() {
 		return TemporaryLedData::size;
 	}
-}
+} // namespace ledpipelines

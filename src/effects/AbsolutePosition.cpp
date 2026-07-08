@@ -3,8 +3,8 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-AbsolutePosition::AbsolutePosition(LedPipelineStage* stage, float position) :
-	WrapperEffect(stage), position(position) {}
+AbsolutePosition::AbsolutePosition(LedPipelineStage* stage, float position)
+	: WrapperEffect(stage), position(position) {}
 
 void AbsolutePosition::calculate(float startIndex, TemporaryLedData& tempData) {
 	this->stage->calculate(position, tempData);

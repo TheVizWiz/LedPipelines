@@ -3,8 +3,8 @@
 
 using namespace ledpipelines::effects;
 
-Flip::Flip(LedPipelineStage* stage, long minIndex, long maxIndex) :
-	WrapperEffect(stage), minIndex(std::min(minIndex, maxIndex)), maxIndex(std::max(minIndex, maxIndex)) {}
+Flip::Flip(LedPipelineStage* stage, long minIndex, long maxIndex)
+	: WrapperEffect(stage), minIndex(std::min(minIndex, maxIndex)), maxIndex(std::max(minIndex, maxIndex)) {}
 
 
 void Flip::calculate(float startIndex, ledpipelines::TemporaryLedData& tempData) {

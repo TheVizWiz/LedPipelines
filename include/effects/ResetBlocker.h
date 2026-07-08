@@ -17,19 +17,19 @@ namespace ledpipelines::effects {
 	// It carries no timing of its own and is a straight pass-through in calculate(), so it derives from WrapperEffect
 	// (not TimedEffect). The reset policy is the whole point of the effect.
 	struct ResetBlocker : public WrapperEffect {
-		void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		void reset() override;
 
 		struct Builder : WrapperEffect::Builder<ResetBlocker, Builder> {
 			Builder() = default;
 
-			ResetBlocker *build() override {
+			ResetBlocker* build() override {
 				return new ResetBlocker(buildInner());
 			}
 		};
 
-		private:
-			explicit ResetBlocker(LedPipelineStage *stage);
+	private:
+		explicit ResetBlocker(LedPipelineStage* stage);
 	};
-}
+} // namespace ledpipelines::effects

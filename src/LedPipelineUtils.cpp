@@ -18,19 +18,39 @@ CRGB fhsvToRgb(FHSV hsv) {
 
 	float r1, g1, b1;
 	switch ((int)hPrime) {
-		case 0:  r1 = c; g1 = x; b1 = 0; break;
-		case 1:  r1 = x; g1 = c; b1 = 0; break;
-		case 2:  r1 = 0; g1 = c; b1 = x; break;
-		case 3:  r1 = 0; g1 = x; b1 = c; break;
-		case 4:  r1 = x; g1 = 0; b1 = c; break;
-		default: r1 = c; g1 = 0; b1 = x; break; // case 5 and hPrime == 6 edge (h just under 360)
+	case 0:
+		r1 = c;
+		g1 = x;
+		b1 = 0;
+		break;
+	case 1:
+		r1 = x;
+		g1 = c;
+		b1 = 0;
+		break;
+	case 2:
+		r1 = 0;
+		g1 = c;
+		b1 = x;
+		break;
+	case 3:
+		r1 = 0;
+		g1 = x;
+		b1 = c;
+		break;
+	case 4:
+		r1 = x;
+		g1 = 0;
+		b1 = c;
+		break;
+	default:
+		r1 = c;
+		g1 = 0;
+		b1 = x;
+		break; // case 5 and hPrime == 6 edge (h just under 360)
 	}
 
-	return CRGB(
-		(uint8_t)((r1 + m) * 255 + 0.5f),
-		(uint8_t)((g1 + m) * 255 + 0.5f),
-		(uint8_t)((b1 + m) * 255 + 0.5f)
-	);
+	return CRGB((uint8_t)((r1 + m) * 255 + 0.5f), (uint8_t)((g1 + m) * 255 + 0.5f), (uint8_t)((b1 + m) * 255 + 0.5f));
 }
 
 CRGB operator*(const CRGB first, const CRGB second) {

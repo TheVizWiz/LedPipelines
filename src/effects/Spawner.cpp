@@ -5,9 +5,10 @@
 
 namespace ledpipelines::effects {
 
-	Spawner::Spawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
-					 BlendingMode blendingMode)
-		: LedPipelineStage(blendingMode), factory(std::move(factory)), maxChildren(maxChildren),
+	Spawner::Spawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn, BlendingMode blendingMode)
+		: LedPipelineStage(blendingMode),
+		  factory(std::move(factory)),
+		  maxChildren(maxChildren),
 		  keepOldOnSpawn(keepOldOnSpawn) {}
 
 
@@ -19,15 +20,20 @@ namespace ledpipelines::effects {
 		}
 
 
-		activeChildren.erase(std::remove_if(activeChildren.begin(), activeChildren.end(),
-											[](LedPipelineStage* child) {
-												if (child->state == LedPipelineRunningState::DONE) {
-													delete child;
-													return true;
-												};
-												return false;
-											}),
-							 activeChildren.end());
+		activeChildren.erase(
+			std::remove_if(
+				activeChildren.begin(),
+				activeChildren.end(),
+				[](LedPipelineStage* child) {
+					if (child->state == LedPipelineRunningState::DONE) {
+						delete child;
+						return true;
+					};
+					return false;
+				}
+			),
+			activeChildren.end()
+		);
 	}
 
 
@@ -55,8 +61,13 @@ namespace ledpipelines::effects {
 	}
 
 
-	TimedSpawner::TimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
-							   unsigned long spawnTimeMs, BlendingMode blendingMode)
+	TimedSpawner::TimedSpawner(
+		EffectSpawnerFactory factory,
+		uint16_t maxChildren,
+		bool keepOldOnSpawn,
+		unsigned long spawnTimeMs,
+		BlendingMode blendingMode
+	)
 		: Spawner(std::move(factory), maxChildren, keepOldOnSpawn, blendingMode), spawnTimeMs(spawnTimeMs) {}
 
 
@@ -70,11 +81,22 @@ namespace ledpipelines::effects {
 	}
 
 
-	RandomTimedSpawner::RandomTimedSpawner(EffectSpawnerFactory factory, uint16_t maxChildren, bool keepOldOnSpawn,
-										   unsigned long minSpawnTimeMs, unsigned long maxSpawnTimeMs,
-										   SamplingFunction spawnTimeSamplingFunction, BlendingMode blendingMode)
-		: TimedSpawner(std::move(factory), maxChildren, keepOldOnSpawn,
-					   spawnTimeSamplingFunction(minSpawnTimeMs, maxSpawnTimeMs), blendingMode),
+	RandomTimedSpawner::RandomTimedSpawner(
+		EffectSpawnerFactory factory,
+		uint16_t maxChildren,
+		bool keepOldOnSpawn,
+		unsigned long minSpawnTimeMs,
+		unsigned long maxSpawnTimeMs,
+		SamplingFunction spawnTimeSamplingFunction,
+		BlendingMode blendingMode
+	)
+		: TimedSpawner(
+			  std::move(factory),
+			  maxChildren,
+			  keepOldOnSpawn,
+			  spawnTimeSamplingFunction(minSpawnTimeMs, maxSpawnTimeMs),
+			  blendingMode
+		  ),
 		  minSpawnTimeMs(minSpawnTimeMs),
 		  maxSpawnTimeMs(maxSpawnTimeMs),
 		  spawnTimeSamplingFunction(spawnTimeSamplingFunction) {}

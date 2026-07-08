@@ -8,7 +8,7 @@ namespace ledpipelines::effects {
 		size_t numLoops = 0;
 		size_t currentNumLoops = 0;
 
-		void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		void reset() override;
 
@@ -17,12 +17,12 @@ namespace ledpipelines::effects {
 
 			Builder() {};
 
-			Loop *build() override {
+			Loop* build() override {
 				return new Loop(buildInner(), _numLoops);
 			};
 		};
 
-		private:
-			explicit Loop(LedPipelineStage *stage, size_t numLoops);
+	private:
+		explicit Loop(LedPipelineStage* stage, size_t numLoops);
 	};
-}
+} // namespace ledpipelines::effects

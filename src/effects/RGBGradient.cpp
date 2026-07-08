@@ -5,21 +5,37 @@ using namespace ledpipelines::effects;
 
 namespace {
 	// Per-channel linear interpolation between two CRGB values. Rounds to the nearest byte per channel.
-	CRGB lerpRgb(const CRGB &a, const CRGB &b, float t) {
+	CRGB lerpRgb(const CRGB& a, const CRGB& b, float t) {
 		return CRGB(
 			(uint8_t)(a.r + (b.r - a.r) * t + 0.5f),
 			(uint8_t)(a.g + (b.g - a.g) * t + 0.5f),
 			(uint8_t)(a.b + (b.b - a.b) * t + 0.5f)
 		);
 	}
-}
+} // namespace
 
-RGBGradient::RGBGradient(float startPosition, float endPosition, unsigned long runtimeMs, CRGB startGradientStart,
-                         CRGB startGradientEnd, CRGB endGradientStart, CRGB endGradientEnd,
-                         SmoothingFunction smoothingFunction, uint8_t opacity, BlendingMode blendingMode) :
-	LedPipelineStage(blendingMode), TimedEffect(runtimeMs), startPosition(startPosition), endPosition(endPosition),
-	startGradientStart(startGradientStart), startGradientEnd(startGradientEnd), endGradientStart(endGradientStart),
-	endGradientEnd(endGradientEnd), smoothingFunction(smoothingFunction), opacity(opacity) {}
+RGBGradient::RGBGradient(
+	float startPosition,
+	float endPosition,
+	unsigned long runtimeMs,
+	CRGB startGradientStart,
+	CRGB startGradientEnd,
+	CRGB endGradientStart,
+	CRGB endGradientEnd,
+	SmoothingFunction smoothingFunction,
+	uint8_t opacity,
+	BlendingMode blendingMode
+)
+	: LedPipelineStage(blendingMode),
+	  TimedEffect(runtimeMs),
+	  startPosition(startPosition),
+	  endPosition(endPosition),
+	  startGradientStart(startGradientStart),
+	  startGradientEnd(startGradientEnd),
+	  endGradientStart(endGradientStart),
+	  endGradientEnd(endGradientEnd),
+	  smoothingFunction(smoothingFunction),
+	  opacity(opacity) {}
 
 void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -32,8 +48,8 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	// TIME axis. runtimeMs == 0 (the default when no time is given) means the gradient is static: it stays pinned to
 	// startGradient forever (timeT = 0, so endGradient is intentionally never reached) and never advances or reports
 	// DONE. Otherwise elapsedMs() drives progress from startGradient (timeT=0) to endGradient (timeT=1) through the
-	// smoothing function, clamped and held at 1 past the end. elapsedMs() also holds at 0 during any lead-in delay, so a
-	// delayed animated gradient sits on startGradient until the delay elapses.
+	// smoothing function, clamped and held at 1 past the end. elapsedMs() also holds at 0 during any lead-in delay, so
+	// a delayed animated gradient sits on startGradient until the delay elapses.
 	float timeT;
 	if (runtimeMs == 0) {
 		timeT = 0;
@@ -55,8 +71,12 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	CRGB loColor = nowStart;
 	CRGB hiColor = nowEnd;
 	if (lo > hi) {
-		float tmpPos = lo; lo = hi; hi = tmpPos;
-		CRGB tmpColor = loColor; loColor = hiColor; hiColor = tmpColor;
+		float tmpPos = lo;
+		lo = hi;
+		hi = tmpPos;
+		CRGB tmpColor = loColor;
+		loColor = hiColor;
+		hiColor = tmpColor;
 	}
 
 	const float span = hi - lo;
@@ -76,7 +96,8 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 		// Whole segment sits within one pixel: light it partially by the segment length, colored at the segment start.
 		tempData.set(loFloor, colorAt(lo) * span, opacity);
 	} else {
-		// First (possibly partial) pixel: color at the segment start, opacity scaled by how much of the pixel it covers.
+		// First (possibly partial) pixel: color at the segment start, opacity scaled by how much of the pixel it
+		// covers.
 		const float firstPixelCoverage = 1 - (lo - loFloor);
 		if (firstPixelCoverage != 0) {
 			tempData.set(loFloor, colorAt(lo), opacity * firstPixelCoverage);

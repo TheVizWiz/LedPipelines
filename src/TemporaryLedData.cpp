@@ -17,8 +17,9 @@ int* TemporaryLedData::startIndexes = nullptr;
 namespace {
 	/**
 	 * A buffer pool for the backing arrays of TemporaryLedData. Effects allocate a fresh buffer every frame (often
-	 * many per frame), which on a microcontroller causes heap fragmentation and timing jitter. Instead of new[]/delete[]
-	 * on every construction, we hand out preallocated array-pairs from this free list and return them on destruction.
+	 * many per frame), which on a microcontroller causes heap fragmentation and timing jitter. Instead of
+	 * new[]/delete[] on every construction, we hand out preallocated array-pairs from this free list and return them on
+	 * destruction.
 	 *
 	 * The pool is self-sizing: it grows to the high-water mark (the deepest pipeline tree ever rendered) over the first
 	 * few frames, then never allocates again in steady state. Buffers are only freed when the pool is reset in
@@ -40,8 +41,10 @@ namespace {
 		return {new CRGB[TemporaryLedData::bufferSize], new uint8_t[TemporaryLedData::bufferSize]};
 	}
 
-	void releaseBuffer(PooledBuffer buffer) { bufferPool.push_back(buffer); }
-}
+	void releaseBuffer(PooledBuffer buffer) {
+		bufferPool.push_back(buffer);
+	}
+} // namespace
 
 void TemporaryLedData::initialize() {
 	// calculate the total number of LEDs.
@@ -85,8 +88,8 @@ void TemporaryLedData::clear(CRGB color) {
 }
 
 
-TemporaryLedData::TemporaryLedData(TemporaryLedData&& other) noexcept :
-	data(other.data), opacity(other.opacity), anyAreModified(other.anyAreModified) {
+TemporaryLedData::TemporaryLedData(TemporaryLedData&& other) noexcept
+	: data(other.data), opacity(other.opacity), anyAreModified(other.anyAreModified) {
 	// Take ownership of the buffers and null out the source so its destructor releases nothing.
 	other.data = nullptr;
 	other.opacity = nullptr;
@@ -129,9 +132,11 @@ TemporaryLedData TemporaryLedData::shift(float offset) const {
 		// channel in float so intermediate products never overflow a CRGB channel.
 		float nearWeight = nearLight / totalLight;
 		float farWeight = farLight / totalLight;
-		CRGB blended(nearColor.r * nearWeight + farColor.r * farWeight,
-					 nearColor.g * nearWeight + farColor.g * farWeight,
-					 nearColor.b * nearWeight + farColor.b * farWeight);
+		CRGB blended(
+			nearColor.r * nearWeight + farColor.r * farWeight,
+			nearColor.g * nearWeight + farColor.g * farWeight,
+			nearColor.b * nearWeight + farColor.b * farWeight
+		);
 
 		result.data[j] = blended;
 		result.opacity[j] = (uint8_t)min(totalLight, (float)UINT8_MAX);
@@ -224,9 +229,11 @@ void TemporaryLedData::populateFastLed() const {
 	int currentLed = 0;
 	for (int i = 0; i < FastLED.count(); i++) {
 		for (int j = 0; j < FastLED[i].size(); (j++, currentLed++)) {
-			FastLED[i][j] = CRGB((this->get(currentLed).red * this->getOpacity(currentLed) / 255),
-								 (this->get(currentLed).green * this->getOpacity(currentLed) / 255),
-								 (this->get(currentLed).blue * this->getOpacity(currentLed) / 255));
+			FastLED[i][j] = CRGB(
+				(this->get(currentLed).red * this->getOpacity(currentLed) / 255),
+				(this->get(currentLed).green * this->getOpacity(currentLed) / 255),
+				(this->get(currentLed).blue * this->getOpacity(currentLed) / 255)
+			);
 		}
 	}
 }

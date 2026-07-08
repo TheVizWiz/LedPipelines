@@ -3,8 +3,8 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Solid::Solid(const CRGB color, const uint8_t opacity, BlendingMode blendingMode) :
-	LedPipelineStage(blendingMode), color(color), opacity(opacity) {
+Solid::Solid(const CRGB color, const uint8_t opacity, BlendingMode blendingMode)
+	: LedPipelineStage(blendingMode), color(color), opacity(opacity) {
 	this->state = LedPipelineRunningState::RUNNING;
 }
 
@@ -17,8 +17,8 @@ void Solid::calculate(const float startIndex, TemporaryLedData& tempData) {
 	}
 }
 
-SolidSegment::SolidSegment(const CRGB color, uint8_t opacity, float length, BlendingMode blendingMode) :
-	Solid(color, opacity, blendingMode), length(length) {}
+SolidSegment::SolidSegment(const CRGB color, uint8_t opacity, float length, BlendingMode blendingMode)
+	: Solid(color, opacity, blendingMode), length(length) {}
 
 void SolidSegment::calculate(float startIndex, TemporaryLedData& tempData) {
 	const float endIndex = startIndex + length;

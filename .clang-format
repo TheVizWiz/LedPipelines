@@ -60,4 +60,20 @@ ConstructorInitializerAllOnOneLineOrOnePerLine: true
 PackConstructorInitializers: NextLine
 AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Empty
+
+# When a function's parameters or a call's arguments don't fit on one line, put
+# each on its own line instead of bin-packing as many as fit per line, and break
+# right after the opening paren so the first argument starts on its own indented
+# line (with the closing paren on its own line too), rather than sitting on the
+# paren line with the rest aligned under it.
+#
+# AlignAfterOpenBracket is the key setting: its LLVM default (Align) keeps the
+# first argument on the paren line and aligns the rest to it, which is why short
+# lists (e.g. Spawner's constructors) never broke to the next line. BlockIndent
+# forces the break-after-paren layout consistently, regardless of list length.
+AlignAfterOpenBracket: BlockIndent
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
 ...

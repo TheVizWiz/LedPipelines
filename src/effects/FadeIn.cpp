@@ -4,9 +4,13 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-FadeIn::FadeIn(LedPipelineStage* stage, unsigned long runtimeMs, SmoothingFunction smoothingFunction,
-			   BlendingMode blendingMode) :
-	WrapperEffect(stage), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {
+FadeIn::FadeIn(
+	LedPipelineStage* stage,
+	unsigned long runtimeMs,
+	SmoothingFunction smoothingFunction,
+	BlendingMode blendingMode
+)
+	: WrapperEffect(stage), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {
 	this->blendingMode = blendingMode;
 }
 
@@ -51,11 +55,17 @@ void FadeIn::reset() {
 }
 
 
-RandomFadeIn::RandomFadeIn(LedPipelineStage* stage, const unsigned long minRuntimeMs, const unsigned long maxRuntimeMs,
-						   SamplingFunction samplingFunction, SmoothingFunction smoothingFunction,
-						   BlendingMode blendingMode) :
-	WrapperEffect(stage), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
-	smoothingFunction(smoothingFunction) {
+RandomFadeIn::RandomFadeIn(
+	LedPipelineStage* stage,
+	const unsigned long minRuntimeMs,
+	const unsigned long maxRuntimeMs,
+	SamplingFunction samplingFunction,
+	SmoothingFunction smoothingFunction,
+	BlendingMode blendingMode
+)
+	: WrapperEffect(stage),
+	  RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
+	  smoothingFunction(smoothingFunction) {
 	this->blendingMode = blendingMode;
 }
 

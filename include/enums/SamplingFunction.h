@@ -10,24 +10,24 @@ namespace ledpipelines {
 			CENTERED,
 		};
 
-		SamplingFunction(const SamplingFunction_ &function) : value(function) {
+		SamplingFunction(const SamplingFunction_& function) : value(function) {};
+
+		SamplingFunction(const SamplingFunction_&& function) : value(function) {};
+
+		SamplingFunction(const SamplingFunction& function) : value(function.value) {};
+
+		SamplingFunction(const SamplingFunction&& function) : value(function.value) {};
+
+		SamplingFunction& operator=(SamplingFunction& other);
+
+
+		float operator()() const {
+			return this->operator()(0, 1);
+		}
+
+		float operator()(float max) const {
+			return this->operator()(0, max);
 		};
-
-		SamplingFunction(const SamplingFunction_ &&function) : value(function) {
-		};
-
-		SamplingFunction(const SamplingFunction &function) : value(function.value) {
-		};
-
-		SamplingFunction(const SamplingFunction &&function) : value(function.value) {
-		};
-
-		SamplingFunction &operator=(SamplingFunction &other);
-
-
-		float operator()() const { return this->operator()(0, 1); }
-
-		float operator()(float max) const { return this->operator()(0, max); };
 
 		float operator()(float min, float max) const;
 
@@ -35,10 +35,10 @@ namespace ledpipelines {
 		enum SamplingFunction_ value;
 
 		/**
-     * Values used in computation
-     */
+		 * Values used in computation
+		 */
 		const float tanh_min = tanh(-2.5);
 		const float tanh_max = tanh(2.5);
 		const float tanh_range = tanh_max - tanh_min;
 	};
-}
+} // namespace ledpipelines

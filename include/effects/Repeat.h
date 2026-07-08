@@ -10,7 +10,7 @@ namespace ledpipelines::effects {
 		// which controls how the whole Repeat result blends into its parent (a wrapper inherits that from its child).
 		BlendingMode repeatBlendingMode;
 
-		void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		struct Builder : WrapperEffect::Builder<Repeat, Builder> {
 			BUILDER_FIELD_DEFAULT(int, numRepeats, 0);
@@ -19,22 +19,12 @@ namespace ledpipelines::effects {
 
 			Builder(float repeatDistance) : _repeatDistance(repeatDistance) {};
 
-			Repeat *build() override {
-				return new Repeat(
-					buildInner(),
-					_numRepeats,
-					_repeatDistance,
-					_repeatBlendingMode
-				);
+			Repeat* build() override {
+				return new Repeat(buildInner(), _numRepeats, _repeatDistance, _repeatBlendingMode);
 			}
 		};
 
-		protected:
-			Repeat(
-				LedPipelineStage *stage,
-				int numRepeats,
-				float repeatDistance,
-				BlendingMode repeatBlendingMode
-			);
+	protected:
+		Repeat(LedPipelineStage* stage, int numRepeats, float repeatDistance, BlendingMode repeatBlendingMode);
 	};
-}
+} // namespace ledpipelines::effects

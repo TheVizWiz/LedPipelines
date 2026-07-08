@@ -3,9 +3,11 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Repeat::Repeat(LedPipelineStage* stage, int numRepeats, float repeatDistance, BlendingMode repeatBlendingMode) :
-	WrapperEffect(stage), numRepeats(numRepeats), repeatDistance(repeatDistance),
-	repeatBlendingMode(repeatBlendingMode) {}
+Repeat::Repeat(LedPipelineStage* stage, int numRepeats, float repeatDistance, BlendingMode repeatBlendingMode)
+	: WrapperEffect(stage),
+	  numRepeats(numRepeats),
+	  repeatDistance(repeatDistance),
+	  repeatBlendingMode(repeatBlendingMode) {}
 
 void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;

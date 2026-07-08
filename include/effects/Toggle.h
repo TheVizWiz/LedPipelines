@@ -16,17 +16,17 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
-		void calculate(float startIndex, TemporaryLedData &tempData) override;
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		struct Builder : WrapperEffect::Builder<Toggle, Builder> {
 			Builder() {};
 
-			Toggle *build() override {
+			Toggle* build() override {
 				return new Toggle(buildInner());
 			}
 		};
 
-		private:
-			explicit Toggle(LedPipelineStage *stage);
+	private:
+		explicit Toggle(LedPipelineStage* stage);
 	};
-}
+} // namespace ledpipelines::effects

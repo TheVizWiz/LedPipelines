@@ -46,5 +46,7 @@ namespace ledpipelines::effects {
 		this->state = stage->state;
 	}
 
-	void Path::reset() { WrapperEffect::reset(); }
+	void Path::reset() {
+		WrapperEffect::reset();
+	}
 } // namespace ledpipelines::effects

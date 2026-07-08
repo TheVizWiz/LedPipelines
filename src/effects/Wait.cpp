@@ -6,8 +6,8 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-Wait::Wait(unsigned long runtimeMs, BlendingMode blendingMode) :
-	LedPipelineStage(blendingMode), TimedEffect(runtimeMs) {}
+Wait::Wait(unsigned long runtimeMs, BlendingMode blendingMode)
+	: LedPipelineStage(blendingMode), TimedEffect(runtimeMs) {}
 
 
 void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -36,9 +36,13 @@ void Wait::reset() {
 }
 
 
-RandomWaitEffect::RandomWaitEffect(unsigned long minRuntimeMs, unsigned long maxRuntimeMs,
-								   SamplingFunction samplingFunction, BlendingMode blendingMode) :
-	LedPipelineStage(blendingMode), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
+RandomWaitEffect::RandomWaitEffect(
+	unsigned long minRuntimeMs,
+	unsigned long maxRuntimeMs,
+	SamplingFunction samplingFunction,
+	BlendingMode blendingMode
+)
+	: LedPipelineStage(blendingMode), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
 
 void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) {
