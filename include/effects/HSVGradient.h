@@ -75,8 +75,10 @@ namespace ledpipelines::effects {
 
 			// Set the gradient shown at t=0 (start-of-position color -> end-of-position color). Also seeds endGradient
 			// to the same pair, so a caller that never sets endGradient() gets a static gradient rather than a morph
-			// toward the default (black) corners.
-			Builder& startGradient(FHSV atStart, FHSV atEnd) {
+			// toward the default (black) corners. Ref-qualified like the BUILDER_FIELD setters: lvalue chains in place
+			// (returns Builder&), rvalue temporary moves out by value (returns Builder) so a chain can be captured with
+			// auto without hitting the deleted copy constructor.
+			Builder& startGradient(FHSV atStart, FHSV atEnd) & {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -84,11 +86,25 @@ namespace ledpipelines::effects {
 				return *this;
 			}
 
+			Builder startGradient(FHSV atStart, FHSV atEnd) && {
+				this->_startGradientStart = atStart;
+				this->_startGradientEnd = atEnd;
+				this->_endGradientStart = atStart;
+				this->_endGradientEnd = atEnd;
+				return std::move(*this);
+			}
+
 			// Set the gradient morphed toward at t=runtimeMs (start-of-position color -> end-of-position color).
-			Builder& endGradient(FHSV atStart, FHSV atEnd) {
+			Builder& endGradient(FHSV atStart, FHSV atEnd) & {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return *this;
+			}
+
+			Builder endGradient(FHSV atStart, FHSV atEnd) && {
+				this->_endGradientStart = atStart;
+				this->_endGradientEnd = atEnd;
+				return std::move(*this);
 			}
 
 			HSVGradient* build() override {
