@@ -8,6 +8,26 @@
 #include "LedPipelinesLogger.h"
 
 
+/**
+ * A floating-point HSV color. Unlike FastLED's uint8_t CHSV (hue 0-255, artistic rainbow map), this keeps full
+ * precision so hues can be interpolated smoothly and wrap cleanly. hue is in degrees and may be any value - it is
+ * wrapped into [0, 360) at conversion time (e.g. 500 wraps to 140, -30 wraps to 330). s and v are in [0, 1].
+ */
+struct FHSV {
+	float h = 0;
+	float s = 1;
+	float v = 1;
+
+	FHSV() = default;
+
+	FHSV(float h, float s, float v) : h(h), s(s), v(v) {}
+};
+
+/**
+ * Convert a floating-point HSV color to CRGB. Hue is wrapped into [0, 360); saturation and value are clamped to [0, 1].
+ */
+CRGB fhsvToRgb(FHSV hsv);
+
 CRGB operator*(CRGB first, CRGB second);
 
 CRGB &operator*=(CRGB &first, const CRGB &second);
