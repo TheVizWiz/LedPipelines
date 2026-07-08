@@ -6,8 +6,23 @@ fluidly, with an easy-to-use declarative syntax.
 LedPipelines is a library meant to sit on top of FastLED and provide a way to create animation pipelines that can layer
 easily and fluidly. It will support animations, layers, multiple segments, fractional LED lighting, and more features.
 
-- [current worked on tickets](https://github.com/users/TheVizWiz/projects/3/views/1)
+- [current worked on tickets](https://github.com/users/TheVizWiz/projects/3/views/1) (will try to keep this up to date,
+  sorry!)
 - [feature requests](https://github.com/TheVizWiz/LedPipelines/issues)
+
+## Preview your pipeline without hardware
+
+You don't need to flash a microcontroller to see what an effect looks like.
+[**LedPipelinesViewer**](https://github.com/TheVizWiz/LedPipelinesViewer) is a standalone desktop previewer: write a
+pipeline in C++ exactly as you would in an Arduino sketch, build, and watch it animate live in your browser as a grid
+of pixels.
+
+It compiles LedPipelines natively against host-side `FastLED.h` / `Arduino.h` stubs — the library is unchanged, but
+`FastLED.show()` streams each rendered frame to the browser instead of latching physical LEDs, on a real wall-clock so
+timed effects animate at their true speed. What you see is the exact RGB the physical LEDs would receive.
+
+It's the fastest way to iterate on an effect: tweak your pipeline, rebuild, and see the result in a second or two. See
+the [LedPipelinesViewer repository](https://github.com/TheVizWiz/LedPipelinesViewer) for setup and usage.
 
 ## Installation (PlatformIO)
 
@@ -53,7 +68,8 @@ LedPipelines is built out of a few small ideas that compose:
 
 - **Stage** — the unit of everything. Every effect and every pipeline is a `LedPipelineStage`. A stage's job is to write
   color and opacity into a per-frame buffer when its `calculate()` runs.
-- **Source** — a stage that *produces* pixels (e.g. `Solid`, `SolidSegment`, `HSVGradient`, `Spawner`, `Mask`).
+- **Source** — a stage that *produces* pixels (e.g. `Solid`, `SolidSegment`, `HSVGradient`, `RGBGradient`, `Spawner`,
+  `Mask`).
 - **Wrapper** — a stage that *wraps another stage* and post-processes or repositions what that inner stage produced (
   e.g. `Moving`, `Loop`, `Shift`, `FadeOut`, `OpacityGradient`). You attach a wrapper with `.wrap(...)`.
 - **Pipeline** — a stage that holds *multiple child stages*: `SeriesLedPipeline` runs them one after another over time,
@@ -76,13 +92,14 @@ them manually.
 
 ### Sources (produce pixels)
 
-| Effect         | Builder                                  | What it does                                                                                                                                                                                                                                                                            |
-|----------------|------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Solid`        | `Solid::Builder(color)`                  | Fills the entire strip with one color. `.opacity(0-255)`.                                                                                                                                                                                                                               |
-| `SolidSegment` | `SolidSegment::Builder(color, length)`   | Lights a segment of `length` pixels starting where it's positioned. Fractional lengths feather the end pixels.                                                                                                                                                                          |
-| `HSVGradient`  | `HSVGradient::Builder(startPos, endPos)` | Writes an HSV color gradient between two positions. `.startGradient(a, b)` sets the look. Add a runtime + `.endGradient(a, b)` to animate one gradient morphing into another over time. Hue is in degrees and wraps at 360 (so `0..720` = two rainbows). See [HSV colors](#hsv-colors). |
-| `Mask`         | `Mask::Builder(base, mask)`              | Uses one stage's brightness to gate another — `base` shows through only where `mask` is lit.                                                                                                                                                                                            |
-| `Spawner`      | `Spawner::Builder(factory)`              | Periodically spawns child effects from a factory (`[]{ return SomeEffect::Builder(...).build(); }`). Great for sparkles/particles. `RandomSpawner` / timed variants vary the interval.                                                                                                  |
+| Effect         | Builder                                  | What it does                                                                                                                                                                                                                                                                                                                                                                                          |
+|----------------|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Solid`        | `Solid::Builder(color)`                  | Fills the entire strip with one color. `.opacity(0-255)`.                                                                                                                                                                                                                                                                                                                                             |
+| `SolidSegment` | `SolidSegment::Builder(color, length)`   | Lights a segment of `length` pixels starting where it's positioned. Fractional lengths feather the end pixels.                                                                                                                                                                                                                                                                                        |
+| `HSVGradient`  | `HSVGradient::Builder(startPos, endPos)` | Writes a gradient between two positions, interpolating in **HSV** — the blend travels around the color wheel (red→blue passes through magenta or green). `.startGradient(a, b)` sets the look; add a runtime + `.endGradient(a, b)` to morph one gradient into another over time. Hue is in degrees and wraps at 360 (so `0..720` = two rainbows). Corners are `FHSV`; see [HSV colors](#hsv-colors). |
+| `RGBGradient`  | `RGBGradient::Builder(startPos, endPos)` | Same as `HSVGradient`, but interpolates each **RGB channel** directly — a straight crossfade between the two colors through their RGB midpoint (red→blue passes through dim purple, not the wheel). Corners are `CRGB`. Use this for a plain smooth blend; use `HSVGradient` when you want the intermediate hues.                                                                                     |
+| `Mask`         | `Mask::Builder(base, mask)`              | Uses one stage's brightness to gate another — `base` shows through only where `mask` is lit.                                                                                                                                                                                                                                                                                                          |
+| `Spawner`      | `Spawner::Builder(factory)`              | Periodically spawns child effects from a factory (`[]{ return SomeEffect::Builder(...).build(); }`). Great for sparkles/particles. `RandomSpawner` / timed variants vary the interval.                                                                                                                                                                                                                |
 
 ### Wrappers (transform an inner stage — attach with `.wrap(...)`)
 
@@ -217,10 +234,11 @@ A few things this shows:
 - **`.wrap(...)` reads inside-out.** Each segment is *built*, then *moved* — the wrapper acts on everything beneath it.
 - **Pipelines nest.** Both the bounce (Layer 2) and the blinker (Layer 3) are whole `SeriesLedPipeline`s used as single
   stages inside the `ParallelLedPipeline`.
-- **Series = over time, Parallel = over space.** The bounce's two sweeps run one after the other (series), as do the
+- **Series = one at a time, Parallel = all at once.** The bounce's two sweeps run one after the other (series), as do
+  the
   blinker's two segments; meanwhile all three layers render into the same frame (parallel).
 - **Direction is a property of the sweep, not a wrapper.** To reverse a `Moving`, run the opposite sweep
-  (`start`/`end` swapped) — that's why a bounce is a *series of two moves*, not a single move plus a flip.
+  (`start`/`end` swapped) — that's why a bounce is a *series of two moves*.
 - **`Loop` needs a finite inner.** It restarts its inner once that inner reports DONE — which is why the segments are
   wrapped in `TimeBox`/`Moving` (both finish after `runtimeMs`), letting the series and the loop advance cleanly.
 
@@ -254,7 +272,6 @@ phases identical and expresses "and now the other way" as a single wrapper. Note
 
 See the [`examples/`](examples/) directory for more.
 
-
 ## Constraints
 
 A few things are worth knowing before you build something large:
@@ -277,7 +294,6 @@ A few things are worth knowing before you build something large:
   `HSVGradient`) advance off `millis()`. They animate on their own; you do not — and should not — advance them manually.
 - **`Loop` needs a terminating inner.** `Loop` restarts its inner only once that inner reports DONE. Wrapping an inner
   that never finishes (e.g. a bare `Solid`) in a `Loop` will simply run it forever without ever looping.
-
 
 ## Contributions
 

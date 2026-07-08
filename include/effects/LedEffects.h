@@ -26,5 +26,6 @@
 // basic effects
 #include "Solid.h"
 #include "HSVGradient.h"
+#include "RGBGradient.h"
 #include "Wait.h"
 #include "Spawner.h"
