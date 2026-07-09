@@ -93,22 +93,13 @@ namespace ledpipelines::effects {
 		 */
 		template <typename ConcreteBuilder>
 		struct Builder {
-			unsigned long _runtimeMs;
-			unsigned long _delayMs = 0;
-
-			explicit Builder(const unsigned long runtimeMs) : _runtimeMs(runtimeMs) {}
-
-			ConcreteBuilder& runtimeMs(unsigned long v) {
-				this->_runtimeMs = v;
-				return static_cast<ConcreteBuilder&>(*this);
-			}
+			BUILDER_FIELD_CRTP(unsigned long, runtimeMs);
 
 			// Lead-in delay before the effect's timeline begins (see TimedEffect::delayMs). Inherited by every timed
 			// effect's builder, so any of them - fades, Moving, TimeBox, Wait - can be delayed with .delayMs(...).
-			ConcreteBuilder& delayMs(unsigned long v) {
-				this->_delayMs = v;
-				return static_cast<ConcreteBuilder&>(*this);
-			}
+			BUILDER_FIELD_CRTP_DEFAULT(unsigned long, delayMs, 0);
+
+			explicit Builder(const unsigned long runtimeMs) : _runtimeMs(runtimeMs) {}
 
 		protected:
 			// Copy this builder's timing config onto a freshly built product. Called by each leaf build() after
@@ -144,35 +135,15 @@ namespace ledpipelines::effects {
 		 */
 		template <typename ConcreteBuilder>
 		struct Builder {
-			unsigned long _minRuntimeMs = 0;
-			unsigned long _maxRuntimeMs;
-			SamplingFunction _samplingFunction = SamplingFunction::UNIFORM;
-
-			explicit Builder(const unsigned long maxRuntimeMs) : _maxRuntimeMs(maxRuntimeMs) {}
-
-			ConcreteBuilder& minRuntimeMs(unsigned long v) {
-				this->_minRuntimeMs = v;
-				return static_cast<ConcreteBuilder&>(*this);
-			}
-
-			ConcreteBuilder& maxRuntimeMs(unsigned long v) {
-				this->_maxRuntimeMs = v;
-				return static_cast<ConcreteBuilder&>(*this);
-			}
-
-			ConcreteBuilder& samplingFunction(SamplingFunction v) {
-				this->_samplingFunction = v;
-				return static_cast<ConcreteBuilder&>(*this);
-			}
+			BUILDER_FIELD_CRTP_DEFAULT(unsigned long, minRuntimeMs, 0);
+			BUILDER_FIELD_CRTP(unsigned long, maxRuntimeMs);
+			BUILDER_FIELD_CRTP_DEFAULT(SamplingFunction, samplingFunction, SamplingFunction::UNIFORM);
 
 			// Lead-in delay before the effect's timeline begins (see TimedEffect::delayMs). Mirrors
 			// TimedEffect::Builder::delayMs so random timed effects can be delayed identically.
-			ConcreteBuilder& delayMs(unsigned long v) {
-				this->_delayMs = v;
-				return static_cast<ConcreteBuilder&>(*this);
-			}
+			BUILDER_FIELD_CRTP_DEFAULT(unsigned long, delayMs, 0);
 
-			unsigned long _delayMs = 0;
+			explicit Builder(const unsigned long maxRuntimeMs) : _maxRuntimeMs(maxRuntimeMs) {}
 
 		protected:
 			// See TimedEffect::Builder::applyTiming.

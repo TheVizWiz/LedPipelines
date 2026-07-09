@@ -32,11 +32,46 @@
 		return std::move(*this);                                                                                       \
 	}
 
+// CRTP variants of the above, for the standalone mixin builders (TimedEffect::Builder, RandomTimedEffect::Builder)
+// that are templated on the leaf builder type. Unlike BUILDER_FIELD, whose setters return the enclosing `Builder`,
+// these return `ConcreteBuilder` (the leaf, via a static_cast of *this) so a chain keeps the leaf type and can call
+// leaf-level setters afterwards. Requires the enclosing scope to have a `ConcreteBuilder` template parameter.
+#define BUILDER_FIELD_CRTP(type, field)                                                                                \
+	type _##field;                                                                                                     \
+	ConcreteBuilder& field(type v) & {                                                                                 \
+		this->_##field = v;                                                                                            \
+		return static_cast<ConcreteBuilder&>(*this);                                                                   \
+	}                                                                                                                  \
+	ConcreteBuilder field(type v) && {                                                                                 \
+		this->_##field = v;                                                                                            \
+		return std::move(static_cast<ConcreteBuilder&>(*this));                                                        \
+	}
+
+#define BUILDER_FIELD_CRTP_DEFAULT(type, field, defaultValue)                                                          \
+	type _##field = defaultValue;                                                                                      \
+	ConcreteBuilder& field(type v) & {                                                                                 \
+		this->_##field = v;                                                                                            \
+		return static_cast<ConcreteBuilder&>(*this);                                                                   \
+	}                                                                                                                  \
+	ConcreteBuilder field(type v) && {                                                                                 \
+		this->_##field = v;                                                                                            \
+		return std::move(static_cast<ConcreteBuilder&>(*this));                                                        \
+	}
+
 namespace ledpipelines {
 	enum class LedPipelineRunningState { NOT_STARTED, RUNNING, DONE };
 
 	namespace effects {
 		struct WrapperEffect;
+
+		// Forward-declared so the base Builder below can offer convenience wrappers (loop(), timebox(), shift(),
+		// block()) for these common effects. The methods are member templates defined out-of-line in
+		// effects/BuilderConveniences.h, which is included only after these types are complete - so the base builder
+		// stays free of a hard dependency on the effect headers (which include this one).
+		struct Loop;
+		struct TimeBox;
+		struct Shift;
+		struct ResetBlocker;
 	}
 
 	struct LedPipelineStage;
@@ -140,6 +175,23 @@ namespace ledpipelines {
 				wrapper.innerBuilder(std::move(inner));
 				return std::move(wrapper);
 			}
+
+			/**
+			 * Convenience shorthands for the most common wrap() targets - e.g. `.loop()` instead of
+			 * `.wrap(Loop::Builder())`. Each just forwards to wrap() with the corresponding effect's builder, so the
+			 * result is identical to writing the wrap() out by hand (and can be chained with more setters/wraps).
+			 *
+			 * Only declared here; defined out-of-line in effects/BuilderConveniences.h (included last, after the effect
+			 * headers). Their bodies name concrete effect builders (Loop, TimeBox, ...) that are only forward-declared at
+			 * this point, but since Builder is itself a class template its member definitions are instantiated lazily on
+			 * use - by which point those types are complete. That deferral is why the base builder needs no hard include
+			 * dependency on the effect headers, and why these need no dummy template parameter.
+			 */
+			auto loop();                        // wrap(Loop::Builder()) - loops forever
+			auto loop(size_t numLoops);         // wrap(Loop::Builder().numLoops(n))
+			auto timebox(unsigned long runtimeMs); // wrap(TimeBox::Builder(runtimeMs))
+			auto shift(float numPixels);        // wrap(Shift::Builder(numPixels))
+			auto block();                       // wrap(ResetBlocker::Builder())
 		};
 
 		LedPipelineRunningState state = LedPipelineRunningState::NOT_STARTED;

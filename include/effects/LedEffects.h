@@ -29,3 +29,8 @@
 #include "Solid.h"
 #include "Spawner.h"
 #include "Wait.h"
+
+
+// Convenience wrapper methods (.loop(), .timebox(), .shift(), .block()) on the base builder. Included LAST so every
+// effect builder it references is already complete. See BuilderConveniences.h.
+#include "BuilderConveniences.h"
