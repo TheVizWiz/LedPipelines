@@ -32,11 +32,15 @@ void Moving::calculate(float startIndex, TemporaryLedData& tempData) {
 	// elapses, then begins moving.
 	this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs;
 
+	// smoothingFunction clamps the percentage to [0, 1], so once the movement timer completes the inner is pinned
+	// exactly at endPosition. We keep rendering it there until the inner itself finishes - the movement running out
+	// does NOT end this effect; only the inner reaching DONE does. This lets the inner keep animating at its final
+	// destination after the move completes.
 	this->currentPosition = smoothingFunction(elapsedPercentage, startPosition, endPosition);
 
 	this->stage->calculate(startIndex + currentPosition, tempData);
 
-	if (this->stage->state == LedPipelineRunningState::DONE || this->elapsedPercentage >= 1) {
+	if (this->stage->state == LedPipelineRunningState::DONE) {
 		this->state = LedPipelineRunningState::DONE;
 	}
 }

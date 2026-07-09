@@ -108,7 +108,7 @@ them manually.
 | Effect             | Builder                               | What it does                                                                                                           |
 |--------------------|---------------------------------------|------------------------------------------------------------------------------------------------------------------------|
 | `Shift`            | `Shift::Builder(offset)`              | Statically shifts the inner by a fixed number of pixels.                                                               |
-| `Moving`           | `Moving::Builder(runtimeMs)`          | Animates the inner from `.startPosition(x)` to `.endPosition(y)` over `runtimeMs`. `.smoothingFunction(...)` eases it. |
+| `Moving`           | `Moving::Builder(runtimeMs)`          | Animates the inner from `.startPosition(x)` to `.endPosition(y)` over `runtimeMs`, easing with `.smoothingFunction(...)`. After the move completes it **holds** the inner at `endPosition` and keeps rendering it — `Moving` finishes only when the inner finishes, not when the timer runs out (wrap a `TimeBox` if the inner never ends on its own). |
 | `AbsolutePosition` | `AbsolutePosition::Builder(position)` | Pins the inner to an absolute strip position, ignoring where its parent placed it.                                     |
 | `Repeat`           | `Repeat::Builder(repeatDistance)`     | Tiles copies of the inner every `repeatDistance` pixels. `.numRepeats(n)` (0 = fill the strip).                        |
 | `Flip`             | `Flip::Builder(maxIndex)`             | Mirrors the inner's *position* within `[minIndex, maxIndex]` (a spatial reversal — left↔right, not a reverse in time). |
@@ -200,12 +200,14 @@ void setup() {
                                   .wrap(Moving::Builder(3000)
                                             .startPosition(0)
                                             .endPosition(LED_COUNT)
-                                            .smoothingFunction(SmoothingFunction::SINE)))
+                                            .smoothingFunction(SmoothingFunction::SINE))
+                                  .wrap(TimeBox::Builder(3000)))   // give the sweep a lifetime so the series advances
                     .addStage(SolidSegment::Builder(CRGB::Red, 10)
                                   .wrap(Moving::Builder(3000)
                                             .startPosition(LED_COUNT)
                                             .endPosition(0)
-                                            .smoothingFunction(SmoothingFunction::SINE)))
+                                            .smoothingFunction(SmoothingFunction::SINE))
+                                  .wrap(TimeBox::Builder(3000)))
                     .wrap(Loop::Builder()))           // repeat the bounce indefinitely
 
             // Layer 3: a red/green blinker built from a timed series.
@@ -231,16 +233,19 @@ void loop() {
 
 A few things this shows:
 
-- **`.wrap(...)` reads inside-out.** Each segment is *built*, then *moved* — the wrapper acts on everything beneath it.
+- **`.wrap(...)` reads inside-out.** Each segment is *built*, then *moved*, then *time-boxed* — each wrapper acts on
+  everything beneath it.
 - **Pipelines nest.** Both the bounce (Layer 2) and the blinker (Layer 3) are whole `SeriesLedPipeline`s used as single
   stages inside the `ParallelLedPipeline`.
 - **Series = one at a time, Parallel = all at once.** The bounce's two sweeps run one after the other (series), as do
-  the
-  blinker's two segments; meanwhile all three layers render into the same frame (parallel).
+  the blinker's two segments; meanwhile all three layers render into the same frame (parallel).
 - **Direction is a property of the sweep, not a wrapper.** To reverse a `Moving`, run the opposite sweep
   (`start`/`end` swapped) — that's why a bounce is a *series of two moves*.
-- **`Loop` needs a finite inner.** It restarts its inner once that inner reports DONE — which is why the segments are
-  wrapped in `TimeBox`/`Moving` (both finish after `runtimeMs`), letting the series and the loop advance cleanly.
+- **`Moving` doesn't end itself; it ends when its inner ends.** When a `Moving` reaches `endPosition` it *holds* the
+  inner there and keeps rendering it — the move completing doesn't finish the stage. Since a `SolidSegment` never
+  finishes on its own, each sweep is wrapped in a `TimeBox` to give it a lifetime, which is what lets the series
+  advance and the `Loop` restart. (Wrap a naturally-finishing inner — a `FadeOut`, an animated `HSVGradient` — and you
+  don't need the `TimeBox`.)
 
 ### The same bounce, two ways
 
@@ -256,13 +261,15 @@ SeriesLedPipeline::Builder()
                   .wrap(Moving::Builder(3000)
                             .startPosition(0)
                             .endPosition(LED_COUNT)
-                            .smoothingFunction(SmoothingFunction::SINE)))
+                            .smoothingFunction(SmoothingFunction::SINE))
+                  .wrap(TimeBox::Builder(3000)))
     .addStage(SolidSegment::Builder(CRGB::Red, 10)
                   .wrap(Moving::Builder(3000)
                             .startPosition(0)
                             .endPosition(LED_COUNT)
                             .smoothingFunction(SmoothingFunction::SINE))
-                  .wrap(Flip::Builder(LED_COUNT)))   // mirror the second sweep -> travels back
+                  .wrap(Flip::Builder(LED_COUNT))    // mirror the second sweep -> travels back
+                  .wrap(TimeBox::Builder(3000)))
     .wrap(Loop::Builder())
 ```
 
