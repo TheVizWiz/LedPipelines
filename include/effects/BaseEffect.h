@@ -19,9 +19,21 @@ namespace ledpipelines::effects {
 		public:
 			Builder() = default;
 
-			// Movable (wrap() returns wrapper builders by value); copy stays deleted via the base.
 			Builder(Builder&&) = default;
 			Builder& operator=(Builder&&) = default;
+
+			// Deep copy: clone the owned inner builder rather than shallow-copying the (move-only) unique_ptr. This is
+			// what makes a wrapper-chain builder reusable - copying it produces an independent inner sub-tree so the
+			// original chain stays intact for another use. A null inner (nothing wrapped yet) copies as null.
+			Builder(const Builder& other) :
+				LedPipelineStage::Builder<T, ConcreteBuilder>(other),
+				_innerBuilder(other._innerBuilder ? other._innerBuilder->clone() : nullptr) {}
+
+			Builder& operator=(const Builder& other) {
+				LedPipelineStage::Builder<T, ConcreteBuilder>::operator=(other);
+				_innerBuilder = other._innerBuilder ? other._innerBuilder->clone() : nullptr;
+				return *this;
+			}
 
 			// The builder for the inner (wrapped) effect. Stored as a builder rather than a built stage so the
 			// inner effect is (re)built fresh each time this wrapper's build() runs - every build() produces an

@@ -132,9 +132,63 @@ them manually.
 | `Loop`         | `Loop::Builder()`             | Restarts the inner when it finishes. `.numLoops(n)` (0 = forever).                                                                                                                         |
 | `Toggle`       | `Toggle::Builder()`           | Gates the inner on/off at runtime via `.activate()` / `.deactivate()` — useful for reactive/interactive control.                                                                           |
 | `ResetBlocker` | `ResetBlocker::Builder()`     | On `reset()`, only propagates to the inner if the inner is already DONE; otherwise lets it finish its current pass. Lets a sub-effect complete before a surrounding `Loop` can restart it. |
+| `Shared`       | `Shared::Builder(sharedPtr)`  | Wraps an already-built stage held via `std::shared_ptr` so the **same instance** can appear in several places in the tree (lifetime managed by the refcount). Unlike every other wrapper, it takes a built stage, not a builder — see [Sharing a sub-effect](#sharing-a-sub-effect). |
 
 Most timed effects share `.delayMs(t)` (a lead-in delay before their own clock starts) and honor
 `.smoothingFunction(...)` where an ease makes sense.
+
+### Convenience methods
+
+Every builder has shorthand methods for the most common `.wrap(...)` targets — identical to writing the wrap out by
+hand, just terser:
+
+| Method | Equivalent to |
+|---|---|
+| `.loop()` | `.wrap(Loop::Builder())` (loops forever) |
+| `.loop(n)` | `.wrap(Loop::Builder().numLoops(n))` |
+| `.timebox(ms)` | `.wrap(TimeBox::Builder(ms))` |
+| `.shift(px)` | `.wrap(Shift::Builder(px))` |
+| `.block()` | `.wrap(ResetBlocker::Builder())` |
+| `.shared()` | builds this chain once and returns a reusable `Shared::Builder` — see [Sharing a sub-effect](#sharing-a-sub-effect) |
+
+So `Solid::Builder(CRGB::Red).timebox(2000).loop()` is the same as
+`Solid::Builder(CRGB::Red).wrap(TimeBox::Builder(2000)).wrap(Loop::Builder())`.
+
+### Sharing a sub-effect
+
+Normally every `build()` produces a fresh, independent tree — nothing is shared. `Shared` is the deliberate exception:
+it lets one built stage instance appear in several branches. Build the stage once into a `std::shared_ptr`, then wrap it
+in a `Shared` per branch:
+
+```cpp
+auto dot = SolidSegment::Builder(CRGB::White, 3).buildShared();  // build once -> shared_ptr
+pipeline = ParallelLedPipeline::Builder()
+    .addStage(Shared::Builder(dot).shift(0))    // both branches reference the SAME dot
+    .addStage(Shared::Builder(dot).shift(20))
+    .build();
+```
+
+Or use `.shared()`, which builds the chain once and hands back a reusable `Shared::Builder` you can wrap into multiple
+branches:
+
+```cpp
+auto dot = SolidSegment::Builder(CRGB::White, 3).shared();
+pipeline = ParallelLedPipeline::Builder()
+    .addStage(dot.shift(0))
+    .addStage(dot.shift(20))
+    .build();
+```
+
+Two things to know:
+
+- **`Shared` shares one instance, never copies.** Reusing/moving a `Shared::Builder` always yields another handle to the
+  same stage (`Shared::Builder` is intentionally reusable — even after being moved from, it stays valid). If you want two
+  *independent* stages, don't share — build the source chain twice.
+- **The shared instance's per-run state is shared too.** Within a single frame this is fine for anything whose output is
+  a pure function of the current clock and position — a `Solid`, `SolidSegment`, gradient, or a `Moving`/timed effect all
+  render correctly from multiple branches in one frame, since each `calculate()` recomputes from scratch. Be careful only
+  with effects that **accumulate or mutate state across calls within a frame** (e.g. `Spawner`, which grows a child list
+  each `calculate()`), or where a per-branch `reset()` would disturb the other branch — sharing those can misbehave.
 
 ### HSV colors
 

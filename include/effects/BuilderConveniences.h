@@ -11,6 +11,7 @@
 #include "Shift.h"
 #include "TimeBox.h"
 #include "ResetBlocker.h"
+#include "Shared.h"
 
 namespace ledpipelines {
 	template <class T, class ConcreteBuilder>
@@ -36,5 +37,10 @@ namespace ledpipelines {
 	template <class T, class ConcreteBuilder>
 	auto LedPipelineStage::Builder<T, ConcreteBuilder>::block() {
 		return wrap(effects::ResetBlocker::Builder());
+	}
+
+	template <class T, class ConcreteBuilder>
+	auto LedPipelineStage::Builder<T, ConcreteBuilder>::shared() {
+		return effects::Shared::Builder(buildShared());
 	}
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <type_traits>
+
+#include "BaseLedPipeline.h"
 #include "FastLED.h"
 #include "LedPipelineUtils.h"
 #include "memory"
@@ -72,7 +74,7 @@ namespace ledpipelines {
 		struct TimeBox;
 		struct Shift;
 		struct ResetBlocker;
-	}
+	} // namespace effects
 
 	struct LedPipelineStage;
 
@@ -98,6 +100,12 @@ namespace ledpipelines {
 		// Build the product as a base LedPipelineStage*. Implemented by Builder<T, ConcreteBuilder> by delegating to
 		// its typed build().
 		virtual LedPipelineStage* buildStage() = 0;
+
+		// Polymorphic deep copy. Builders own their inner/child builders through this type-erased base, so copying a
+		// builder needs each concrete builder to clone itself (the base can't know the concrete type). Implemented by
+		// Builder<T, ConcreteBuilder>. This is what lets a plain builder be reused: reusing an lvalue builder copies it
+		// (via this) so the original stays intact and each use produces an independent tree.
+		virtual std::unique_ptr<StageBuilder> clone() const = 0;
 	};
 
 
@@ -113,13 +121,21 @@ namespace ledpipelines {
 
 			~Builder() override = default;
 
-			// Move-only. Builders own move-only state (a wrapper builder owns its inner builder via
-			// unique_ptr<StageBuilder>, a pipeline builder owns a vector of unique_ptr stages), and wrap() moves
-			// builders into one another. Copying is meaningless here and would try to duplicate that owned state.
-			Builder(const Builder&) = delete;
-			Builder& operator=(const Builder&) = delete;
+			// Copyable and movable. A builder is a reusable recipe: reusing one (e.g. wrapping the same builder into two
+			// different parents) copies it so each use yields an independent tree, and the original stays valid. Leaf
+			// builders copy member-wise via these defaults; builders that own another builder through a
+			// unique_ptr<StageBuilder> (WrapperEffect::Builder's inner, LedPipeline::Builder's children) override the copy
+			// members to deep-clone that owned builder rather than shallow-copy the pointer.
+			Builder(const Builder&) = default;
+			Builder& operator=(const Builder&) = default;
 			Builder(Builder&&) = default;
 			Builder& operator=(Builder&&) = default;
+
+			// Polymorphic deep copy (see StageBuilder::clone). CRTP gives us the concrete leaf type, so we can copy the
+			// whole leaf - which, for wrapper/pipeline builders, runs their deep-cloning copy constructor.
+			std::unique_ptr<StageBuilder> clone() const override {
+				return std::unique_ptr<StageBuilder>(new ConcreteBuilder(static_cast<const ConcreteBuilder&>(*this)));
+			}
 
 			BlendingMode _blendingMode = BlendingMode::NORMAL;
 
@@ -147,6 +163,18 @@ namespace ledpipelines {
 			 */
 			virtual T* build() = 0;
 
+			/**
+			 * Build a shared pointer to a new instance of an LedPipelingStage. If called multiple times, this method
+			 * will create multiple **new** LedPipelineStages, **not** multiple shared pointers to multiple stages.
+			 *
+			 * @return a shared pointer to a newly constructed LedPipelineStage
+			 */
+			std::shared_ptr<LedPipelineStage> buildShared() {
+				// Explicit template arg: std::shared_ptr has no deduction guide for a raw T*, so CTAD
+				// (std::shared_ptr(ptr)) would not compile.
+				return std::shared_ptr<LedPipelineStage>(buildStage());
+			}
+
 			// Type-erased build() for the StageBuilder base: returns the product as a LedPipelineStage*. Lets code
 			// holding a StageBuilder (e.g. a wrapper holding its inner builder) build without the concrete type.
 			LedPipelineStage* buildStage() override {
@@ -154,21 +182,30 @@ namespace ledpipelines {
 			}
 
 			/**
-			 * Wrap this builder in a WrapperEffect's builder, staying entirely in "builder land": nothing is built
-			 * here. This builder is moved onto the heap and adopted as the wrapper's inner builder; the wrapper builder
-			 * is then returned by value so more setters or wrap()s can follow with '.', deferring build() to the end
-			 * (or to addStage), e.g.
+			 * Wrap this builder in a WrapperEffect's builder, staying entirely in "builder land": nothing is built here.
+			 * This builder is adopted as the wrapper's inner builder; the wrapper builder is then returned by value so
+			 * more setters or wrap()s can follow with '.', deferring build() to the end (or to addStage), e.g.
 			 * Solid::Builder(CRGB::Red).wrap(OpacityGradient::Builder(4)).wrap(Loop::Builder()).build().
 			 *
-			 * Because the inner is stored as a builder (not a built stage), each build() of the resulting chain
-			 * produces a fresh, independent tree. The wrapper argument is moved (builders are move-only); it is
-			 * consumed by this call. B is deduced (often an lvalue ref, since fluent setters return Builder&), so we
-			 * move via a remove_reference cast rather than forward.
+			 * Two overloads, so a builder is a reusable recipe:
+			 *   - called on an LVALUE (a named builder): this builder is COPIED (deep clone) into the wrapper, leaving the
+			 *     original intact so it can be reused - e.g. `ball.wrap(A); ball.wrap(B);` gives two independent trees.
+			 *   - called on an RVALUE (a temporary chain, or an explicit std::move): this builder is MOVED into the
+			 *     wrapper (no copy), since a temporary won't be reused.
+			 * Either way the inner is stored as a builder (not a built stage), so each build() of the result produces a
+			 * fresh, independent tree.
 			 */
 			template <class B>
-			auto wrap(B&& wrapper) -> std::remove_reference_t<B> {
-				// Move this builder (the concrete leaf type, via CRTP) onto the heap so the wrapper can own it through
-				// the type-erased StageBuilder base.
+			auto wrap(B&& wrapper) const& -> std::remove_reference_t<B> {
+				// Lvalue: deep-copy this builder (via clone()) so the original stays usable for further reuse.
+				std::unique_ptr<StageBuilder> inner = this->clone();
+				wrapper.innerBuilder(std::move(inner));
+				return std::move(wrapper);
+			}
+
+			template <class B>
+			auto wrap(B&& wrapper) && -> std::remove_reference_t<B> {
+				// Rvalue: move this builder (the concrete leaf type, via CRTP) onto the heap - no copy needed.
 				std::unique_ptr<StageBuilder> inner(
 					new ConcreteBuilder(std::move(static_cast<ConcreteBuilder&>(*this)))
 				);
@@ -182,16 +219,17 @@ namespace ledpipelines {
 			 * result is identical to writing the wrap() out by hand (and can be chained with more setters/wraps).
 			 *
 			 * Only declared here; defined out-of-line in effects/BuilderConveniences.h (included last, after the effect
-			 * headers). Their bodies name concrete effect builders (Loop, TimeBox, ...) that are only forward-declared at
-			 * this point, but since Builder is itself a class template its member definitions are instantiated lazily on
-			 * use - by which point those types are complete. That deferral is why the base builder needs no hard include
-			 * dependency on the effect headers, and why these need no dummy template parameter.
+			 * headers). Their bodies name concrete effect builders (Loop, TimeBox, ...) that are only forward-declared
+			 * at this point, but since Builder is itself a class template its member definitions are instantiated
+			 * lazily on use - by which point those types are complete. That deferral is why the base builder needs no
+			 * hard include dependency on the effect headers, and why these need no dummy template parameter.
 			 */
-			auto loop();                        // wrap(Loop::Builder()) - loops forever
-			auto loop(size_t numLoops);         // wrap(Loop::Builder().numLoops(n))
+			auto loop(); // wrap(Loop::Builder()) - loops forever
+			auto loop(size_t numLoops); // wrap(Loop::Builder().numLoops(n))
 			auto timebox(unsigned long runtimeMs); // wrap(TimeBox::Builder(runtimeMs))
-			auto shift(float numPixels);        // wrap(Shift::Builder(numPixels))
-			auto block();                       // wrap(ResetBlocker::Builder())
+			auto shift(float numPixels); // wrap(Shift::Builder(numPixels))
+			auto block(); // wrap(ResetBlocker::Builder())
+			auto shared(); // Shared::Builder(buildShared())
 		};
 
 		LedPipelineRunningState state = LedPipelineRunningState::NOT_STARTED;
@@ -231,41 +269,76 @@ namespace ledpipelines {
 			// once yields fully independent trees rather than moving a fixed set of stages out on the first build.
 			std::vector<std::unique_ptr<StageBuilder>> _childBuilders;
 
+			Builder() = default;
+			Builder(Builder&&) = default;
+			Builder& operator=(Builder&&) = default;
+
+			// Deep copy: clone each child builder rather than shallow-copying the (move-only) unique_ptrs, so copying a
+			// pipeline builder yields an independent set of child sub-trees. This makes a pipeline builder reusable the
+			// same way a wrapper-chain builder is.
+			Builder(const Builder& other) : LedPipelineStage::Builder<T, ConcreteBuilder>(other) {
+				_childBuilders.reserve(other._childBuilders.size());
+				for (const auto& child : other._childBuilders) {
+					_childBuilders.push_back(child ? child->clone() : nullptr);
+				}
+			}
+
+			Builder& operator=(const Builder& other) {
+				LedPipelineStage::Builder<T, ConcreteBuilder>::operator=(other);
+				_childBuilders.clear();
+				_childBuilders.reserve(other._childBuilders.size());
+				for (const auto& child : other._childBuilders) {
+					_childBuilders.push_back(child ? child->clone() : nullptr);
+				}
+				return *this;
+			}
+
 			// Add a child stage builder. Accepts any builder (a bare Effect::Builder(...), a wrap()-chain builder, or a
-			// nested pipeline builder). The child is moved onto the heap and owned via the type-erased StageBuilder
-			// base; it is built fresh each time this pipeline's create() runs.
+			// nested pipeline builder), owned via the type-erased StageBuilder base and built fresh each time this
+			// pipeline's build() runs.
 			//
-			// Ref-qualified like the other fluent setters: on an lvalue pipeline builder the call chains in place
-			// (returns ConcreteBuilder&); on an rvalue temporary it moves the pipeline builder out by value (returns
-			// ConcreteBuilder) so a chain ending in addStage can be captured without std::move. Each also accepts the
-			// child by lvalue or rvalue, since wrap() results are often stored in locals first.
+			// Symmetric with wrap(), on BOTH the pipeline builder and the child, so a builder stays a reusable recipe:
+			//   - the CHILD is COPIED when passed as an lvalue (a named builder, reusable afterwards) and MOVED when
+			//     passed as an rvalue (a temporary / std::move) - so `p.addStage(x); q.addStage(x);` gives p and q
+			//     independent children and leaves x intact.
+			//   - `*this` (the pipeline builder) chains in place on an lvalue (returns ConcreteBuilder&) and moves out by
+			//     value on an rvalue temporary (returns ConcreteBuilder), so a chain ending in addStage needs no
+			//     std::move to be captured.
 			template <typename U, typename V>
 			ConcreteBuilder& addStage(LedPipelineStage::Builder<U, V>& builder) & {
-				adoptChild<U, V>(builder);
+				adoptChildCopy<U, V>(builder);
 				return static_cast<ConcreteBuilder&>(*this);
 			}
 
 			template <typename U, typename V>
 			ConcreteBuilder& addStage(LedPipelineStage::Builder<U, V>&& builder) & {
-				return addStage(builder);
+				adoptChildMove<U, V>(builder);
+				return static_cast<ConcreteBuilder&>(*this);
 			}
 
 			template <typename U, typename V>
 			ConcreteBuilder addStage(LedPipelineStage::Builder<U, V>& builder) && {
-				adoptChild<U, V>(builder);
+				adoptChildCopy<U, V>(builder);
 				return std::move(static_cast<ConcreteBuilder&>(*this));
 			}
 
 			template <typename U, typename V>
 			ConcreteBuilder addStage(LedPipelineStage::Builder<U, V>&& builder) && {
-				return std::move(*this).addStage(builder);
+				adoptChildMove<U, V>(builder);
+				return std::move(static_cast<ConcreteBuilder&>(*this));
 			}
 
 		private:
-			// Move a child builder onto the heap and adopt it (type-erased). Shared by the ref-qualified overloads.
-			// V is the concrete leaf builder type; builder is typed as the base, so cast down before moving.
+			// Adopt a child by COPYING it (deep clone), leaving the caller's builder intact for reuse. Used for lvalue
+			// children. V is the concrete leaf builder type; builder is typed as the base, so cast down before copying.
 			template <typename U, typename V>
-			void adoptChild(LedPipelineStage::Builder<U, V>& builder) {
+			void adoptChildCopy(LedPipelineStage::Builder<U, V>& builder) {
+				_childBuilders.push_back(std::unique_ptr<StageBuilder>(new V(static_cast<const V&>(builder))));
+			}
+
+			// Adopt a child by MOVING it (no copy). Used for rvalue children (temporaries / std::move).
+			template <typename U, typename V>
+			void adoptChildMove(LedPipelineStage::Builder<U, V>& builder) {
 				_childBuilders.push_back(std::unique_ptr<StageBuilder>(new V(std::move(static_cast<V&>(builder)))));
 			}
 		};

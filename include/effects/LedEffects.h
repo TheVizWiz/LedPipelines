@@ -14,6 +14,7 @@
 #include "Path.h"
 #include "Repeat.h"
 #include "ResetBlocker.h"
+#include "Shared.h"
 #include "Shift.h"
 #include "TimeBox.h"
 #include "Toggle.h"

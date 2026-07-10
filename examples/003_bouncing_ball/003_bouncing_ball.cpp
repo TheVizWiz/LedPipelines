@@ -114,11 +114,8 @@ void setup() {
 	 */
 
 	SolidSegment::Builder(CRGB::White, 10)
-		.wrap(
-			Moving::Builder(1000).startPosition(0).endPosition(80).smoothingFunction(
-				SmoothingFunction::INVERSE_QUADRATIC
-			)
-		);
+		.wrap(Moving::Builder(1000).startPosition(0).endPosition(80).smoothingFunction(
+			SmoothingFunction::INVERSE_QUADRATIC));
 
 	/**
 	 * We want this motion to repeat, but the other way, to simulate the ball bouncing back down from its peak.
@@ -128,18 +125,13 @@ void setup() {
 	 */
 
 	SolidSegment::Builder(CRGB::White, 10)
-		.wrap(
-			Moving::Builder(1000).startPosition(0).endPosition(80).smoothingFunction(
-				SmoothingFunction::INVERSE_QUADRATIC
-			)
-		)
-		.wrap(
-			Moving::Builder(1000)
-				.startPosition(0)
-				.endPosition(-80)
-				.smoothingFunction(SmoothingFunction::QUADRATIC)
-				.delayMs(1000)
-		)
+		.wrap(Moving::Builder(1000).startPosition(0).endPosition(80).smoothingFunction(
+			SmoothingFunction::INVERSE_QUADRATIC))
+		.wrap(Moving::Builder(1000)
+				  .startPosition(0)
+				  .endPosition(-80)
+				  .smoothingFunction(SmoothingFunction::QUADRATIC)
+				  .delayMs(1000))
 		.timebox(2000)
 		.loop();
 
@@ -167,18 +159,13 @@ void setup() {
 	 * Now, we can put everything together by adding the ball where it has to go:
 	 */
 
-	ball.wrap(
-			Moving::Builder(1000).startPosition(0).endPosition(80).smoothingFunction(
-				SmoothingFunction::INVERSE_QUADRATIC
-			)
-	)
-		.wrap(
-			Moving::Builder(1000)
-				.startPosition(0)
-				.endPosition(-80)
-				.smoothingFunction(SmoothingFunction::QUADRATIC)
-				.delayMs(1000)
-		)
+	ball.wrap(Moving::Builder(1000).startPosition(0).endPosition(80).smoothingFunction(
+				  SmoothingFunction::INVERSE_QUADRATIC))
+		.wrap(Moving::Builder(1000)
+				  .startPosition(0)
+				  .endPosition(-80)
+				  .smoothingFunction(SmoothingFunction::QUADRATIC)
+				  .delayMs(1000))
 		.timebox(2000)
 		.loop();
 
@@ -203,7 +190,6 @@ void setup() {
 
 
 	pipeline = ball.block().wrap(upstroke).wrap(downstroke).timebox(2000).loop().build();
-
 }
 
 

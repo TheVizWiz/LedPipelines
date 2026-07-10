@@ -1,53 +1,10 @@
+// Tests for the base / utility machinery (include/BaseLedPipeline.h, LedPipelineStage, the builder factory, etc.). This
+// is the test_base_utils PlatformIO suite: one binary, one main() at the bottom, one .cpp per area added alongside this
+// one. Shared fixtures live in test/utils/test_helpers.h.
+
 #include <gtest/gtest.h>
 
-#include "LedPipelines.h"
-
-using namespace ledpipelines;
-using namespace ledpipelines::effects;
-
-namespace {
-	// Backing buffer for a single fake strip. Registered with the stub FastLED controller so TemporaryLedData::size
-	// is non-zero once initialize() runs.
-	constexpr int kLedCount = 10;
-	CRGB gLeds[kLedCount];
-
-	// Register one strip and initialize LedPipelines' static LED bookkeeping. Resets the fake controller first so
-	// strips don't accumulate across tests.
-	void setUpLeds() {
-		FastLED.reset();
-		FastLED.addLeds(gLeds, kLedCount);
-		TemporaryLedData::initialize();
-	}
-
-	// A leaf effect that tracks how many instances currently exist (liveCount) and how many have ever been
-	// constructed (totalCreated). Used to observe, from outside, whether the builder rebuilds a fresh inner effect on
-	// each build() and whether wrappers correctly own/delete their inner. calculate() is a no-op.
-	struct SpyEffect : LedPipelineStage {
-		static int liveCount;
-		static int totalCreated;
-
-		static void resetCounters() {
-			liveCount = 0;
-			totalCreated = 0;
-		}
-
-		SpyEffect() {
-			liveCount++;
-			totalCreated++;
-		}
-
-		~SpyEffect() override { liveCount--; }
-
-		void calculate(float, TemporaryLedData &) override {}
-
-		struct Builder : LedPipelineStage::Builder<SpyEffect, Builder> {
-			SpyEffect *build() override { return new SpyEffect(); }
-		};
-	};
-
-	int SpyEffect::liveCount = 0;
-	int SpyEffect::totalCreated = 0;
-}
+#include "../utils/test_helpers.h"
 
 // Smallest possible end-to-end check: the stubs compile/link and a builder produces a stage.
 TEST(BuilderSmokeTest, SolidBuilderProducesNonNullStage) {
@@ -157,6 +114,81 @@ TEST(BuilderFactoryTest, SharedPrefixTwoPipelines) {
 	EXPECT_EQ(SpyEffect::liveCount, 2);  // only the first pipeline's single stage freed
 
 	delete twoPipeline;
+	EXPECT_EQ(SpyEffect::liveCount, 0);
+}
+
+// A plain builder is a reusable recipe: wrapping the SAME lvalue builder into two different parents copies it (deep
+// clone), so each use produces its own independent sub-tree and the original stays valid. This is the ergonomic the
+// copyable-builder change enables - no std::move, no crash, no shared state.
+TEST(BuilderReuseTest, WrappingAnLvalueBuilderTwiceGivesIndependentTrees) {
+	setUpLeds();
+	SpyEffect::resetCounters();
+
+	// `inner` is a reusable chain: a spy wrapped in a Loop. Nothing built yet.
+	auto inner = SpyEffect::Builder().wrap(Loop::Builder());
+
+	// Wrap the SAME `inner` into two different parents. Each wrap() copies `inner` (lvalue overload), so `inner` stays
+	// usable for the second wrap.
+	auto up = inner.wrap(Loop::Builder());
+	auto down = inner.wrap(Loop::Builder());
+
+	// Nothing is built during wrapping, so no spies exist yet.
+	EXPECT_EQ(SpyEffect::totalCreated, 0);
+
+	auto *upTree = up.build();
+	auto *downTree = down.build();
+	ASSERT_NE(upTree, nullptr);
+	ASSERT_NE(downTree, nullptr);
+	EXPECT_NE(upTree, downTree);
+
+	// Two fully independent trees: each built its own spy. If wrap() had shared/moved the inner, the second tree would
+	// be empty (or the two would share one spy).
+	EXPECT_EQ(SpyEffect::totalCreated, 2);
+	EXPECT_EQ(SpyEffect::liveCount, 2);
+
+	// And the original `inner` is still intact - build it a third time for its own independent spy.
+	auto *thirdTree = inner.build();
+	EXPECT_EQ(SpyEffect::totalCreated, 3);
+	EXPECT_EQ(SpyEffect::liveCount, 3);
+
+	// Each tree owns exactly its own spy; deleting frees one at a time, no double-free.
+	delete upTree;
+	EXPECT_EQ(SpyEffect::liveCount, 2);
+	delete downTree;
+	EXPECT_EQ(SpyEffect::liveCount, 1);
+	delete thirdTree;
+	EXPECT_EQ(SpyEffect::liveCount, 0);
+}
+
+// addStage() is symmetric with wrap(): adding the SAME lvalue builder as a child of two different pipelines copies it,
+// so each pipeline gets its own independent child and the original builder stays reusable.
+TEST(BuilderReuseTest, AddingAnLvalueBuilderToTwoPipelinesGivesIndependentChildren) {
+	setUpLeds();
+	SpyEffect::resetCounters();
+
+	// A reusable child recipe. Nothing built yet.
+	auto child = SpyEffect::Builder().wrap(Loop::Builder());
+
+	// Add the SAME child to two separate pipelines. Each addStage copies it (lvalue), leaving `child` intact.
+	auto *p = ParallelLedPipeline::Builder().addStage(child).build();
+	auto *q = ParallelLedPipeline::Builder().addStage(child).build();
+	ASSERT_NE(p, nullptr);
+	ASSERT_NE(q, nullptr);
+
+	// Two independent children built - if addStage had moved `child`, q would be empty and totalCreated would be 1.
+	EXPECT_EQ(SpyEffect::totalCreated, 2);
+	EXPECT_EQ(SpyEffect::liveCount, 2);
+
+	// `child` is still intact: build it once more standalone for a third independent spy.
+	auto *r = child.build();
+	EXPECT_EQ(SpyEffect::totalCreated, 3);
+	EXPECT_EQ(SpyEffect::liveCount, 3);
+
+	delete p;
+	EXPECT_EQ(SpyEffect::liveCount, 2);
+	delete q;
+	EXPECT_EQ(SpyEffect::liveCount, 1);
+	delete r;
 	EXPECT_EQ(SpyEffect::liveCount, 0);
 }
 
