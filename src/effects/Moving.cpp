@@ -43,6 +43,13 @@ void Moving::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->stage->state == LedPipelineRunningState::DONE) {
 		this->state = LedPipelineRunningState::DONE;
 	}
+
+	// By default Moving holds at endPosition and defers termination to the inner (see the comment above). With
+	// terminateOnComplete set, it instead finishes as soon as its own move completes - the inner just rendered at
+	// endPosition on this frame, so a Series can advance to the next stage the moment the move lands.
+	if (this->terminateOnComplete && this->elapsedPercentage >= 1) {
+		this->state = LedPipelineRunningState::DONE;
+	}
 }
 
 void Moving::reset() {

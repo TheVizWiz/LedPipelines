@@ -48,14 +48,14 @@ namespace ledpipelines::effects {
 			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
 			RandomFadeIn* build() override {
-				return new RandomFadeIn(
+				return applyTiming(new RandomFadeIn(
 					buildInner(),
 					_minRuntimeMs,
 					_maxRuntimeMs,
 					_samplingFunction,
 					_smoothingFunction,
 					_blendingMode
-				);
+				));
 			};
 		};
 

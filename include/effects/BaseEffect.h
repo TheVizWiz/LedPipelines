@@ -85,6 +85,18 @@ namespace ledpipelines::effects {
 		unsigned long delayMs = 0;
 
 		/**
+		 * When true, the effect reports DONE the moment its OWN timer completes (elapsedMs() >= runtimeMs), instead of
+		 * whatever its default termination policy is. This only changes behavior for effects that otherwise defer their
+		 * termination to their wrapped inner - FadeIn and Moving hold (at full opacity / at endPosition) and pass through
+		 * until the inner finishes; setting this makes them end as soon as their own ramp/move completes. Effects that
+		 * already terminate on their own timer (FadeOut, Wait, TimeBox) are unaffected: the flag agrees with what they
+		 * already do. This is what lets a Series sequence e.g. a random FadeIn straight into a random FadeOut without
+		 * having to know the fade-in's (randomly sampled) duration ahead of time. Defaults to false, so every existing
+		 * effect is unchanged.
+		 */
+		bool terminateOnComplete = false;
+
+		/**
 		 * Milliseconds elapsed on the effect's OWN timeline: real time since it started, minus the lead-in delay,
 		 * clamped to 0 while still within the delay. Every timed effect drives its progress off this rather than
 		 * (millis() - startTimeMs), so honoring delayMs is centralized here instead of repeated per effect. Requires
@@ -111,6 +123,10 @@ namespace ledpipelines::effects {
 			// effect's builder, so any of them - fades, Moving, TimeBox, Wait - can be delayed with .delayMs(...).
 			BUILDER_FIELD_CRTP_DEFAULT(unsigned long, delayMs, 0);
 
+			// End as soon as this effect's own timer completes, rather than deferring to the inner (see
+			// TimedEffect::terminateOnComplete). Inherited by every timed effect's builder.
+			BUILDER_FIELD_CRTP_DEFAULT(bool, terminateOnComplete, false);
+
 			explicit Builder(const unsigned long runtimeMs) : _runtimeMs(runtimeMs) {}
 
 		protected:
@@ -121,6 +137,7 @@ namespace ledpipelines::effects {
 			template <typename Product>
 			Product* applyTiming(Product* product) {
 				product->delayMs = this->_delayMs;
+				product->terminateOnComplete = this->_terminateOnComplete;
 				return product;
 			}
 		};
@@ -155,6 +172,10 @@ namespace ledpipelines::effects {
 			// TimedEffect::Builder::delayMs so random timed effects can be delayed identically.
 			BUILDER_FIELD_CRTP_DEFAULT(unsigned long, delayMs, 0);
 
+			// End as soon as this effect's own (sampled) timer completes (see TimedEffect::terminateOnComplete). Mirrors
+			// TimedEffect::Builder::terminateOnComplete so random timed effects can opt in identically.
+			BUILDER_FIELD_CRTP_DEFAULT(bool, terminateOnComplete, false);
+
 			explicit Builder(const unsigned long maxRuntimeMs) : _maxRuntimeMs(maxRuntimeMs) {}
 
 		protected:
@@ -162,6 +183,7 @@ namespace ledpipelines::effects {
 			template <typename Product>
 			Product* applyTiming(Product* product) {
 				product->delayMs = this->_delayMs;
+				product->terminateOnComplete = this->_terminateOnComplete;
 				return product;
 			}
 		};

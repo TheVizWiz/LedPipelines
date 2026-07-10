@@ -58,8 +58,14 @@ struct FakeSerial {
 
 extern FakeSerial Serial;
 
-// Timing: tests don't advance a real clock, so these return a monotonic-ish counter defined in the stub .cpp. Good
-// enough for construction/ownership tests, which don't depend on elapsed time.
+// Timing: tests don't advance a real clock, so these return a monotonic-ish counter defined in the stub .cpp. delay()
+// advances that counter, so a test can step time forward deterministically. For tests that assert on elapsed time,
+// resetTestClock() zeroes the counter (call at the start of the test so it doesn't inherit time from earlier tests)
+// and advanceTestClock() steps it forward without the semantics of a real sleep.
 unsigned long millis();
 unsigned long micros();
 void delay(unsigned long);
+
+// Test-only clock control (defined in mocks_impl.cpp). Not part of the real Arduino API.
+void resetTestClock();
+void advanceTestClock(unsigned long ms);

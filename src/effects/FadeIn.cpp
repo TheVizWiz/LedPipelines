@@ -30,9 +30,17 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	unsigned long timeFadingMs = elapsedMs();
 
 	if (timeFadingMs >= runtimeMs) {
-		// Ramp complete: full opacity, so leave the inner effect's opacity untouched (multiplier == 1). We do NOT go
-		// DONE here - FadeIn is a pass-through once faded in, and terminating would hide the wrapped content.
+		// Ramp complete: full opacity, so leave the inner effect's opacity untouched (multiplier == 1). By default we do
+		// NOT go DONE here - FadeIn is a pass-through once faded in, and terminating would hide the wrapped content.
 		elapsedPercentage = 1;
+
+		// terminateOnComplete opts out of that pass-through: finish the instant the ramp completes rather than waiting
+		// for the inner. This is what lets a Series advance to the next stage (e.g. a FadeOut) the moment the fade-in
+		// ends. The inner already rendered above at full opacity, so this frame still shows fully faded-in content.
+		if (this->terminateOnComplete) {
+			this->state = LedPipelineRunningState::DONE;
+			return;
+		}
 	} else {
 		elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
 		float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
@@ -86,6 +94,13 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (timeFadingMs >= runtimeMs) {
 		LPLogger::log("done running random fade in effect.");
 		elapsedPercentage = 1;
+
+		// See FadeIn::calculate: terminateOnComplete ends the fade the instant its (randomly sampled) ramp completes,
+		// rather than passing through until the inner finishes - letting a Series flow straight into the next stage.
+		if (this->terminateOnComplete) {
+			this->state = LedPipelineRunningState::DONE;
+			return;
+		}
 	} else {
 		elapsedPercentage = static_cast<float>(timeFadingMs) / static_cast<float>(runtimeMs);
 		float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
