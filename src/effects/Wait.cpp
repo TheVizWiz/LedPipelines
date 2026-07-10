@@ -36,7 +36,7 @@ void Wait::reset() {
 }
 
 
-RandomWaitEffect::RandomWaitEffect(
+RandomWait::RandomWait(
 	unsigned long minRuntimeMs,
 	unsigned long maxRuntimeMs,
 	SamplingFunction samplingFunction,
@@ -44,7 +44,7 @@ RandomWaitEffect::RandomWaitEffect(
 )
 	: LedPipelineStage(blendingMode), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
 
-void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
+void RandomWait::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) {
 		return;
 	}
@@ -69,7 +69,7 @@ void RandomWaitEffect::calculate(float startIndex, TemporaryLedData& tempData) {
 	this->state = LedPipelineRunningState::RUNNING;
 }
 
-void RandomWaitEffect::reset() {
+void RandomWait::reset() {
 	LedPipelineStage::reset();
 	RandomTimedEffect::resetTimer();
 }

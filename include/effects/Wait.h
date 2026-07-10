@@ -23,23 +23,23 @@ namespace ledpipelines::effects {
 	};
 
 
-	struct RandomWaitEffect : public LedPipelineStage, RandomTimedEffect {
+	struct RandomWait : public LedPipelineStage, RandomTimedEffect {
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		void reset() override;
 
-		struct Builder : LedPipelineStage::Builder<RandomWaitEffect, Builder>, RandomTimedEffect::Builder<Builder> {
+		struct Builder : LedPipelineStage::Builder<RandomWait, Builder>, RandomTimedEffect::Builder<Builder> {
 			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
-			RandomWaitEffect* build() override {
+			RandomWait* build() override {
 				return applyTiming(
-					new RandomWaitEffect(_minRuntimeMs, _maxRuntimeMs, _samplingFunction, _blendingMode)
+					new RandomWait(_minRuntimeMs, _maxRuntimeMs, _samplingFunction, _blendingMode)
 				);
 			}
 		};
 
 	private:
-		RandomWaitEffect(
+		RandomWait(
 			unsigned long minRuntimeMs,
 			unsigned long maxRuntimeMs,
 			SamplingFunction samplingFunction,

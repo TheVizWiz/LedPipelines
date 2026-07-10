@@ -20,23 +20,23 @@ namespace ledpipelines::effects {
 		TimeBox(LedPipelineStage* stage, unsigned long runtimeMs);
 	};
 
-	struct RandomTimeBoxedEffect : public WrapperEffect, RandomTimedEffect {
+	struct RandomTimeBox : public WrapperEffect, RandomTimedEffect {
 		void reset() override;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
-		struct Builder : WrapperEffect::Builder<RandomTimeBoxedEffect, Builder>, RandomTimedEffect::Builder<Builder> {
+		struct Builder : WrapperEffect::Builder<RandomTimeBox, Builder>, RandomTimedEffect::Builder<Builder> {
 			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
 
-			RandomTimeBoxedEffect* build() override {
+			RandomTimeBox* build() override {
 				return applyTiming(
-					new RandomTimeBoxedEffect(buildInner(), _minRuntimeMs, _maxRuntimeMs, _samplingFunction)
+					new RandomTimeBox(buildInner(), _minRuntimeMs, _maxRuntimeMs, _samplingFunction)
 				);
 			}
 		};
 
 	protected:
-		RandomTimeBoxedEffect(
+		RandomTimeBox(
 			LedPipelineStage* stage,
 			unsigned long minRuntimeMs,
 			unsigned long maxRuntimeMs,

@@ -42,7 +42,7 @@ void TimeBox::reset() {
 	TimedEffect::resetTimer();
 }
 
-RandomTimeBoxedEffect::RandomTimeBoxedEffect(
+RandomTimeBox::RandomTimeBox(
 	LedPipelineStage* stage,
 	unsigned long minRuntimeMs,
 	unsigned long maxRuntimeMs,
@@ -51,7 +51,7 @@ RandomTimeBoxedEffect::RandomTimeBoxedEffect(
 	: WrapperEffect(stage), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
 
 
-void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData& tempData) {
+void RandomTimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
@@ -80,7 +80,7 @@ void RandomTimeBoxedEffect::calculate(float startIndex, TemporaryLedData& tempDa
 }
 
 
-void RandomTimeBoxedEffect::reset() {
+void RandomTimeBox::reset() {
 	WrapperEffect::reset();
 	RandomTimedEffect::resetTimer();
 }

@@ -37,8 +37,10 @@ framework = arduino
 lib_deps =
     thevizwiz/LedPipelines
 
-; LedPipelines requires C++20 (gnu++2a). The Arduino framework defaults to
-; gnu++11, so unset it and opt into the newer standard.
+; LedPipelines needs C++17 (nested-namespace syntax, inline static members). The Arduino-ESP32 framework defaults to
+; gnu++11 and its own headers expect the GNU dialect, so unset the old standard and opt into gnu++2a - the setting the
+; library is built and tested with on ESP32. (The library uses no GNU extensions of its own; the gnu++ dialect here is
+; for the framework, not LedPipelines.)
 build_unflags =
     -std=gnu++11
 build_flags =
@@ -99,7 +101,7 @@ them manually.
 | `HSVGradient`  | `HSVGradient::Builder(startPos, endPos)` | Writes a gradient between two positions, interpolating in **HSV** — the blend travels around the color wheel (red→blue passes through magenta or green). `.startGradient(a, b)` sets the look; add a runtime + `.endGradient(a, b)` to morph one gradient into another over time. Hue is in degrees and wraps at 360 (so `0..720` = two rainbows). Corners are `FHSV`; see [HSV colors](#hsv-colors). |
 | `RGBGradient`  | `RGBGradient::Builder(startPos, endPos)` | Same as `HSVGradient`, but interpolates each **RGB channel** directly — a straight crossfade between the two colors through their RGB midpoint (red→blue passes through dim purple, not the wheel). Corners are `CRGB`. Use this for a plain smooth blend; use `HSVGradient` when you want the intermediate hues.                                                                                     |
 | `Mask`         | `Mask::Builder(base, mask)`              | Uses one stage's brightness to gate another — `base` shows through only where `mask` is lit.                                                                                                                                                                                                                                                                                                          |
-| `Spawner`      | `Spawner::Builder(factory)`              | Periodically spawns child effects from a factory (`[]{ return SomeEffect::Builder(...).build(); }`). Great for sparkles/particles. `RandomSpawner` / timed variants vary the interval.                                                                                                                                                                                                                |
+| `Spawner`      | `Spawner::Builder(factory)`              | Periodically spawns child effects from a factory (`[]{ return SomeEffect::Builder(...).build(); }`). Great for sparkles/particles. `TimedSpawner` spawns on a fixed interval; `RandomTimedSpawner` varies it.                                                                                                                                                                                                                |
 
 ### Wrappers (transform an inner stage — attach with `.wrap(...)`)
 
@@ -107,8 +109,8 @@ them manually.
 
 | Effect             | Builder                               | What it does                                                                                                           |
 |--------------------|---------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `Shift`            | `Shift::Builder(offset)`              | Statically shifts the inner by a fixed number of pixels.                                                               |
-| `Moving`           | `Moving::Builder(runtimeMs)`          | Animates the inner from `.startPosition(x)` to `.endPosition(y)` over `runtimeMs`, easing with `.smoothingFunction(...)`. After the move completes it **holds** the inner at `endPosition` and keeps rendering it — `Moving` finishes only when the inner finishes, not when the timer runs out (wrap a `TimeBox` if the inner never ends on its own). |
+| `Shift`            | `Shift::Builder(offset)`              | Statically shifts the inner by a fixed number of pixels. `RandomShift::Builder(maxOffset)` samples the offset once from `[minOffset, maxOffset]` instead (re-sampling on each run). |
+| `Moving`           | `Moving::Builder(runtimeMs)`          | Animates the inner from `.startPosition(x)` to `.endPosition(y)` over `runtimeMs`, easing with `.smoothingFunction(...)`. After the move completes it **holds** the inner at `endPosition` and keeps rendering it — `Moving` finishes only when the inner finishes, not when the timer runs out (wrap a `TimeBox`, or use `.terminateOnComplete(true)`, if you want it to end when the move lands). |
 | `AbsolutePosition` | `AbsolutePosition::Builder(position)` | Pins the inner to an absolute strip position, ignoring where its parent placed it.                                     |
 | `Repeat`           | `Repeat::Builder(repeatDistance)`     | Tiles copies of the inner every `repeatDistance` pixels. `.numRepeats(n)` (0 = fill the strip).                        |
 | `Flip`             | `Flip::Builder(maxIndex)`             | Mirrors the inner's *position* within `[minIndex, maxIndex]` (a spatial reversal — left↔right, not a reverse in time). |
@@ -118,7 +120,7 @@ them manually.
 
 | Effect            | Builder                                                          | What it does                                                                                                                               |
 |-------------------|------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| `FadeIn`          | `FadeIn::Builder(runtimeMs)`                                     | Ramps the inner's opacity 0→full over `runtimeMs`, then holds. `RandomFadeIn` randomizes the duration.                                     |
+| `FadeIn`          | `FadeIn::Builder(runtimeMs)`                                     | Ramps the inner's opacity 0→full over `runtimeMs`, then holds (add `.terminateOnComplete(true)` to end at the ramp instead). `RandomFadeIn` randomizes the duration. |
 | `FadeOut`         | `FadeOut::Builder(runtimeMs)`                                    | Ramps the inner's opacity full→0 over `runtimeMs`. Combine with `.delayMs(t)` to hold, then fade. `RandomFadeOut` randomizes the duration. |
 | `OpacityGradient` | `OpacityGradient::Builder(endIndex)` or `(startIndex, endIndex)` | Applies a spatial opacity ramp across the inner. `.smoothingFunction(...)`.                                                                |
 | `OpacityScale`    | `OpacityScale::Builder(maxOpacity)`                              | Scales the inner's opacity down to a ceiling.                                                                                              |
@@ -127,15 +129,19 @@ them manually.
 
 | Effect         | Builder                       | What it does                                                                                                                                                                               |
 |----------------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `TimeBox`      | `TimeBox::Builder(runtimeMs)` | Runs the inner for `runtimeMs` then reports DONE. The building block of timed sequences. `RandomTimeBoxedEffect` randomizes it.                                                            |
-| `Wait`         | `Wait::Builder(runtimeMs)`    | A source that does nothing for `runtimeMs` then finishes — a pause in a series. `RandomWaitEffect` randomizes it.                                                                          |
+| `TimeBox`      | `TimeBox::Builder(runtimeMs)` | Runs the inner for `runtimeMs` then reports DONE. The building block of timed sequences. `RandomTimeBox` randomizes it.                                                                    |
+| `Wait`         | `Wait::Builder(runtimeMs)`    | A source that does nothing for `runtimeMs` then finishes — a pause in a series. `RandomWait` randomizes it.                                                                                |
 | `Loop`         | `Loop::Builder()`             | Restarts the inner when it finishes. `.numLoops(n)` (0 = forever).                                                                                                                         |
 | `Toggle`       | `Toggle::Builder()`           | Gates the inner on/off at runtime via `.activate()` / `.deactivate()` — useful for reactive/interactive control.                                                                           |
 | `ResetBlocker` | `ResetBlocker::Builder()`     | On `reset()`, only propagates to the inner if the inner is already DONE; otherwise lets it finish its current pass. Lets a sub-effect complete before a surrounding `Loop` can restart it. |
 | `Shared`       | `Shared::Builder(sharedPtr)`  | Wraps an already-built stage held via `std::shared_ptr` so the **same instance** can appear in several places in the tree (lifetime managed by the refcount). Unlike every other wrapper, it takes a built stage, not a builder — see [Sharing a sub-effect](#sharing-a-sub-effect). |
 
 Most timed effects share `.delayMs(t)` (a lead-in delay before their own clock starts) and honor
-`.smoothingFunction(...)` where an ease makes sense.
+`.smoothingFunction(...)` where an ease makes sense. They also share `.terminateOnComplete(true)`: effects that
+normally hold and defer their DONE to the inner (`FadeIn`, `Moving`) will instead finish the instant their own
+ramp/move completes. This lets a `SeriesLedPipeline` flow from one such stage straight into the next without knowing
+its (possibly random) duration — e.g. a random `FadeIn` into a random `FadeOut`. On effects that already end on their
+own timer (`FadeOut`, `Wait`, `TimeBox`) the flag changes nothing.
 
 ### Convenience methods
 
@@ -346,8 +352,9 @@ A few things are worth knowing before you build something large:
 - **Memory scales with LED count.** The render buffer is padded on both sides for off-screen movement, so it is roughly
   `3 × ledCount` slots wide (each slot holding a color plus an opacity byte). On memory-tight boards, keep an eye on
   total LED count.
-- **Requires C++20 (`gnu++2a`).** The library uses modern C++ features; you must compile it (and your sketch) with
-  `-std=gnu++2a`. See the [installation](#installation-platformio) `build_flags` above.
+- **Requires C++17.** The library uses C++17 features (nested-namespace syntax, inline static members) but no GNU
+  extensions, so any C++17 compiler works. On the ESP32 Arduino framework, build with `-std=gnu++2a` (the framework
+  headers expect the GNU dialect); see the [installation](#installation-platformio) `build_flags` above.
 - **Nothing persists between frames.** Every frame is recomputed from a cleared buffer (see
   [the render model](#the-render-model-important)). Any effect that depends on time or on prior state must *wrap* the
   content it acts on — it cannot reach back to a previous frame.
