@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math.h"
+#include <cmath>  // tanh (used below); <cmath> rather than "math.h" for portability
 
 namespace ledpipelines {
 	class SamplingFunction {

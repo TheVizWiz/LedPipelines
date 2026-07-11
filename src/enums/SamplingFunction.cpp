@@ -1,6 +1,8 @@
 #include "enums/SamplingFunction.h"
 #include "LedPipelinesLogger.h"
 
+#include <cmath>  // tanh
+
 using namespace ledpipelines;
 
 SamplingFunction& SamplingFunction::operator=(SamplingFunction& other) {

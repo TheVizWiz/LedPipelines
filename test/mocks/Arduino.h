@@ -31,12 +31,16 @@ public:
 	String(const char *s) : std::string(s) {}
 	String(const std::string &s) : std::string(s) {}
 	String(char c) : std::string(1, c) {}
-	String(int v) : std::string(std::to_string(v)) {}
-	String(unsigned int v) : std::string(std::to_string(v)) {}
-	String(long v) : std::string(std::to_string(v)) {}
-	String(unsigned long v) : std::string(std::to_string(v)) {}
-	String(float v) : std::string(std::to_string(v)) {}
-	String(double v) : std::string(std::to_string(v)) {}
+
+	// One templated constructor for every arithmetic type instead of a fixed int/long/float/... overload set. The
+	// discrete overloads were ambiguous for types with no exact match - e.g. building a String from a uint8_t or a
+	// uint64_t, where several integer overloads convert equally well. This is platform-dependent: on macOS
+	// unsigned long is 64-bit so uint64_t matched String(unsigned long) exactly, but on Windows (LLP64, long is
+	// 32-bit) it does not, so the call became ambiguous. Routing every arithmetic value through std::to_string (which
+	// has its own unambiguous per-type overloads) sidesteps that. Promote small integers to a type std::to_string
+	// accepts (it has no uint8_t overload) via a common_type with int.
+	template <typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+	String(T v) : std::string(std::to_string(static_cast<typename std::common_type<T, int>::type>(v))) {}
 };
 
 // Arduino's String supports `str + number` (and mixed String/const char*) returning a String. std::string's operators

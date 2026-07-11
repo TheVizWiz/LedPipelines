@@ -1,6 +1,7 @@
 #include "TemporaryLedData.h"
 #include "LedPipelineUtils.h"
 
+#include <cmath>  // floorf
 #include <vector>
 
 using namespace ledpipelines;

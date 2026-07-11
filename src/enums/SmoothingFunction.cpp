@@ -3,6 +3,13 @@
 
 using namespace ledpipelines;
 
+// M_PI is not standard C++ - it's a POSIX/glibc extension. macOS and Linux expose it from <cmath>, but MinGW (Windows)
+// only defines it when _USE_MATH_DEFINES is set before <cmath> is first included, which is fragile to rely on. Define
+// our own pi so the smoothing math is portable everywhere without depending on that.
+namespace {
+	constexpr float kPi = 3.14159265358979323846f;
+}
+
 
 float SmoothingFunction::operator()(float amount, float oldMin, float oldMax, float newMin, float newMax) const {
 	/**
@@ -31,14 +38,14 @@ float SmoothingFunction::operator()(float amount, float oldMin, float oldMax, fl
 	switch (this->value) {
 	case SMOOTH_LINEAR:
 		// f(x) = 0.5 * cos(pi * x + pi) + 0.5
-		percentage = 0.5f * cosf(M_PI * percentage + M_PI) + 0.5f;
+		percentage = 0.5f * cosf(kPi * percentage + kPi) + 0.5f;
 		break;
 	case LINEAR:
 		// f(x) = x, so we don't do anything.
 		break;
 	case SINE:
 		// f(x) = sin(pi * x / 2)
-		percentage = sinf(M_PI * percentage / 2);
+		percentage = sinf(kPi * percentage / 2);
 		break;
 	case QUADRATIC:
 		// f(x) = x^2

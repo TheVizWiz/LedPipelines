@@ -1,5 +1,7 @@
 #include "effects/OpacityGradient.h"
 
+#include <cmath>  // floor
+
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
