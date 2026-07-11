@@ -1,6 +1,8 @@
 #pragma once
 
+#include <functional>  // std::function (the factory type)
 #include <utility>
+#include <vector>  // activeChildren
 
 #include "BaseEffect.h"
 

@@ -1,5 +1,7 @@
 #include "effects/Flip.h"
 
+#include <algorithm>  // std::min / std::max
+
 
 using namespace ledpipelines::effects;
 

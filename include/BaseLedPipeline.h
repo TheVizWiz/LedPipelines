@@ -1,11 +1,17 @@
 #pragma once
 
+// Standard headers used directly below (vector/shared_ptr members, std::remove_if, std::move, fixed-width ints).
+// Included explicitly rather than relied on transitively: macOS/ESP32 toolchains pull these in via other headers, but
+// stricter standard libraries (e.g. MinGW on Windows) do not, so omitting them breaks the Windows build.
+#include <algorithm>
+#include <cstdint>
+#include <memory>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
-#include "BaseLedPipeline.h"
 #include "FastLED.h"
 #include "LedPipelineUtils.h"
-#include "memory"
 
 // Fluent field + setter. The setter is ref-qualified so capturing a chain works without std::move:
 //   - called on an lvalue (a named builder):   returns Builder&,  chaining mutates in place (no copy)
@@ -248,7 +254,7 @@ namespace ledpipelines {
 		virtual ~LedPipelineStage();
 
 	private:
-		u_int64_t lastUpdateTimeMicros;
+		uint64_t lastUpdateTimeMicros;
 	};
 
 

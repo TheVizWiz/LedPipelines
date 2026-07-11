@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>   // std::unique_ptr (the inner-builder member)
+#include <utility>  // std::move
+
 #include "BaseLedPipeline.h"
 
 namespace ledpipelines::effects {

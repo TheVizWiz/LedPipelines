@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>  // std::move
+#include <vector>   // the segment list
 
 #include "BaseEffect.h"
 

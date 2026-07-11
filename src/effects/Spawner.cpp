@@ -1,5 +1,6 @@
 #include "effects/Spawner.h"
 
+#include <algorithm>  // std::remove_if - not guaranteed transitively on all standard libraries (e.g. MinGW)
 #include <utility>
 
 
