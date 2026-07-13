@@ -45,7 +45,7 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 		elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
 		float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-			tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
+			tempData.data[i].a = (tempData.data[i].a * opacityMultiplier) / 255;
 		}
 	}
 
@@ -83,7 +83,6 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
 		this->startTimeMs = millis();
 		this->sampleRuntime();
-		LPLogger::log(String("running random fade in effect for ") + this->runtimeMs + " ms");
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
@@ -92,7 +91,6 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	unsigned long timeFadingMs = elapsedMs();
 
 	if (timeFadingMs >= runtimeMs) {
-		LPLogger::log("done running random fade in effect.");
 		elapsedPercentage = 1;
 
 		// See FadeIn::calculate: terminateOnComplete ends the fade the instant its (randomly sampled) ramp completes,
@@ -105,7 +103,7 @@ void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 		elapsedPercentage = static_cast<float>(timeFadingMs) / static_cast<float>(runtimeMs);
 		float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-			tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
+			tempData.data[i].a = (tempData.data[i].a * opacityMultiplier) / 255;
 		}
 	}
 

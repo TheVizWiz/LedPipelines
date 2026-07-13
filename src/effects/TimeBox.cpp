@@ -1,5 +1,4 @@
 #include "effects/TimeBox.h"
-#include "LedPipelinesLogger.h"
 
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
@@ -11,7 +10,6 @@ void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
-		LPLogger::log(String("starting time boxed effect. Running for ") + runtimeMs + " ms");
 		this->state = LedPipelineRunningState::RUNNING;
 		startTimeMs = millis();
 	}
@@ -29,7 +27,6 @@ void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 	}
 
 	if (elapsedTime >= runtimeMs) {
-		LPLogger::log("done state time boxed effect.");
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 		return;
@@ -57,7 +54,6 @@ void RandomTimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
 		this->state = LedPipelineRunningState::RUNNING;
 		this->sampleRuntime();
-		LPLogger::log(String("running random time boxed effect for ") + this->runtimeMs + " ms");
 		startTimeMs = millis();
 	}
 
@@ -72,7 +68,6 @@ void RandomTimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 	}
 
 	if (elapsedTime >= runtimeMs) {
-		LPLogger::log("done running random time boxed effect.");
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 		return;

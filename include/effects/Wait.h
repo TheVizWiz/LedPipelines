@@ -2,7 +2,6 @@
 
 
 #include "BaseEffect.h"
-#include "LedPipelineUtils.h"
 
 namespace ledpipelines::effects {
 	struct Wait : public LedPipelineStage, TimedEffect {

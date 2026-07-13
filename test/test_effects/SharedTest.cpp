@@ -54,7 +54,7 @@ TEST(SharedTest, SharedInnerRendersInBothBranchesAndFreesOnce) {
 	SpyEffect::resetCounters();
 
 	// One 3-pixel white segment, shared into two parallel branches shifted to different positions.
-	auto dot = std::shared_ptr<LedPipelineStage>(SolidSegment::Builder(CRGB::White, 3).build());
+	auto dot = std::shared_ptr<LedPipelineStage>(SolidSegment::Builder(RGBA::White, 3).build());
 
 	auto *pipeline = ParallelLedPipeline::Builder()
 						 .addStage(Shared::Builder(dot).shift(0))

@@ -34,7 +34,7 @@ void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 		// Ramp complete: fully faded out. Zero the buffer and finish - fading content away to nothing is the point of
 		// FadeOut, so it terminates on its own timer rather than deferring to the inner effect.
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-			tempData.opacity[i] = 0;
+			tempData.data[i].a = 0;
 		}
 		elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
@@ -44,7 +44,7 @@ void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
 	float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, UINT8_MAX, 0);
 	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-		tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
+		tempData.data[i].a = (tempData.data[i].a * opacityMultiplier) / 255;
 	}
 
 	// Also finish if the wrapped effect finished before the fade ran out.
@@ -79,7 +79,6 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
 		this->startTimeMs = millis();
 		this->sampleRuntime();
-		LPLogger::log(String("running random fade out effect for ") + this->runtimeMs + " ms");
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
@@ -88,9 +87,8 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	float timeFadingMs = elapsedMs();
 
 	if (timeFadingMs >= runtimeMs) {
-		LPLogger::log("done running random fade out effect.");
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-			tempData.opacity[i] = 0;
+			tempData.data[i].a = 0;
 		}
 		elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
@@ -100,7 +98,7 @@ void RandomFadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 	elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
 	float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, UINT8_MAX, 0);
 	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-		tempData.opacity[i] = (tempData.opacity[i] * opacityMultiplier) / 255;
+		tempData.data[i].a = (tempData.data[i].a * opacityMultiplier) / 255;
 	}
 
 	if (this->stage->state == LedPipelineRunningState::DONE) {

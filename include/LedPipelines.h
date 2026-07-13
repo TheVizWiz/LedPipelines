@@ -2,7 +2,8 @@
 
 
 #include "BaseLedPipeline.h"
-#include "LedPipelineUtils.h"
+#include "LedOutput.h"
+#include "TemporaryLedData.h"
 #include "effects/LedEffects.h"
 
 

@@ -11,7 +11,7 @@ namespace ledpipelines::effects {
 	 * through their RGB midpoint (red -> blue passes through a dim purple). Use RGBGradient when you want a plain
 	 * smooth crossfade between two colors; use HSVGradient when you want the intermediate hues of the wheel.
 	 *
-	 * The color at a given (pixel, moment) is a bilinear interpolation across four CRGB corners - two axes, each with a
+	 * The color at a given (pixel, moment) is a bilinear interpolation across four RGBA corners - two axes, each with a
 	 * start and end:
 	 *
 	 *   - POSITION axis: startPosition .. endPosition along the strip.
@@ -41,12 +41,12 @@ namespace ledpipelines::effects {
 		float endPosition;
 
 		// The gradient at t=0.
-		CRGB startGradientStart;
-		CRGB startGradientEnd;
+		RGBA startGradientStart;
+		RGBA startGradientEnd;
 
 		// The gradient at t=runtimeMs. When these equal the startGradient corners, the gradient is static.
-		CRGB endGradientStart;
-		CRGB endGradientEnd;
+		RGBA endGradientStart;
+		RGBA endGradientEnd;
 
 		SmoothingFunction smoothingFunction;
 		uint8_t opacity;
@@ -58,10 +58,10 @@ namespace ledpipelines::effects {
 		struct Builder : LedPipelineStage::Builder<RGBGradient, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD(float, startPosition);
 			BUILDER_FIELD(float, endPosition);
-			BUILDER_FIELD_DEFAULT(CRGB, startGradientStart, CRGB(0, 0, 0));
-			BUILDER_FIELD_DEFAULT(CRGB, startGradientEnd, CRGB(0, 0, 0));
-			BUILDER_FIELD_DEFAULT(CRGB, endGradientStart, CRGB(0, 0, 0));
-			BUILDER_FIELD_DEFAULT(CRGB, endGradientEnd, CRGB(0, 0, 0));
+			BUILDER_FIELD_DEFAULT(RGBA, startGradientStart, RGBA(0, 0, 0));
+			BUILDER_FIELD_DEFAULT(RGBA, startGradientEnd, RGBA(0, 0, 0));
+			BUILDER_FIELD_DEFAULT(RGBA, endGradientStart, RGBA(0, 0, 0));
+			BUILDER_FIELD_DEFAULT(RGBA, endGradientEnd, RGBA(0, 0, 0));
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::LINEAR);
 			BUILDER_FIELD_DEFAULT(uint8_t, opacity, 0xFF);
 
@@ -78,7 +78,7 @@ namespace ledpipelines::effects {
 			// toward the default (black) corners. Ref-qualified like the BUILDER_FIELD setters: lvalue chains in place
 			// (returns Builder&), rvalue temporary moves out by value (returns Builder) so a chain can be captured with
 			// auto without hitting the deleted copy constructor.
-			Builder& startGradient(CRGB atStart, CRGB atEnd) & {
+			Builder& startGradient(RGBA atStart, RGBA atEnd) & {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -86,7 +86,7 @@ namespace ledpipelines::effects {
 				return *this;
 			}
 
-			Builder startGradient(CRGB atStart, CRGB atEnd) && {
+			Builder startGradient(RGBA atStart, RGBA atEnd) && {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -95,13 +95,13 @@ namespace ledpipelines::effects {
 			}
 
 			// Set the gradient morphed toward at t=runtimeMs (start-of-position color -> end-of-position color).
-			Builder& endGradient(CRGB atStart, CRGB atEnd) & {
+			Builder& endGradient(RGBA atStart, RGBA atEnd) & {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return *this;
 			}
 
-			Builder endGradient(CRGB atStart, CRGB atEnd) && {
+			Builder endGradient(RGBA atStart, RGBA atEnd) && {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return std::move(*this);
@@ -128,10 +128,10 @@ namespace ledpipelines::effects {
 			float startPosition,
 			float endPosition,
 			unsigned long runtimeMs,
-			CRGB startGradientStart,
-			CRGB startGradientEnd,
-			CRGB endGradientStart,
-			CRGB endGradientEnd,
+			RGBA startGradientStart,
+			RGBA startGradientEnd,
+			RGBA endGradientStart,
+			RGBA endGradientEnd,
 			SmoothingFunction smoothingFunction,
 			uint8_t opacity,
 			BlendingMode blendingMode = BlendingMode::NORMAL

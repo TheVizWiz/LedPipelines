@@ -5,7 +5,7 @@ using namespace ledpipelines::effects;
 
 namespace {
 	// Component-wise linear interpolation between two FHSV values. Hue is interpolated on its raw value (no wheel
-	// wrapping) so multi-turn sweeps like 0..720 are preserved; wrapping happens only at conversion in fhsvToRgb.
+	// wrapping) so multi-turn sweeps like 0..720 are preserved; wrapping happens only at conversion in FHSV::toRGBA.
 	FHSV lerpFhsv(const FHSV& a, const FHSV& b, float t) {
 		return FHSV{a.h + (b.h - a.h) * t, a.s + (b.s - a.s) * t, a.v + (b.v - a.v) * t};
 	}
@@ -82,11 +82,11 @@ void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	const int hiFloor = (int)hi;
 
 	// The FHSV at a position along the segment, by fractional distance. A zero-length span collapses to the low color.
-	auto colorAt = [&](float pos) -> CRGB {
+	auto colorAt = [&](float pos) -> RGBA {
 		float posT = span > 0 ? (pos - lo) / span : 0.0f;
 		if (posT < 0) posT = 0;
 		if (posT > 1) posT = 1;
-		return fhsvToRgb(lerpFhsv(loColor, hiColor, posT));
+		return lerpFhsv(loColor, hiColor, posT).toRGBA();
 	};
 
 	if (loFloor == hiFloor) {

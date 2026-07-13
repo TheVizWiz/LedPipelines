@@ -10,7 +10,7 @@
 TEST(BuilderSmokeTest, SolidBuilderProducesNonNullStage) {
 	setUpLeds();
 
-	auto *stage = Solid::Builder(CRGB::Red).build();
+	auto *stage = Solid::Builder(RGBA::Red).build();
 
 	ASSERT_NE(stage, nullptr);
 

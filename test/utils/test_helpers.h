@@ -16,16 +16,30 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 namespace test_helpers {
-	// Backing buffer for a single fake strip. Registered with the stub FastLED controller so TemporaryLedData::size is
-	// non-zero once initialize() runs.
 	constexpr int kLedCount = 10;
-	inline CRGB gLeds[kLedCount];
 
-	// Register one strip and initialize LedPipelines' static LED bookkeeping. Resets the fake controller first so strips
-	// don't accumulate across tests.
+	// A minimal LedOutput backing the tests: a single strip of kLedCount pixels into a local buffer. It stands in for a
+	// real backend (FastLED, ESPHome) so the core can be exercised natively - initialize() reads its topology and
+	// populate() writes pixels into `pixels`, which a test can inspect. clear()/show() are no-ops.
+	struct TestOutput : LedOutput {
+		RGBA pixels[kLedCount] = {};
+
+		int stripCount() const override { return 1; }
+		int stripSize(int) const override { return kLedCount; }
+		void clear() override {}
+		void show() override {}
+		void setPixel(int, int indexInStrip, RGBA color) override {
+			if (indexInStrip >= 0 && indexInStrip < kLedCount) pixels[indexInStrip] = color;
+		}
+	};
+
+	// The single output instance the tests render into.
+	inline TestOutput gOutput;
+
+	// Register the test output and initialize LedPipelines' static LED bookkeeping. Re-registering the same output each
+	// time keeps topology stable across tests.
 	inline void setUpLeds() {
-		FastLED.reset();
-		FastLED.addLeds(gLeds, kLedCount);
+		setOutput(&gOutput);
 		TemporaryLedData::initialize();
 	}
 

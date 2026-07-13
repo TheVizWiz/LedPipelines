@@ -1,4 +1,5 @@
 #include "BaseLedPipeline.h"
+#include "LedOutput.h"  // getOutput() - the registered render backend
 
 using namespace ledpipelines;
 
@@ -23,11 +24,18 @@ void LedPipelineStage::run() {
 	} else {
 		return;
 	}
-	FastLED.clear();
+	// Render into the registered backend. setOutput() is required; if none is set, skip the frame (initialize() logs
+	// the same condition) rather than dereferencing null.
+	LedOutput* output = getOutput();
+	if (output == nullptr) {
+		return;
+	}
+
+	output->clear();
 	TemporaryLedData data = TemporaryLedData();
 	this->calculate(0, data);
-	data.populateFastLed();
-	FastLED.show();
+	data.populate(*output);
+	output->show();
 }
 
 LedPipeline::LedPipeline(BlendingMode mode) : LedPipelineStage(mode) {}

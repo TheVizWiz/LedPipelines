@@ -1,10 +1,8 @@
 # LedPipelines
 
-LedPipelines is a library that sits on top of FastLED and provides a way to create animations that can layer easily and
-fluidly, with an easy-to-use declarative syntax.
-
-LedPipelines is a library meant to sit on top of FastLED and provide a way to create animation pipelines that can layer
-easily and fluidly. It will support animations, layers, multiple segments, fractional LED lighting, and more features.
+LedPipelines is a hardware-library-agnostic way of creating animations that can layer easily and
+fluidly, with an easy-to-use declarative syntax. It supports animations, layers, multiple segments, fractional LED
+lighting, and more features.
 
 - [current worked on tickets](https://github.com/users/TheVizWiz/projects/3/views/1) (will try to keep this up to date,
   sorry!)
@@ -17,8 +15,8 @@ You don't need to flash a microcontroller to see what an effect looks like.
 pipeline in C++ exactly as you would in an Arduino sketch, build, and watch it animate live in your browser as a grid
 of pixels.
 
-It compiles LedPipelines natively against host-side `FastLED.h` / `Arduino.h` stubs — the library is unchanged, but
-`FastLED.show()` streams each rendered frame to the browser instead of latching physical LEDs, on a real wall-clock so
+It compiles LedPipelines natively and renders through a viewer-supplied `LedOutput` backend — the library is unchanged,
+but instead of driving physical LEDs the backend streams each rendered frame to the browser, on a real wall-clock so
 timed effects animate at their true speed. What you see is the exact RGB the physical LEDs would receive.
 
 It's the fastest way to iterate on an effect: tweak your pipeline, rebuild, and see the result in a second or two. See
@@ -27,7 +25,9 @@ the [LedPipelinesViewer repository](https://github.com/TheVizWiz/LedPipelinesVie
 ## Installation (PlatformIO)
 
 LedPipelines is published to the PlatformIO registry as `thevizwiz/LedPipelines`. Add it to your project's
-`platformio.ini` under `lib_deps` — FastLED comes in automatically as a declared dependency:
+`platformio.ini` under `lib_deps`. The library has **no hard dependency on any LED driver** — it renders through a
+pluggable `LedOutput` backend (see [Output backends](#output-backends)). To drive real hardware with the bundled FastLED
+backend, add FastLED alongside it:
 
 ```ini
 [env:esp32]
@@ -36,6 +36,7 @@ board = esp32-s3-devkitm-1
 framework = arduino
 lib_deps =
     thevizwiz/LedPipelines
+    fastled/FastLED        ; only if you use the FastLED backend (outputs/FastLEDOutput.h)
 
 ; LedPipelines needs C++17 (nested-namespace syntax, inline static members). The Arduino-ESP32 framework defaults to
 ; gnu++11 and its own headers expect the GNU dialect, so unset the old standard and opt into gnu++2a - the setting the
@@ -47,13 +48,26 @@ build_flags =
     -std=gnu++2a
 ```
 
-To pin a version, use `thevizwiz/LedPipelines@^0.1.4`. To build against an unreleased local checkout instead (e.g. while
+To pin a version, use `thevizwiz/LedPipelines@^0.2.0`. To build against an unreleased local checkout instead (e.g. while
 developing effects), point `lib_deps` at the working tree:
 
 ```ini
 lib_deps =
     symlink:///absolute/path/to/ledpipelines
 ```
+
+### Output backends
+
+LedPipelines computes colors into a buffer and hands the finished frame to an `LedOutput` — the single seam between the
+library and the outside world. You **must register one** with `ledpipelines::setOutput(&backend)` before
+`initialize()`; there is no default. Bundled backends (header-only, opt in by including them):
+
+- `outputs/FastLEDOutput.h` — drives LEDs via FastLED (the standard hardware path; see the worked example below).
+- `outputs/NeoPixelOutput.h` — drives a single strip via Adafruit NeoPixel.
+
+Writing your own backend is a small struct implementing five methods (`stripCount`, `stripSize`, `clear`, `show`,
+`setPixel`) — that's exactly how [LedPipelinesViewer](https://github.com/TheVizWiz/LedPipelinesViewer) renders to a
+browser instead of hardware.
 
 ## Why?
 
@@ -80,8 +94,8 @@ LedPipelines is built out of a few small ideas that compose:
   produces a fresh, independent stage tree. `.wrap(...)` and `.addStage(...)` operate on builders too.
 
 Every frame, `pipeline->run()` clears the strip, walks the tree calling `calculate()` on each stage (children/inners
-feed their parents), bakes the result into FastLED, and shows it. `run()` self-rate-limits to `setMaxRefreshRate(...)`,
-so you can call it as fast as you like.
+feed their parents), bakes the result into the registered `LedOutput`, and shows it. `run()` self-rate-limits to
+`setMaxRefreshRate(...)`, so you can call it as fast as you like.
 
 ### The render model (important)
 
@@ -99,41 +113,41 @@ them manually.
 | `Solid`        | `Solid::Builder(color)`                  | Fills the entire strip with one color. `.opacity(0-255)`.                                                                                                                                                                                                                                                                                                                                             |
 | `SolidSegment` | `SolidSegment::Builder(color, length)`   | Lights a segment of `length` pixels starting where it's positioned. Fractional lengths feather the end pixels.                                                                                                                                                                                                                                                                                        |
 | `HSVGradient`  | `HSVGradient::Builder(startPos, endPos)` | Writes a gradient between two positions, interpolating in **HSV** — the blend travels around the color wheel (red→blue passes through magenta or green). `.startGradient(a, b)` sets the look; add a runtime + `.endGradient(a, b)` to morph one gradient into another over time. Hue is in degrees and wraps at 360 (so `0..720` = two rainbows). Corners are `FHSV`; see [HSV colors](#hsv-colors). |
-| `RGBGradient`  | `RGBGradient::Builder(startPos, endPos)` | Same as `HSVGradient`, but interpolates each **RGB channel** directly — a straight crossfade between the two colors through their RGB midpoint (red→blue passes through dim purple, not the wheel). Corners are `CRGB`. Use this for a plain smooth blend; use `HSVGradient` when you want the intermediate hues.                                                                                     |
+| `RGBGradient`  | `RGBGradient::Builder(startPos, endPos)` | Same as `HSVGradient`, but interpolates each **RGB channel** directly — a straight crossfade between the two colors through their RGB midpoint (red→blue passes through dim purple, not the wheel). Corners are `RGBA`. Use this for a plain smooth blend; use `HSVGradient` when you want the intermediate hues.                                                                                     |
 | `Mask`         | `Mask::Builder(base, mask)`              | Uses one stage's brightness to gate another — `base` shows through only where `mask` is lit.                                                                                                                                                                                                                                                                                                          |
-| `Spawner`      | `Spawner::Builder(factory)`              | Periodically spawns child effects from a factory (`[]{ return SomeEffect::Builder(...).build(); }`). Great for sparkles/particles. `TimedSpawner` spawns on a fixed interval; `RandomTimedSpawner` varies it.                                                                                                                                                                                                                |
+| `Spawner`      | `Spawner::Builder(factory)`              | Periodically spawns child effects from a factory (`[]{ return SomeEffect::Builder(...).build(); }`). Great for sparkles/particles. `TimedSpawner` spawns on a fixed interval; `RandomTimedSpawner` varies it.                                                                                                                                                                                         |
 
 ### Wrappers (transform an inner stage — attach with `.wrap(...)`)
 
 **Positional**
 
-| Effect             | Builder                               | What it does                                                                                                           |
-|--------------------|---------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `Shift`            | `Shift::Builder(offset)`              | Statically shifts the inner by a fixed number of pixels. `RandomShift::Builder(maxOffset)` samples the offset once from `[minOffset, maxOffset]` instead (re-sampling on each run). |
+| Effect             | Builder                               | What it does                                                                                                                                                                                                                                                                                                                                                                                        |
+|--------------------|---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Shift`            | `Shift::Builder(offset)`              | Statically shifts the inner by a fixed number of pixels. `RandomShift::Builder(maxOffset)` samples the offset once from `[minOffset, maxOffset]` instead (re-sampling on each run).                                                                                                                                                                                                                 |
 | `Moving`           | `Moving::Builder(runtimeMs)`          | Animates the inner from `.startPosition(x)` to `.endPosition(y)` over `runtimeMs`, easing with `.smoothingFunction(...)`. After the move completes it **holds** the inner at `endPosition` and keeps rendering it — `Moving` finishes only when the inner finishes, not when the timer runs out (wrap a `TimeBox`, or use `.terminateOnComplete(true)`, if you want it to end when the move lands). |
-| `AbsolutePosition` | `AbsolutePosition::Builder(position)` | Pins the inner to an absolute strip position, ignoring where its parent placed it.                                     |
-| `Repeat`           | `Repeat::Builder(repeatDistance)`     | Tiles copies of the inner every `repeatDistance` pixels. `.numRepeats(n)` (0 = fill the strip).                        |
-| `Flip`             | `Flip::Builder(maxIndex)`             | Mirrors the inner's *position* within `[minIndex, maxIndex]` (a spatial reversal — left↔right, not a reverse in time). |
-| `Path`             | `Path::Builder().addSegment(a, b)...` | Remaps the inner across arbitrary strip segments (e.g. for non-contiguous physical layouts).                           |
+| `AbsolutePosition` | `AbsolutePosition::Builder(position)` | Pins the inner to an absolute strip position, ignoring where its parent placed it.                                                                                                                                                                                                                                                                                                                  |
+| `Repeat`           | `Repeat::Builder(repeatDistance)`     | Tiles copies of the inner every `repeatDistance` pixels. `.numRepeats(n)` (0 = fill the strip).                                                                                                                                                                                                                                                                                                     |
+| `Flip`             | `Flip::Builder(maxIndex)`             | Mirrors the inner's *position* within `[minIndex, maxIndex]` (a spatial reversal — left↔right, not a reverse in time).                                                                                                                                                                                                                                                                              |
+| `Path`             | `Path::Builder().addSegment(a, b)...` | Remaps the inner across arbitrary strip segments (e.g. for non-contiguous physical layouts).                                                                                                                                                                                                                                                                                                        |
 
 **Opacity / color**
 
-| Effect            | Builder                                                          | What it does                                                                                                                               |
-|-------------------|------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| Effect            | Builder                                                          | What it does                                                                                                                                                         |
+|-------------------|------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `FadeIn`          | `FadeIn::Builder(runtimeMs)`                                     | Ramps the inner's opacity 0→full over `runtimeMs`, then holds (add `.terminateOnComplete(true)` to end at the ramp instead). `RandomFadeIn` randomizes the duration. |
-| `FadeOut`         | `FadeOut::Builder(runtimeMs)`                                    | Ramps the inner's opacity full→0 over `runtimeMs`. Combine with `.delayMs(t)` to hold, then fade. `RandomFadeOut` randomizes the duration. |
-| `OpacityGradient` | `OpacityGradient::Builder(endIndex)` or `(startIndex, endIndex)` | Applies a spatial opacity ramp across the inner. `.smoothingFunction(...)`.                                                                |
-| `OpacityScale`    | `OpacityScale::Builder(maxOpacity)`                              | Scales the inner's opacity down to a ceiling.                                                                                              |
+| `FadeOut`         | `FadeOut::Builder(runtimeMs)`                                    | Ramps the inner's opacity full→0 over `runtimeMs`. Combine with `.delayMs(t)` to hold, then fade. `RandomFadeOut` randomizes the duration.                           |
+| `OpacityGradient` | `OpacityGradient::Builder(endIndex)` or `(startIndex, endIndex)` | Applies a spatial opacity ramp across the inner. `.smoothingFunction(...)`.                                                                                          |
+| `OpacityScale`    | `OpacityScale::Builder(maxOpacity)`                              | Scales the inner's opacity down to a ceiling.                                                                                                                        |
 
 **Timing / control flow**
 
-| Effect         | Builder                       | What it does                                                                                                                                                                               |
-|----------------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `TimeBox`      | `TimeBox::Builder(runtimeMs)` | Runs the inner for `runtimeMs` then reports DONE. The building block of timed sequences. `RandomTimeBox` randomizes it.                                                                    |
-| `Wait`         | `Wait::Builder(runtimeMs)`    | A source that does nothing for `runtimeMs` then finishes — a pause in a series. `RandomWait` randomizes it.                                                                                |
-| `Loop`         | `Loop::Builder()`             | Restarts the inner when it finishes. `.numLoops(n)` (0 = forever).                                                                                                                         |
-| `Toggle`       | `Toggle::Builder()`           | Gates the inner on/off at runtime via `.activate()` / `.deactivate()` — useful for reactive/interactive control.                                                                           |
-| `ResetBlocker` | `ResetBlocker::Builder()`     | On `reset()`, only propagates to the inner if the inner is already DONE; otherwise lets it finish its current pass. Lets a sub-effect complete before a surrounding `Loop` can restart it. |
+| Effect         | Builder                       | What it does                                                                                                                                                                                                                                                                         |
+|----------------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `TimeBox`      | `TimeBox::Builder(runtimeMs)` | Runs the inner for `runtimeMs` then reports DONE. The building block of timed sequences. `RandomTimeBox` randomizes it.                                                                                                                                                              |
+| `Wait`         | `Wait::Builder(runtimeMs)`    | A source that does nothing for `runtimeMs` then finishes — a pause in a series. `RandomWait` randomizes it.                                                                                                                                                                          |
+| `Loop`         | `Loop::Builder()`             | Restarts the inner when it finishes. `.numLoops(n)` (0 = forever).                                                                                                                                                                                                                   |
+| `Toggle`       | `Toggle::Builder()`           | Gates the inner on/off at runtime via `.activate()` / `.deactivate()` — useful for reactive/interactive control.                                                                                                                                                                     |
+| `ResetBlocker` | `ResetBlocker::Builder()`     | On `reset()`, only propagates to the inner if the inner is already DONE; otherwise lets it finish its current pass. Lets a sub-effect complete before a surrounding `Loop` can restart it.                                                                                           |
 | `Shared`       | `Shared::Builder(sharedPtr)`  | Wraps an already-built stage held via `std::shared_ptr` so the **same instance** can appear in several places in the tree (lifetime managed by the refcount). Unlike every other wrapper, it takes a built stage, not a builder — see [Sharing a sub-effect](#sharing-a-sub-effect). |
 
 Most timed effects share `.delayMs(t)` (a lead-in delay before their own clock starts) and honor
@@ -148,17 +162,17 @@ own timer (`FadeOut`, `Wait`, `TimeBox`) the flag changes nothing.
 Every builder has shorthand methods for the most common `.wrap(...)` targets — identical to writing the wrap out by
 hand, just terser:
 
-| Method | Equivalent to |
-|---|---|
-| `.loop()` | `.wrap(Loop::Builder())` (loops forever) |
-| `.loop(n)` | `.wrap(Loop::Builder().numLoops(n))` |
-| `.timebox(ms)` | `.wrap(TimeBox::Builder(ms))` |
-| `.shift(px)` | `.wrap(Shift::Builder(px))` |
-| `.block()` | `.wrap(ResetBlocker::Builder())` |
-| `.shared()` | builds this chain once and returns a reusable `Shared::Builder` — see [Sharing a sub-effect](#sharing-a-sub-effect) |
+| Method         | Equivalent to                                                                                                       |
+|----------------|---------------------------------------------------------------------------------------------------------------------|
+| `.loop()`      | `.wrap(Loop::Builder())` (loops forever)                                                                            |
+| `.loop(n)`     | `.wrap(Loop::Builder().numLoops(n))`                                                                                |
+| `.timebox(ms)` | `.wrap(TimeBox::Builder(ms))`                                                                                       |
+| `.shift(px)`   | `.wrap(Shift::Builder(px))`                                                                                         |
+| `.block()`     | `.wrap(ResetBlocker::Builder())`                                                                                    |
+| `.shared()`    | builds this chain once and returns a reusable `Shared::Builder` — see [Sharing a sub-effect](#sharing-a-sub-effect) |
 
-So `Solid::Builder(CRGB::Red).timebox(2000).loop()` is the same as
-`Solid::Builder(CRGB::Red).wrap(TimeBox::Builder(2000)).wrap(Loop::Builder())`.
+So `Solid::Builder(RGBA::Red).timebox(2000).loop()` is the same as
+`Solid::Builder(RGBA::Red).wrap(TimeBox::Builder(2000)).wrap(Loop::Builder())`.
 
 ### Sharing a sub-effect
 
@@ -167,7 +181,7 @@ it lets one built stage instance appear in several branches. Build the stage onc
 in a `Shared` per branch:
 
 ```cpp
-auto dot = SolidSegment::Builder(CRGB::White, 3).buildShared();  // build once -> shared_ptr
+auto dot = SolidSegment::Builder(RGBA::White, 3).buildShared();  // build once -> shared_ptr
 pipeline = ParallelLedPipeline::Builder()
     .addStage(Shared::Builder(dot).shift(0))    // both branches reference the SAME dot
     .addStage(Shared::Builder(dot).shift(20))
@@ -178,7 +192,7 @@ Or use `.shared()`, which builds the chain once and hands back a reusable `Share
 branches:
 
 ```cpp
-auto dot = SolidSegment::Builder(CRGB::White, 3).shared();
+auto dot = SolidSegment::Builder(RGBA::White, 3).shared();
 pipeline = ParallelLedPipeline::Builder()
     .addStage(dot.shift(0))
     .addStage(dot.shift(20))
@@ -188,13 +202,32 @@ pipeline = ParallelLedPipeline::Builder()
 Two things to know:
 
 - **`Shared` shares one instance, never copies.** Reusing/moving a `Shared::Builder` always yields another handle to the
-  same stage (`Shared::Builder` is intentionally reusable — even after being moved from, it stays valid). If you want two
+  same stage (`Shared::Builder` is intentionally reusable — even after being moved from, it stays valid). If you want
+  two
   *independent* stages, don't share — build the source chain twice.
 - **The shared instance's per-run state is shared too.** Within a single frame this is fine for anything whose output is
-  a pure function of the current clock and position — a `Solid`, `SolidSegment`, gradient, or a `Moving`/timed effect all
-  render correctly from multiple branches in one frame, since each `calculate()` recomputes from scratch. Be careful only
+  a pure function of the current clock and position — a `Solid`, `SolidSegment`, gradient, or a `Moving`/timed effect
+  all
+  render correctly from multiple branches in one frame, since each `calculate()` recomputes from scratch. Be careful
+  only
   with effects that **accumulate or mutate state across calls within a frame** (e.g. `Spawner`, which grows a child list
   each `calculate()`), or where a per-branch `reset()` would disturb the other branch — sharing those can misbehave.
+
+### Colors
+
+Colors are `RGBA` — LedPipelines' own value type, so the library needs no LED driver just to name a color. It holds the
+three 8-bit channels plus a fourth `a` (alpha/opacity) byte, and carries the full set of FastLED HTML color names:
+
+```cpp
+RGBA(r, g, b)          // opaque by default (a = 255)
+RGBA(r, g, b, a)       // explicit opacity
+RGBA(0xRRGGBB)         // 24-bit hex, opaque
+RGBA::Red, RGBA::White, RGBA::Orange, ...   // 148 named colors
+```
+
+`a` is the pixel's opacity used by compositing (0 = transparent/unlit, 255 = fully opaque); it is separate from the RGB
+color math. Backends convert `RGBA` to whatever the driver wants at the output boundary (e.g. `FastLEDOutput` maps it to
+FastLED's `CRGB`), so you never touch the driver's color type directly.
 
 ### HSV colors
 
@@ -222,6 +255,7 @@ and a red/green blinker driven by a timed `SeriesLedPipeline`.
 ```cpp
 #include "FastLED.h"
 #include "LedPipelines.h"
+#include "outputs/FastLEDOutput.h"   // the bundled FastLED backend (opt in explicitly)
 
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
@@ -230,13 +264,16 @@ using namespace ledpipelines::effects;
 #define LED_COUNT 100
 
 CRGB leds[LED_COUNT];
+FastLEDOutput ledOutput;             // the LedOutput backend LedPipelines renders into
 LedPipelineStage* pipeline;
 
 void setup() {
     // 1. Register your strip(s) with FastLED FIRST.
     FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, LED_COUNT);
 
-    // 2. initialize() AFTER addLeds — it reads the LED count.
+    // 2. Register the backend, then initialize() — initialize() reads the strip
+    //    topology from the registered output, so setOutput() must come first.
+    ledpipelines::setOutput(&ledOutput);
     ledpipelines::initialize();
     ledpipelines::setMaxRefreshRate(60);
 
@@ -246,7 +283,7 @@ void setup() {
         ParallelLedPipeline::Builder()
             // Layer 1: a dim white wash across the whole strip.
             .addStage(
-                Solid::Builder(CRGB::White)
+                Solid::Builder(RGBA::White)
                     .wrap(OpacityScale::Builder(40)))
 
             // Layer 2: a 10px red segment bouncing back and forth forever.
@@ -256,13 +293,13 @@ void setup() {
             // a Flip, which mirrors position in space rather than in time.)
             .addStage(
                 SeriesLedPipeline::Builder()
-                    .addStage(SolidSegment::Builder(CRGB::Red, 10)
+                    .addStage(SolidSegment::Builder(RGBA::Red, 10)
                                   .wrap(Moving::Builder(3000)
                                             .startPosition(0)
                                             .endPosition(LED_COUNT)
                                             .smoothingFunction(SmoothingFunction::SINE))
                                   .wrap(TimeBox::Builder(3000)))   // give the sweep a lifetime so the series advances
-                    .addStage(SolidSegment::Builder(CRGB::Red, 10)
+                    .addStage(SolidSegment::Builder(RGBA::Red, 10)
                                   .wrap(Moving::Builder(3000)
                                             .startPosition(LED_COUNT)
                                             .endPosition(0)
@@ -273,9 +310,9 @@ void setup() {
             // Layer 3: a red/green blinker built from a timed series.
             .addStage(
                 SeriesLedPipeline::Builder()
-                    .addStage(SolidSegment::Builder(CRGB::Red, 5)
+                    .addStage(SolidSegment::Builder(RGBA::Red, 5)
                                   .wrap(TimeBox::Builder(500)))
-                    .addStage(SolidSegment::Builder(CRGB::Green, 5)
+                    .addStage(SolidSegment::Builder(RGBA::Green, 5)
                                   .wrap(TimeBox::Builder(500)))
                     .wrap(AbsolutePosition::Builder(LED_COUNT - 5))  // park it at the end
                     .wrap(Loop::Builder()))
@@ -317,13 +354,13 @@ in `Flip` renders as a backward-travelling sweep:
 ```cpp
 // Equivalent Layer 2: same forward sweep both phases; Flip reverses the return.
 SeriesLedPipeline::Builder()
-    .addStage(SolidSegment::Builder(CRGB::Red, 10)
+    .addStage(SolidSegment::Builder(RGBA::Red, 10)
                   .wrap(Moving::Builder(3000)
                             .startPosition(0)
                             .endPosition(LED_COUNT)
                             .smoothingFunction(SmoothingFunction::SINE))
                   .wrap(TimeBox::Builder(3000)))
-    .addStage(SolidSegment::Builder(CRGB::Red, 10)
+    .addStage(SolidSegment::Builder(RGBA::Red, 10)
                   .wrap(Moving::Builder(3000)
                             .startPosition(0)
                             .endPosition(LED_COUNT)
@@ -344,14 +381,14 @@ See the [`examples/`](examples/) directory for more.
 A few things are worth knowing before you build something large:
 
 - **One strip topology per program.** The strip layout (total LED count, per-strip offsets) is captured once in
-  `initialize()`, which reads it from FastLED. You must call `initialize()` **after** all your `FastLED.addLeds(...)`
-  calls, and you cannot change the layout afterward. The buffer state is global/static, so a single process drives one
-  strip configuration.
+  `initialize()`, which reads it from the registered `LedOutput`. You must call `setOutput(...)` and finish declaring
+  strips on the backend (e.g. all your `FastLED.addLeds(...)` calls) **before** `initialize()`, and you cannot change
+  the layout afterward. The buffer state is global/static, so a single process drives one strip configuration.
 - **Not thread-safe.** Build and run pipelines from a single thread (the usual Arduino `loop()`). There is no internal
   locking around the shared frame buffer.
 - **Memory scales with LED count.** The render buffer is padded on both sides for off-screen movement, so it is roughly
-  `3 × ledCount` slots wide (each slot holding a color plus an opacity byte). On memory-tight boards, keep an eye on
-  total LED count.
+  `3 × ledCount` slots wide (each slot holding one `RGBA` — color plus a folded-in opacity byte, 4 bytes). On
+  memory-tight boards, keep an eye on total LED count.
 - **Requires C++17.** The library uses C++17 features (nested-namespace syntax, inline static members) but no GNU
   extensions, so any C++17 compiler works. On the ESP32 Arduino framework, build with `-std=gnu++2a` (the framework
   headers expect the GNU dialect); see the [installation](#installation-platformio) `build_flags` above.
@@ -377,7 +414,7 @@ Contributions are welcome!
   [`src/effects/`](src/effects/) are the best templates (start from a simple wrapper like `Shift` or a source like
   `SolidSegment`). Export it from `include/effects/LedEffects.h` and add it to the effect list in this README.
 - **Building and testing** — the library builds and tests natively (no hardware required) via the `env:local`
-  PlatformIO environment, which swaps in host stubs for FastLED/Arduino:
+  PlatformIO environment, which registers a test `LedOutput` and stubs the Arduino host surface (`Arduino.h`):
 
   ```bash
   pio test -e local     # build + run the unit tests on your machine

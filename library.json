@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "LedPipelines",
-  "version": "0.1.7",
-  "description": "A library built on top of FastLED that allows for better and easier building of complex LED effects.",
+  "version": "0.2.0",
+  "description": "A library for building and composing complex LED effects. Renders through a pluggable output backend (FastLED, ESPHome, ...) and has no hard dependency on any LED driver.",
   "keywords": "led pipelines, ledpipelines, pipelines, led effects, effects, fast led pipelines, fast led effects",
   "repository": {
     "type": "git",
@@ -17,6 +17,10 @@
   "license": "MIT",
   "frameworks": "*",
   "platforms": "*",
+  "build": {
+    "comment": "src/main.cpp is a hardware demo sketch (its own setup()/loop(), includes FastLED), not library code. Exclude it so consumers' LDF builds don't try to compile it. export.exclude only affects packaging, not a local symlink/checkout build, so the filter is needed here too.",
+    "srcFilter": "+<*> -<main.cpp>"
+  },
   "export": {
     "include": [
       "**/examples/*",
@@ -27,12 +31,6 @@
       "**/src/main.cpp"
     ]
   },
-  "dependencies": [
-    {
-      "name": "FastLED",
-      "owner": "fastled"
-    }
-  ],
   "headers": [
     "LedPipelines.h"
   ],

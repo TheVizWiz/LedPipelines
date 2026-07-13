@@ -1,7 +1,5 @@
 #include "effects/Shift.h"
 
-#include "LedPipelinesLogger.h"
-
 using namespace ledpipelines;
 
 using namespace ledpipelines::effects;
@@ -31,7 +29,6 @@ void RandomShift::calculate(const float startIndex, TemporaryLedData& tempData) 
 	if (!this->sampled) {
 		this->offset = this->samplingFunction(this->minOffset, this->maxOffset);
 		this->sampled = true;
-		LPLogger::log(String("random shift picked offset ") + this->offset);
 	}
 
 	this->stage->calculate(startIndex + this->offset, tempData);

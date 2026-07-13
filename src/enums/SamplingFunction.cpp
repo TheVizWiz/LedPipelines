@@ -1,7 +1,7 @@
 #include "enums/SamplingFunction.h"
-#include "LedPipelinesLogger.h"
 
-#include <cmath>  // tanh
+#include <cmath>   // tanh
+#include <cstdlib>  // rand, RAND_MAX
 
 using namespace ledpipelines;
 

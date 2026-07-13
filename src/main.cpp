@@ -1,9 +1,13 @@
 #include "FastLED.h"
 #include "LedPipelines.h"
+#include "outputs/FastLEDOutput.h"  // the FastLED backend - opt in explicitly; the core no longer depends on FastLED
 
 
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
+
+// The backend LedPipelines renders into. Registered with setOutput() below, before initialize().
+FastLEDOutput ledOutput;
 
 
 #define SWITCH_PIN 13
@@ -35,8 +39,8 @@ void setup() {
 	pinMode(SWITCH_PIN, INPUT_PULLUP);
 	pinMode(LED_BUILTIN, OUTPUT);
 
-	LPLogger::initialize(LogLevel::ERROR);
-
+	// Register the FastLED backend before initialize() - initialize() reads strip topology from the output.
+	ledpipelines::setOutput(&ledOutput);
 	ledpipelines::initialize();
 	ledpipelines::setMaxRefreshRate(10);
 
@@ -44,11 +48,11 @@ void setup() {
 	Serial.println(TemporaryLedData::size);
 
 	offPipeline = ParallelLedPipeline::Builder()
-					  .addStage(Solid::Builder(CRGB::Black))
+					  .addStage(Solid::Builder(RGBA::Black))
 					  .addStage(
 						  SeriesLedPipeline::Builder()
-							  .addStage(SolidSegment::Builder(CRGB::Blue, 1).wrap(TimeBox::Builder(1000)))
-							  .addStage(SolidSegment::Builder(CRGB::Green, 1).wrap(TimeBox::Builder(1000)))
+							  .addStage(SolidSegment::Builder(RGBA::Blue, 1).wrap(TimeBox::Builder(1000)))
+							  .addStage(SolidSegment::Builder(RGBA::Green, 1).wrap(TimeBox::Builder(1000)))
 							  .wrap(Loop::Builder())
 					  )
 					  .build();
@@ -56,19 +60,19 @@ void setup() {
 	onPipeline =
 		ParallelLedPipeline::Builder()
 			.addStage(
-				Solid::Builder(CRGB::White)
+				Solid::Builder(RGBA::White)
 					.wrap(
 						OpacityGradient::Builder(0, TemporaryLedData::size).smoothingFunction(SmoothingFunction::LINEAR)
 					)
 			)
 			.addStage(
 				SeriesLedPipeline::Builder()
-					.addStage(SolidSegment::Builder(CRGB::Red, 1).wrap(TimeBox::Builder(1000)))
-					.addStage(SolidSegment::Builder(CRGB::Red, 1).wrap(TimeBox::Builder(1000)))
+					.addStage(SolidSegment::Builder(RGBA::Red, 1).wrap(TimeBox::Builder(1000)))
+					.addStage(SolidSegment::Builder(RGBA::Red, 1).wrap(TimeBox::Builder(1000)))
 					.wrap(Loop::Builder())
 			)
 			.addStage(
-				SolidSegment::Builder(CRGB::White, 10)
+				SolidSegment::Builder(RGBA::White, 10)
 					.opacity(0xFF)
 					.wrap(OpacityGradient::Builder(1))
 					.wrap(OpacityGradient::Builder(1))

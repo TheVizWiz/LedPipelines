@@ -24,7 +24,7 @@ template <typename T, typename U>
 typename std::common_type<T, U>::type max(T a, U b) { return a > b ? a : b; }
 
 // Arduino's String maps cleanly onto std::string for our purposes. We only use construction from numbers/C-strings and
-// operator+ concatenation (in the logger and colorToHex).
+// operator+ concatenation (e.g. in hardware sketches' Serial logging).
 class String : public std::string {
 public:
 	String() = default;
@@ -51,7 +51,7 @@ inline String operator+(const String &lhs, const char *rhs) { return String(std:
 inline String operator+(const char *lhs, const String &rhs) { return String(std::string(lhs) + std::string(rhs)); }
 template <typename T> inline String operator+(const String &lhs, T rhs) { return lhs + String(rhs); }
 
-// A no-op Serial so LPLogger's println/print calls link without doing anything on the host.
+// A no-op Serial so sketches' println/print calls link without doing anything on the host.
 struct FakeSerial {
 	void begin(unsigned long) {}
 	void print(const String &) {}

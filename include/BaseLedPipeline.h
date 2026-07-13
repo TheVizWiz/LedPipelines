@@ -10,8 +10,33 @@
 #include <utility>
 #include <vector>
 
-#include "FastLED.h"
-#include "LedPipelineUtils.h"
+// The platform timing seam: millis()/micros()/delay(). Host-provided - real on Arduino/ESP32, stubbed by the viewer
+// and the tests. run() (rate limiting) and every timed effect (BaseEffect.h) depend on it.
+#include "Arduino.h"
+
+// The core runtime types this header (and everything that includes it, e.g. BaseEffect.h) refers to. Previously pulled
+// in transitively via the now-removed LedPipelineUtils.h; included directly so the dependency is explicit.
+#include "TemporaryLedData.h"
+#include "enums/BlendingMode.h"
+#include "enums/SamplingFunction.h"
+#include "enums/SmoothingFunction.h"
+
+namespace ledpipelines {
+	// The minimum spacing between rendered frames, in microseconds (0 = no limit). run() consults it to self-rate-limit
+	// (see setMaxRefreshRate). Defined in BaseLedPipeline.cpp so there is a single shared instance across translation
+	// units.
+	extern uint64_t minMicrosBetweenUpdates;
+
+	/**
+	 * Set the max refresh rate of LedPipelines. Defaults to no max refresh rate. Note that this is NOT blocking in the
+	 * same way that a hardware show() is blocking; if you call pipeline.run() more often than the max refresh rate, the
+	 * extra calls will just be ignored until the next update is ready. An update is not *guaranteed* to take place at
+	 * this interval, but it is guaranteed that it will take at *least* this interval, even if you try to update
+	 * LedPipelines faster than this.
+	 * @param refreshesPerSecond the new max refresh rate, in refreshes / second. e.g. 30fps, 50fps, 144fps.
+	 */
+	void setMaxRefreshRate(float refreshesPerSecond);
+} // namespace ledpipelines
 
 // Fluent field + setter. The setter is ref-qualified so capturing a chain works without std::move:
 //   - called on an lvalue (a named builder):   returns Builder&,  chaining mutates in place (no copy)
@@ -191,7 +216,7 @@ namespace ledpipelines {
 			 * Wrap this builder in a WrapperEffect's builder, staying entirely in "builder land": nothing is built here.
 			 * This builder is adopted as the wrapper's inner builder; the wrapper builder is then returned by value so
 			 * more setters or wrap()s can follow with '.', deferring build() to the end (or to addStage), e.g.
-			 * Solid::Builder(CRGB::Red).wrap(OpacityGradient::Builder(4)).wrap(Loop::Builder()).build().
+			 * Solid::Builder(RGBA::Red).wrap(OpacityGradient::Builder(4)).wrap(Loop::Builder()).build().
 			 *
 			 * Two overloads, so a builder is a reusable recipe:
 			 *   - called on an LVALUE (a named builder): this builder is COPIED (deep clone) into the wrapper, leaving the

@@ -3,7 +3,7 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Solid::Solid(const CRGB color, const uint8_t opacity, BlendingMode blendingMode)
+Solid::Solid(const RGBA color, const uint8_t opacity, BlendingMode blendingMode)
 	: LedPipelineStage(blendingMode), color(color), opacity(opacity) {
 	this->state = LedPipelineRunningState::RUNNING;
 }
@@ -17,7 +17,7 @@ void Solid::calculate(const float startIndex, TemporaryLedData& tempData) {
 	}
 }
 
-SolidSegment::SolidSegment(const CRGB color, uint8_t opacity, float length, BlendingMode blendingMode)
+SolidSegment::SolidSegment(const RGBA color, uint8_t opacity, float length, BlendingMode blendingMode)
 	: Solid(color, opacity, blendingMode), length(length) {}
 
 void SolidSegment::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -54,9 +54,5 @@ void SolidSegment::calculate(float startIndex, TemporaryLedData& tempData) {
 		if (amountToLightUpLastPixel != 0) {
 			tempData.set(endIndexFloor, color, opacity * amountToLightUpLastPixel);
 		}
-
-
-		//        LPLogger::log(String("lit up first pixel ") + amountToLightUpFirstPixel + " and last pixel " +
-		//                      amountToLightUpLastPixel);
 	}
 }

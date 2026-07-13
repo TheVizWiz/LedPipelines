@@ -1,10 +1,10 @@
-// Definitions for the native FastLED/Arduino stubs. Compiled into the env:local test build so the library's globals
-// (FastLED, Serial, timing) resolve at link time. See FastLED.h / Arduino.h in this directory.
+// Definitions for the native Arduino stubs. Compiled into the env:local test build so the library's globals (Serial,
+// timing) resolve at link time. See Arduino.h in this directory. The library no longer depends on FastLED (topology
+// and pixel output go through a registered LedOutput - the tests use test_helpers' TestOutput), so no FastLED global
+// is defined here.
 
-#include "FastLED.h"
 #include "Arduino.h"
 
-FakeController FastLED;
 FakeSerial Serial;
 
 // Simple monotonic counter for millis()/micros(). Tests that care about time can be added later with an injectable

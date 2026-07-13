@@ -26,7 +26,7 @@ namespace ledpipelines::effects {
 	 * Usage: build the stage once, wrap it in a shared_ptr, and hand the same shared_ptr to as many Shared wrappers as
 	 * you like:
 	 *
-	 *   auto dot = std::shared_ptr<LedPipelineStage>(SolidSegment::Builder(CRGB::White, 3).build());
+	 *   auto dot = std::shared_ptr<LedPipelineStage>(SolidSegment::Builder(RGBA::White, 3).build());
 	 *   pipeline = ParallelLedPipeline::Builder()
 	 *       .addStage(Shared::Builder(dot).shift(0))
 	 *       .addStage(Shared::Builder(dot).shift(20))

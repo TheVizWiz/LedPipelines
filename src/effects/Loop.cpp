@@ -31,12 +31,8 @@ void Loop::calculate(float startIndex, TemporaryLedData& tempData) {
 	// if the number of loops to run is 0, we run the effect infinitely.
 	currentNumLoops++;
 	if (numLoops != 0 && currentNumLoops >= numLoops) {
-		LPLogger::log("Current stage done, and loops completed.");
 		this->state = LedPipelineRunningState::DONE;
 	} else {
-		LPLogger::log(
-			String("Current stage done, and looping again. Loops Completed: ") + currentNumLoops + "/" + numLoops
-		);
 		this->state = LedPipelineRunningState::RUNNING;
 		this->stage->reset();
 		// since the stage might not calculate anything in done, we need to redo the stage.

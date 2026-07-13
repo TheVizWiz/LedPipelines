@@ -4,9 +4,9 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 namespace {
-	// Per-channel linear interpolation between two CRGB values. Rounds to the nearest byte per channel.
-	CRGB lerpRgb(const CRGB& a, const CRGB& b, float t) {
-		return CRGB(
+	// Per-channel linear interpolation between two RGBA values. Rounds to the nearest byte per channel.
+	RGBA lerpRgb(const RGBA& a, const RGBA& b, float t) {
+		return RGBA(
 			(uint8_t)(a.r + (b.r - a.r) * t + 0.5f),
 			(uint8_t)(a.g + (b.g - a.g) * t + 0.5f),
 			(uint8_t)(a.b + (b.b - a.b) * t + 0.5f)
@@ -18,10 +18,10 @@ RGBGradient::RGBGradient(
 	float startPosition,
 	float endPosition,
 	unsigned long runtimeMs,
-	CRGB startGradientStart,
-	CRGB startGradientEnd,
-	CRGB endGradientStart,
-	CRGB endGradientEnd,
+	RGBA startGradientStart,
+	RGBA startGradientEnd,
+	RGBA endGradientStart,
+	RGBA endGradientEnd,
 	SmoothingFunction smoothingFunction,
 	uint8_t opacity,
 	BlendingMode blendingMode
@@ -60,21 +60,21 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	}
 
 	// Collapse the two time-endpoint gradients into the single gradient in effect right now.
-	const CRGB nowStart = lerpRgb(startGradientStart, endGradientStart, timeT);
-	const CRGB nowEnd = lerpRgb(startGradientEnd, endGradientEnd, timeT);
+	const RGBA nowStart = lerpRgb(startGradientStart, endGradientStart, timeT);
+	const RGBA nowEnd = lerpRgb(startGradientEnd, endGradientEnd, timeT);
 
 	// POSITION axis. Endpoints are relative to where this stage sits in the pipeline (startIndex), matching
 	// SolidSegment. Normalize so lo < hi regardless of the order given, swapping the colors alongside the positions so
 	// the gradient stays anchored to its endpoints.
 	float lo = startIndex + startPosition;
 	float hi = startIndex + endPosition;
-	CRGB loColor = nowStart;
-	CRGB hiColor = nowEnd;
+	RGBA loColor = nowStart;
+	RGBA hiColor = nowEnd;
 	if (lo > hi) {
 		float tmpPos = lo;
 		lo = hi;
 		hi = tmpPos;
-		CRGB tmpColor = loColor;
+		RGBA tmpColor = loColor;
 		loColor = hiColor;
 		hiColor = tmpColor;
 	}
@@ -84,8 +84,8 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	const int loFloor = (int)lo;
 	const int hiFloor = (int)hi;
 
-	// The CRGB at a position along the segment, by fractional distance. A zero-length span collapses to the low color.
-	auto colorAt = [&](float pos) -> CRGB {
+	// The RGBA at a position along the segment, by fractional distance. A zero-length span collapses to the low color.
+	auto colorAt = [&](float pos) -> RGBA {
 		float posT = span > 0 ? (pos - lo) / span : 0.0f;
 		if (posT < 0) posT = 0;
 		if (posT > 1) posT = 1;
