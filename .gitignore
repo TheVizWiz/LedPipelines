@@ -1,4 +1,11 @@
 .pio
 # for pio pkg pack
 *.gz
+# editor / IDE config (machine-specific)
 .idea
+.vscode
+# Claude Code session scratch docs
+.claude
+# clangd/CLion compilation database - regenerate locally with `pio run -e local -t compiledb`
+# (contains machine-specific absolute paths, so not committed)
+compile_commands.json

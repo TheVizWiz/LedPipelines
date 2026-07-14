@@ -26,18 +26,15 @@ namespace ledpipelines::effects {
 
 			Moving* build() override {
 				return applyTiming(
-					new Moving(buildInner(), _runtimeMs, _startPosition, _endPosition, _smoothingFunction)
-				);
+					new Moving(buildInner(), _runtimeMs, _startPosition, _endPosition, _smoothingFunction));
 			}
 		};
 
 	protected:
-		Moving(
-			LedPipelineStage* stage,
-			unsigned long runtimeMs,
-			float startPosition,
-			float endPosition,
-			SmoothingFunction smoothingFunction
-		);
+		Moving(LedPipelineStage* stage,
+			   unsigned long runtimeMs,
+			   float startPosition,
+			   float endPosition,
+			   SmoothingFunction smoothingFunction);
 	};
 } // namespace ledpipelines::effects

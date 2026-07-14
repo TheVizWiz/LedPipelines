@@ -1,5 +1,7 @@
 #include "effects/Shift.h"
 
+#include <cmath>  // std::round
+
 using namespace ledpipelines;
 
 using namespace ledpipelines::effects;
@@ -19,15 +21,20 @@ RandomShift::RandomShift(
 	LedPipelineStage* stage,
 	const float minOffset,
 	const float maxOffset,
-	SamplingFunction samplingFunction
+	SamplingFunction samplingFunction,
+	bool useWholePixels
 )
-	: WrapperEffect(stage), minOffset(minOffset), maxOffset(maxOffset), samplingFunction(samplingFunction), offset(0) {}
+	: WrapperEffect(stage), minOffset(minOffset), maxOffset(maxOffset), samplingFunction(samplingFunction),
+	  useWholePixels(useWholePixels), offset(0) {}
 
 void RandomShift::calculate(const float startIndex, TemporaryLedData& tempData) {
 	// Sample the offset once, on the first run, then keep it stable for the life of this run. reset() (below) drops us
 	// back to NOT_STARTED so a subsequent run re-samples a fresh offset.
 	if (!this->sampled) {
 		this->offset = this->samplingFunction(this->minOffset, this->maxOffset);
+		// Snap to an integer pixel so the shifted copy lands exactly on LEDs (no fractional-coverage feathering across
+		// two pixels). Off by default; a caller sets it when it wants crisp per-pixel placement.
+		if (this->useWholePixels) this->offset = std::round(this->offset);
 		this->sampled = true;
 	}
 

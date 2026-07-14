@@ -26,14 +26,15 @@ namespace ledpipelines::effects {
 	};
 
 
-	// Like Shift, but the offset is sampled once from [minOffset, maxOffset] the first time the effect runs, rather than
-	// fixed at build time. reset() returns the effect to NOT_STARTED, so a re-run (e.g. inside a Loop) re-samples a fresh
-	// offset - mirroring how the random timed effects re-roll their duration on each run. Not a RandomTimedEffect: the
-	// randomized quantity here is a position, not a duration, so there is no timer involved.
+	// Like Shift, but the offset is sampled once from [minOffset, maxOffset] the first time the effect runs, rather
+	// than fixed at build time. reset() returns the effect to NOT_STARTED, so a re-run (e.g. inside a Loop) re-samples
+	// a fresh offset - mirroring how the random timed effects re-roll their duration on each run. Not a
+	// RandomTimedEffect: the randomized quantity here is a position, not a duration, so there is no timer involved.
 	struct RandomShift : WrapperEffect {
 		float minOffset;
 		float maxOffset;
 		SamplingFunction samplingFunction;
+		bool useWholePixels;
 
 		// The offset sampled for the current run. Set on the first calculate() after a reset; undefined until then.
 		float offset;
@@ -52,15 +53,20 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD_DEFAULT(float, minOffset, 0);
 			BUILDER_FIELD(float, maxOffset);
 			BUILDER_FIELD_DEFAULT(SamplingFunction, samplingFunction, SamplingFunction::UNIFORM);
+			BUILDER_FIELD_DEFAULT(bool, useWholePixels, false);
 
 			Builder(float maxOffset) : _maxOffset(maxOffset) {}
 
 			RandomShift* build() override {
-				return new RandomShift(buildInner(), _minOffset, _maxOffset, _samplingFunction);
+				return new RandomShift(buildInner(), _minOffset, _maxOffset, _samplingFunction, _useWholePixels);
 			}
 		};
 
 	protected:
-		RandomShift(LedPipelineStage* stage, float minOffset, float maxOffset, SamplingFunction samplingFunction);
+		RandomShift(LedPipelineStage* stage,
+					float minOffset,
+					float maxOffset,
+					SamplingFunction samplingFunction,
+					bool useWholePixels);
 	};
 } // namespace ledpipelines::effects

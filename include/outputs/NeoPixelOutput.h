@@ -66,7 +66,7 @@ namespace ledpipelines {
 		void setPixel(int /*strip*/, int indexInStrip, RGBA color) override {
 			// Always r, g, b - Adafruit_NeoPixel remaps to the strand's native order via the type flag. `color` is
 			// already opacity-baked by populate(); alpha is not sent to the LED (physical LEDs have no alpha).
-			strip.setPixelColor(indexInStrip, color.r, color.g, color.b);
+			this->strip.setPixelColor(indexInStrip, color.r, color.g, color.b);
 		}
 	};
 } // namespace ledpipelines
