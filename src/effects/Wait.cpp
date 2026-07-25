@@ -80,6 +80,7 @@ std::string Wait::toJson(bool includeState) {
 	result += jsonField("runtimeMs", (int)runtimeMs);
 	result += jsonField("delayMs", (int)delayMs);
 	result += jsonField("terminateOnComplete", terminateOnComplete);
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
 	result += "}";
 	return result;
 }
@@ -92,6 +93,7 @@ std::string RandomWait::toJson(bool includeState) {
 	result += jsonField("samplingFunction", samplingFunction);
 	result += jsonField("delayMs", (int)delayMs);
 	result += jsonField("terminateOnComplete", terminateOnComplete);
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonRandomTimedEffect());
 	result += "}";
 	return result;
 }

@@ -379,6 +379,59 @@ phases identical and expresses "and now the other way" as a single wrapper. Note
 
 See the [`examples/`](examples/) directory for more.
 
+## Serialization (optional)
+
+Any pipeline can serialize itself to a JSON string describing its whole stage tree — types, parameters, and nesting.
+It's useful for saving a configured pipeline to disk, inspecting what you built, or feeding a visualizer. Each example
+has a checked-in `serialized.json` showing the output for that example's pipeline.
+
+Serialization is **off by default** and compiled out entirely unless you opt in — a build that never serializes pays
+nothing for it (no code, not even a vtable slot). To turn it on, define `LEDPIPELINES_SERIALIZATION` in your build
+flags:
+
+```ini
+build_flags =
+    -D LEDPIPELINES_SERIALIZATION
+```
+
+With the flag set, every stage gains a `toJson()` method:
+
+```cpp
+LedPipelineStage* pipeline = /* ...build your pipeline... */;
+std::string json      = pipeline->toJson();      // config only
+std::string withState = pipeline->toJson(true);  // config + live running state
+```
+
+**Config vs. state.** `toJson()` (or `toJson(false)`) emits each stage's authored *configuration* — the parameters you
+built it with (colors, positions, runtimes, …). `toJson(true)` additionally attaches a `"state"` sub-object to every
+stage capturing its *live* runtime state at the moment you call it — the running state (`NOT_STARTED`/`RUNNING`/`DONE`),
+and, where applicable, timeline (`startTimeMs`, `elapsedPercentage`), a `Moving`'s `currentPosition`, a `Loop`'s
+`currentNumLoops`, a `SeriesLedPipeline`'s `currentStage`, and so on. Config and state are kept separate: config is the
+reconstructive recipe, state is an observational snapshot.
+
+```jsonc
+{
+  "type": "Moving", "id": "aB3xK9pQr",
+  "startPosition": 0, "endPosition": 50, "smoothingFunction": "LINEAR",   // config
+  "runtimeMs": 3000, "delayMs": 0, "terminateOnComplete": false,
+  "state": {                                                              // only under toJson(true)
+    "runningState": "RUNNING", "startTimeMs": 1234, "elapsedPercentage": 0.42, "currentPosition": 21
+  },
+  "stage": { "type": "SolidSegment", ... }
+}
+```
+
+A few more things to know:
+
+- **Every stage gets a random `id`.** Emitted alongside each node so a shared sub-effect (see
+  [Sharing a sub-effect](#sharing-a-sub-effect)) can be recognized by its repeated `id` where the same instance appears
+  in more than one place in the tree.
+- **A few effects aren't fully serializable.** `Spawner`'s factory is arbitrary C++ and serializes as
+  `"non-serializable"`; a `SamplingFunction` built from a custom warp lambda (rather than a named preset) serializes as
+  `"custom"`. Everything else round-trips its configuration faithfully.
+- **No deserializer yet.** Serialization is currently one-way — there is no `fromJson` to rebuild a pipeline from its
+  JSON.
+
 ## Constraints
 
 A few things are worth knowing before you build something large:

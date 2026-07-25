@@ -35,6 +35,7 @@ std::string Toggle::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Toggle");
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonField("isActive", isActive));
 	result += "}";
 	return result;
 }

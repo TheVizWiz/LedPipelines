@@ -69,6 +69,7 @@ std::string Moving::toJson(bool includeState) {
 	result += jsonField("delayMs", (int)delayMs);
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect() + jsonField("currentPosition", currentPosition));
 	result += "}";
 	return result;
 }

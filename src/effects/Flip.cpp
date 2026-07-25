@@ -41,6 +41,7 @@ std::string Flip::toJson(bool includeState) {
 	result += jsonField("minIndex", (int)minIndex);
 	result += jsonField("maxIndex", (int)maxIndex);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }

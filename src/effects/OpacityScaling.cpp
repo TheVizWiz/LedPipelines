@@ -26,6 +26,7 @@ std::string OpacityScale::toJson(bool includeState) {
 	result += jsonHeader("OpacityScale");
 	result += jsonField("maxOpacity", (int)maxOpacity);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }

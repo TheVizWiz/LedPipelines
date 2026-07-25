@@ -8,6 +8,12 @@ Solid::Solid(const RGBA color, BlendingMode blendingMode) : LedPipelineStage(ble
 }
 
 void Solid::calculate(const float startIndex, TemporaryLedData& tempData) {
+	// A source has no lifecycle of its own - it just always draws - but it must still report RUNNING once it starts
+	// rendering, not sit at NOT_STARTED. reset() drops every stage back to NOT_STARTED; without re-arming here, a Solid
+	// would render correctly yet perpetually report NOT_STARTED. It never reaches DONE (a Solid never finishes on its
+	// own), which is exactly why a Loop around a bare Solid loops forever - unchanged by this.
+	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
+
 	// A Solid fills the entire strip regardless of where it's positioned, so clamp the start to the strip bounds.
 	// Without this, a negative startIndex (e.g. from a Moving/Shift wrapper) would start the loop at a negative index.
 	int start = startIndex < 0 ? 0 : (int)startIndex;
@@ -21,6 +27,10 @@ SolidSegment::SolidSegment(const RGBA color, float length, BlendingMode blending
 	: Solid(color, blendingMode), length(length) {}
 
 void SolidSegment::calculate(float startIndex, TemporaryLedData& tempData) {
+	// See Solid::calculate - a source re-arms to RUNNING once it starts rendering. SolidSegment overrides calculate()
+	// rather than delegating, so it needs the same guard.
+	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
+
 	const float endIndex = startIndex + length;
 
 	const int startIndexFloor = (int)startIndex;
@@ -65,6 +75,7 @@ std::string Solid::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Solid");
 	result += jsonField("color", color);
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }
@@ -74,6 +85,7 @@ std::string SolidSegment::toJson(bool includeState) {
 	result += jsonHeader("SolidSegment");
 	result += jsonField("color", color);
 	result += jsonField("length", length);
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }

@@ -149,6 +149,7 @@ std::string HSVGradient::toJson(bool includeState) {
 	result += jsonField("runtimeMs", (int)runtimeMs);
 	result += jsonField("delayMs", (int)delayMs);
 	result += jsonField("terminateOnComplete", terminateOnComplete);
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
 	result += "}";
 	return result;
 }

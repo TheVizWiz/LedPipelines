@@ -57,6 +57,7 @@ std::string Mask::toJson(bool includeState) {
 	result += jsonRawField("base", base->toJson(includeState));
 	result += jsonRawField("mask", mask->toJson(includeState));
 	result += jsonField("useMaskRuntime", useMaskRuntime);
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }

@@ -85,6 +85,7 @@ std::string Repeat::toJson(bool includeState) {
 	result += jsonField("repeatDistance", repeatDistance);
 	result += jsonField("repeatBlendingMode", repeatBlendingMode);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }

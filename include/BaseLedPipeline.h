@@ -22,6 +22,11 @@
 #include "enums/SamplingFunction.h"
 #include "enums/SmoothingFunction.h"
 
+// Free-function JSON field formatters shared with the timing mixins. Under LEDPIPELINES_SERIALIZATION this defines
+// ledpipelines::serialization::jsonField(...); otherwise it is empty, so this include costs nothing when serialization
+// is off.
+#include "serialization/JsonFields.h"
+
 namespace ledpipelines {
 	// The minimum spacing between rendered frames, in microseconds (0 = no limit). run() consults it to self-rate-limit
 	// (see setMaxRefreshRate). Defined in BaseLedPipeline.cpp so there is a single shared instance across translation
@@ -307,87 +312,44 @@ namespace ledpipelines {
 		 * list of helper functions used in serialization.
 		 */
 
-		std::string jsonState() {
+		// Opens a stage's "state" sub-object with the running state - the state analog of jsonHeader(), which opens the
+		// config object with type/id. No leading comma: this is the FIRST field inside the state object, so subsequent
+		// state fields (jsonField, or the timed-effect state helpers) add their own comma, exactly as config fields do
+		// after jsonHeader.
+		std::string jsonStateHeader() {
 			switch (state) {
-			case LedPipelineRunningState::NOT_STARTED: return R"("state": "NOT_STARTED")";
-			case LedPipelineRunningState::RUNNING: return R"("state": "RUNNING")";
-			case LedPipelineRunningState::DONE: return R"("state": "DONE")";
+			case LedPipelineRunningState::NOT_STARTED: return R"("runningState": "NOT_STARTED")";
+			case LedPipelineRunningState::RUNNING: return R"("runningState": "RUNNING")";
+			case LedPipelineRunningState::DONE: return R"("runningState": "DONE")";
 			}
-			return R"("state" : "UNSPECIFIED")";
+			return R"("runningState": "UNSPECIFIED")";
 		}
 
 		std::string jsonHeader(const std::string& type) {
 			return R"("type": ")" + type + R"(", "id": ")" + std::string(id) + "\"";
 		}
 
-		static std::string jsonField(const std::string& name, const std::string& value) {
-			return ",\"" + name + "\" : \"" + value + "\"";
+		// Field formatters are shared free functions (serialization/JsonFields.h) so the timing mixins - which do not
+		// inherit LedPipelineStage - can format identically. These thin static forwarders keep effect toJson() bodies
+		// reading as jsonField(...) / jsonRawField(...) with no qualification, while the one formatting implementation
+		// lives in the free functions. Templated so every jsonField overload is forwarded without re-listing each.
+		template <typename T>
+		static std::string jsonField(const std::string& name, const T& value) {
+			return ledpipelines::serialization::jsonField(name, value);
 		}
 
-		static std::string jsonField(const std::string& name, int value) {
-			// Format the number into a fixed scratch buffer, then append. The buffer bounds only the single number's
-			// text (an int is at most 11 chars + sign + NUL), never the returned string; snprintf always NUL-terminates
-			// and never overflows. 32 bytes is comfortably larger than any int/float token.
-			char buf[32];
-			snprintf(buf, sizeof(buf), "%d", value);
-			return (",\"" + name + "\" : ").append(buf);
-		}
-
-		static std::string jsonField(const std::string& name, float value) {
-			// See the int overload. "%.9g" round-trips a 32-bit float (9 significant digits) without the trailing-zero
-			// verbosity of std::to_string, and is locale-independent.
-			char buf[32];
-			snprintf(buf, sizeof(buf), "%.9g", (double)value);
-			return (",\"" + name + "\" : ").append(buf);
-		}
-
-		static std::string jsonField(const std::string& name, bool value) {
-			return ",\"" + name + (value ? "\" : true" : "\" : false");
-		}
-
-		// Enum-typed fields serialize as their stable string name (see each enum's name()/blendingModeName). Routed
-		// through the string overload so they are quoted like any other string value.
-		static std::string jsonField(const std::string& name, SmoothingFunction value) {
-			return jsonField(name, std::string(value.name()));
-		}
-
-		static std::string jsonField(const std::string& name, const SamplingFunction& value) {
-			return jsonField(name, std::string(value.name()));
-		}
-
-		static std::string jsonField(const std::string& name, BlendingMode value) {
-			return jsonField(name, std::string(blendingModeName(value)));
-		}
-
-		// A color serializes as an object of its four channels, e.g. "color" : {"r":255,"g":0,"b":0,"a":255}. Emitted
-		// as a raw (unquoted) JSON object, so it goes through the same raw-value path as a nested stage rather than the
-		// quoted string overload.
-		static std::string jsonField(const std::string& name, const RGBA& value) {
-			std::string obj = "{";
-			obj += jsonField("r", (int)value.r).substr(1);  // substr(1) drops each helper's leading comma
-			obj += jsonField("g", (int)value.g);
-			obj += jsonField("b", (int)value.b);
-			obj += jsonField("a", (int)value.a);
-			obj += "}";
-			return jsonRawField(name, obj);
-		}
-
-		// A floating-point HSVA color serializes as {"h":..,"s":..,"v":..,"a":..}.
-		static std::string jsonField(const std::string& name, const FHSVA& value) {
-			std::string obj = "{";
-			obj += jsonField("h", value.h).substr(1);
-			obj += jsonField("s", value.s);
-			obj += jsonField("v", value.v);
-			obj += jsonField("a", (int)value.a);
-			obj += "}";
-			return jsonRawField(name, obj);
-		}
-
-		// A field whose value is already a JSON fragment (a nested stage's toJson(), or an object built above) - emitted
-		// WITHOUT the surrounding quotes the string overload adds, so the nested JSON is not corrupted into a quoted
-		// string. Use this for nested stages: jsonRawField("stage", inner->toJson(includeState)).
 		static std::string jsonRawField(const std::string& name, const std::string& rawJson) {
-			return ",\"" + name + "\" : " + rawJson;
+			return ledpipelines::serialization::jsonRawField(name, rawJson);
+		}
+
+		// Wrap an already-assembled block of state fields into the stage's "state" sub-object, attached to the config
+		// object as ,"state" : { <inner> }. The caller builds `inner` exactly like the config object is built: start
+		// with jsonStateHeader() (the first field, no leading comma - it emits runningState), then append
+		// comma-prefixed fields (jsonField, jsonTimedEffect(), the effect's own runtime members). Emitted only under
+		// toJson(true), immediately before the closing brace:
+		//   if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect() + ...);
+		std::string jsonStateObject(const std::string& inner) {
+			return jsonRawField("state", "{" + inner + "}");
 		}
 
 #endif

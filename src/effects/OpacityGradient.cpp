@@ -173,6 +173,7 @@ std::string OpacityGradient::toJson(bool includeState) {
 	result += jsonField("endIndex", endIndex);
 	result += jsonField("smoothingFunction", smoothingFunction);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }

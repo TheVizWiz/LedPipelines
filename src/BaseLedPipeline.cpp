@@ -3,6 +3,10 @@
 
 using namespace ledpipelines;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+// Fill a 9-char id + NUL. Only compiled under serialization, matching the guarded `id` field on LedPipelineStage - the
+// id exists purely to identify stages in serialized JSON, so a non-serializing build carries neither the field nor its
+// generator.
 static void generateRandomId(char* id) {
 	static const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 								"abcdefghijklmnopqrstuvwxyz"
@@ -13,10 +17,13 @@ static void generateRandomId(char* id) {
 	}
 	id[9] = '\0';
 }
+#endif
 
 LedPipelineStage::LedPipelineStage(BlendingMode blendingMode)
 	: blendingMode(blendingMode), lastUpdateTimeMicros(micros()) {
+#ifdef LEDPIPELINES_SERIALIZATION
 	generateRandomId(id);
+#endif
 }
 
 LedPipelineStage::~LedPipelineStage() = default;
@@ -143,6 +150,7 @@ std::string ParallelLedPipeline::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("ParallelLedPipeline");
 	result += jsonRawField("children", children);
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }
@@ -158,6 +166,8 @@ std::string SeriesLedPipeline::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("SeriesLedPipeline");
 	result += jsonRawField("children", children);
+	// currentStage - which child is currently running - is runtime state.
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonField("currentStage", currentStage));
 	result += "}";
 	return result;
 }

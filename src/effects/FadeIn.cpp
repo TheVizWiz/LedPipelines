@@ -128,6 +128,7 @@ std::string FadeIn::toJson(bool includeState) {
 	result += jsonField("delayMs", (int)delayMs);
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
 	result += "}";
 	return result;
 }
@@ -142,6 +143,7 @@ std::string RandomFadeIn::toJson(bool includeState) {
 	result += jsonField("delayMs", (int)delayMs);
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonRandomTimedEffect());
 	result += "}";
 	return result;
 }

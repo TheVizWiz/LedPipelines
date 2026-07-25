@@ -20,6 +20,7 @@ std::string AbsolutePosition::toJson(bool includeState) {
 	result += jsonHeader("AbsolutePosition");
 	result += jsonField("position", position);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }

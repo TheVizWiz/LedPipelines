@@ -47,6 +47,7 @@ std::string Loop::toJson(bool includeState) {
 	result += jsonHeader("Loop");
 	result += jsonField("numLoops", (int)numLoops);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonField("currentNumLoops", (int)currentNumLoops));
 	result += "}";
 	return result;
 }

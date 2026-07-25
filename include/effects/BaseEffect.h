@@ -112,6 +112,18 @@ namespace ledpipelines::effects {
 
 		virtual void resetTimer();
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		// The timed-effect STATE fields, as comma-prefixed JSON fragments to append after jsonStateHeader() inside a
+		// stage's state object. Only the live timeline is state: startTimeMs (when the effect began) and
+		// elapsedPercentage (how far along it is). runtimeMs/delayMs/terminateOnComplete are author-set CONFIG and are
+		// emitted by each effect's config section, not here. Formats via the shared free functions since TimedEffect
+		// does not inherit LedPipelineStage.
+		std::string jsonTimedEffect() const {
+			using namespace ledpipelines::serialization;
+			return jsonField("startTimeMs", (int)startTimeMs) + jsonField("elapsedPercentage", elapsedPercentage);
+		}
+#endif
+
 		/**
 		 * Standalone mixin builder contributing timing fields. Deliberately does NOT derive from
 		 * LedPipelineStage::Builder: leaf builders (e.g. Moving, FadeIn) inherit that base through their other builder
@@ -159,6 +171,17 @@ namespace ledpipelines::effects {
 		void sampleRuntime();
 
 		void resetTimer() override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		// The random-timed-effect STATE fields, as comma-prefixed JSON fragments to append after jsonStateHeader().
+		// Unlike a plain TimedEffect, runtimeMs here is SAMPLED at runtime (re-rolled each resetTimer via
+		// sampleRuntime), so it is state, not config - minRuntimeMs/maxRuntimeMs/samplingFunction are the config. Also
+		// includes the inherited timeline (startTimeMs, elapsedPercentage) so an effect needs only this one call.
+		std::string jsonRandomTimedEffect() const {
+			using namespace ledpipelines::serialization;
+			return jsonField("runtimeMs", (int)runtimeMs) + jsonTimedEffect();
+		}
+#endif
 
 		/**
 		 * Standalone mixin builder (see TimedEffect::Builder for why it does not derive from

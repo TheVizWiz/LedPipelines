@@ -58,6 +58,7 @@ std::string Shift::toJson(bool includeState) {
 	result += jsonHeader("Shift");
 	result += jsonField("offset", offset);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }
@@ -70,6 +71,7 @@ std::string RandomShift::toJson(bool includeState) {
 	result += jsonField("samplingFunction", samplingFunction);
 	result += jsonField("useWholePixels", useWholePixels);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonField("offset", offset) + jsonField("sampled", sampled));
 	result += "}";
 	return result;
 }

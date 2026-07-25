@@ -34,6 +34,7 @@ std::string Shared::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Shared");
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader());
 	result += "}";
 	return result;
 }

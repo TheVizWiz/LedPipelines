@@ -89,6 +89,7 @@ std::string TimeBox::toJson(bool includeState) {
 	result += jsonField("delayMs", (int)delayMs);
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
 	result += "}";
 	return result;
 }
@@ -102,6 +103,7 @@ std::string RandomTimeBox::toJson(bool includeState) {
 	result += jsonField("delayMs", (int)delayMs);
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonRandomTimedEffect());
 	result += "}";
 	return result;
 }
