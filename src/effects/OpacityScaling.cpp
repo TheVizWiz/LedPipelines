@@ -18,3 +18,15 @@ void OpacityScale::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	this->state = this->stage->state;
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string OpacityScale::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("OpacityScale");
+	result += jsonField("maxOpacity", (int)maxOpacity);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

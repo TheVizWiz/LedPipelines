@@ -15,6 +15,10 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : WrapperEffect::Builder<FadeOut, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::SMOOTH_LINEAR);
 
@@ -58,6 +62,10 @@ namespace ledpipelines::effects {
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		void reset() override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
 
 	private:
 		RandomFadeOut(

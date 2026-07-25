@@ -18,6 +18,10 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : WrapperEffect::Builder<Toggle, Builder> {
 			Builder() {};
 

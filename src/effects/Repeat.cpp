@@ -75,3 +75,17 @@ void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 		}
 	}
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Repeat::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Repeat");
+	result += jsonField("numRepeats", (int)numRepeats);
+	result += jsonField("repeatDistance", repeatDistance);
+	result += jsonField("repeatBlendingMode", repeatBlendingMode);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

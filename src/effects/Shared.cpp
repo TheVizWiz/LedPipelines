@@ -27,3 +27,14 @@ void Shared::reset() {
 	// harmless for the stateless sources Shared is intended for.
 	this->stage->reset();
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Shared::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Shared");
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

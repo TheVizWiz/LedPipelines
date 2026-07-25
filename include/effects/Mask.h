@@ -16,6 +16,10 @@ namespace ledpipelines::effects {
 
 		~Mask() override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : LedPipelineStage::Builder<Mask, Builder> {
 			BUILDER_FIELD(LedPipelineStage*, base);
 			BUILDER_FIELD(LedPipelineStage*, mask);

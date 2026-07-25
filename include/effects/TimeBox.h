@@ -8,6 +8,10 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : WrapperEffect::Builder<TimeBox, Builder>, TimedEffect::Builder<Builder> {
 			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
 
@@ -24,6 +28,10 @@ namespace ledpipelines::effects {
 		void reset() override;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
 
 		struct Builder : WrapperEffect::Builder<RandomTimeBox, Builder>, RandomTimedEffect::Builder<Builder> {
 			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};

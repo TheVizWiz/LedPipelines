@@ -110,9 +110,9 @@ them manually.
 
 | Effect         | Builder                                  | What it does                                                                                                                                                                                                                                                                                                                                                                                          |
 |----------------|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Solid`        | `Solid::Builder(color)`                  | Fills the entire strip with one color. `.opacity(0-255)`.                                                                                                                                                                                                                                                                                                                                             |
+| `Solid`        | `Solid::Builder(color)`                  | Fills the entire strip with one color. Opacity comes from the color's own alpha (`RGBA`'s `a` channel).                                                                                                                                                                                                                                                                                                |
 | `SolidSegment` | `SolidSegment::Builder(color, length)`   | Lights a segment of `length` pixels starting where it's positioned. Fractional lengths feather the end pixels.                                                                                                                                                                                                                                                                                        |
-| `HSVGradient`  | `HSVGradient::Builder(startPos, endPos)` | Writes a gradient between two positions, interpolating in **HSV** — the blend travels around the color wheel (red→blue passes through magenta or green). `.startGradient(a, b)` sets the look; add a runtime + `.endGradient(a, b)` to morph one gradient into another over time. Hue is in degrees and wraps at 360 (so `0..720` = two rainbows). Corners are `FHSV`; see [HSV colors](#hsv-colors). |
+| `HSVGradient`  | `HSVGradient::Builder(startPos, endPos)` | Writes a gradient between two positions, interpolating in **HSV** — the blend travels around the color wheel (red→blue passes through magenta or green). `.startGradient(a, b)` sets the look; add a runtime + `.endGradient(a, b)` to morph one gradient into another over time. Hue is in degrees and wraps at 360 (so `0..720` = two rainbows). Corners are `FHSVA`; see [HSV colors](#hsv-colors). |
 | `RGBGradient`  | `RGBGradient::Builder(startPos, endPos)` | Same as `HSVGradient`, but interpolates each **RGB channel** directly — a straight crossfade between the two colors through their RGB midpoint (red→blue passes through dim purple, not the wheel). Corners are `RGBA`. Use this for a plain smooth blend; use `HSVGradient` when you want the intermediate hues.                                                                                     |
 | `Mask`         | `Mask::Builder(base, mask)`              | Uses one stage's brightness to gate another — `base` shows through only where `mask` is lit.                                                                                                                                                                                                                                                                                                          |
 | `Spawner`      | `Spawner::Builder(factory)`              | Periodically spawns child effects from a factory (`[]{ return SomeEffect::Builder(...).build(); }`). Great for sparkles/particles. `TimedSpawner` spawns on a fixed interval; `RandomTimedSpawner` varies it.                                                                                                                                                                                         |
@@ -231,16 +231,19 @@ FastLED's `CRGB`), so you never touch the driver's color type directly.
 
 ### HSV colors
 
-`HSVGradient` and any future HSV effects use `FHSV`, a floating-point HSV color:
+`HSVGradient` and any future HSV effects use `FHSVA`, a floating-point HSV color with an alpha/opacity byte:
 
 ```cpp
-FHSV(hue, saturation, value)
+FHSVA(hue, saturation, value)        // opaque by default (a = 255)
+FHSVA(hue, saturation, value, a)     // explicit opacity
 ```
 
 - **`hue`** — degrees. Any value is accepted and wrapped into `[0, 360)` at render, so `500` → `140°` and `0..720`
   sweeps two full rainbows.
 - **`saturation`** — `0.0`–`1.0`. `1` = vivid color, `0` = washed out to gray/white.
 - **`value`** — `0.0`–`1.0`. `1` = full brightness, `0` = black.
+- **`a`** — `0`–`255` opacity, matching `RGBA` (0 = transparent, 255 = opaque). Carried through to the rendered pixel,
+  so a gradient can fade opacity across its corners.
 
 ## Quick Start Guide.
 

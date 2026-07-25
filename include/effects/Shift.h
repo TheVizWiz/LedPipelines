@@ -10,6 +10,10 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 
 		struct Builder : WrapperEffect::Builder<Shift, Builder> {
 			BUILDER_FIELD(float, offset);
@@ -47,6 +51,10 @@ namespace ledpipelines::effects {
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		void reset() override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
 
 
 		struct Builder : WrapperEffect::Builder<RandomShift, Builder> {

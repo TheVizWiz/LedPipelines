@@ -49,4 +49,22 @@ namespace ledpipelines::effects {
 	void Path::reset() {
 		WrapperEffect::reset();
 	}
+
+#ifdef LEDPIPELINES_SERIALIZATION
+	std::string Path::toJson(bool includeState) {
+		std::string result = "{";
+		result += jsonHeader("Path");
+		std::string segs = "[";
+		for (size_t i = 0; i < segments.size(); i++) {
+			if (i > 0) segs += ",";
+			segs += "{\"start\" : " + std::to_string(segments[i].first) + ", \"end\" : "
+				+ std::to_string(segments[i].second) + "}";
+		}
+		segs += "]";
+		result += jsonRawField("segments", segs);
+		result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+		result += "}";
+		return result;
+	}
+#endif
 } // namespace ledpipelines::effects

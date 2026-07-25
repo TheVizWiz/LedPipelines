@@ -71,3 +71,28 @@ void RandomWait::reset() {
 	LedPipelineStage::reset();
 	RandomTimedEffect::resetTimer();
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Wait::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Wait");
+	result += jsonField("runtimeMs", (int)runtimeMs);
+	result += jsonField("delayMs", (int)delayMs);
+	result += jsonField("terminateOnComplete", terminateOnComplete);
+	result += "}";
+	return result;
+}
+
+std::string RandomWait::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("RandomWait");
+	result += jsonField("minRuntimeMs", (int)minRuntimeMs);
+	result += jsonField("maxRuntimeMs", (int)maxRuntimeMs);
+	result += jsonField("samplingFunction", samplingFunction);
+	result += jsonField("delayMs", (int)delayMs);
+	result += jsonField("terminateOnComplete", terminateOnComplete);
+	result += "}";
+	return result;
+}
+#endif

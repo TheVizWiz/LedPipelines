@@ -39,3 +39,15 @@ void Loop::calculate(float startIndex, TemporaryLedData& tempData) {
 		//        this->stage->calculate(startIndex, tempData);
 	}
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Loop::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Loop");
+	result += jsonField("numLoops", (int)numLoops);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

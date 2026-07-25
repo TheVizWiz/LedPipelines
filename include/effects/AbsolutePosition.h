@@ -20,6 +20,11 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 	private:
 		explicit AbsolutePosition(LedPipelineStage* stage, float position = 0);
 	};

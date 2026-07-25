@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -152,11 +153,11 @@ namespace ledpipelines {
 
 			~Builder() override = default;
 
-			// Copyable and movable. A builder is a reusable recipe: reusing one (e.g. wrapping the same builder into two
-			// different parents) copies it so each use yields an independent tree, and the original stays valid. Leaf
-			// builders copy member-wise via these defaults; builders that own another builder through a
-			// unique_ptr<StageBuilder> (WrapperEffect::Builder's inner, LedPipeline::Builder's children) override the copy
-			// members to deep-clone that owned builder rather than shallow-copy the pointer.
+			// Copyable and movable. A builder is a reusable recipe: reusing one (e.g. wrapping the same builder into
+			// two different parents) copies it so each use yields an independent tree, and the original stays valid.
+			// Leaf builders copy member-wise via these defaults; builders that own another builder through a
+			// unique_ptr<StageBuilder> (WrapperEffect::Builder's inner, LedPipeline::Builder's children) override the
+			// copy members to deep-clone that owned builder rather than shallow-copy the pointer.
 			Builder(const Builder&) = default;
 			Builder& operator=(const Builder&) = default;
 			Builder(Builder&&) = default;
@@ -213,14 +214,14 @@ namespace ledpipelines {
 			}
 
 			/**
-			 * Wrap this builder in a WrapperEffect's builder, staying entirely in "builder land": nothing is built here.
-			 * This builder is adopted as the wrapper's inner builder; the wrapper builder is then returned by value so
-			 * more setters or wrap()s can follow with '.', deferring build() to the end (or to addStage), e.g.
+			 * Wrap this builder in a WrapperEffect's builder, staying entirely in "builder land": nothing is built
+			 * here. This builder is adopted as the wrapper's inner builder; the wrapper builder is then returned by
+			 * value so more setters or wrap()s can follow with '.', deferring build() to the end (or to addStage), e.g.
 			 * Solid::Builder(RGBA::Red).wrap(OpacityGradient::Builder(4)).wrap(Loop::Builder()).build().
 			 *
 			 * Two overloads, so a builder is a reusable recipe:
-			 *   - called on an LVALUE (a named builder): this builder is COPIED (deep clone) into the wrapper, leaving the
-			 *     original intact so it can be reused - e.g. `ball.wrap(A); ball.wrap(B);` gives two independent trees.
+			 *   - called on an LVALUE (a named builder): this builder is COPIED (deep clone) into the wrapper, leaving
+			 * the original intact so it can be reused - e.g. `ball.wrap(A); ball.wrap(B);` gives two independent trees.
 			 *   - called on an RVALUE (a temporary chain, or an explicit std::move): this builder is MOVED into the
 			 *     wrapper (no copy), since a temporary won't be reused.
 			 * Either way the inner is stored as a builder (not a built stage), so each build() of the result produces a
@@ -238,8 +239,7 @@ namespace ledpipelines {
 			auto wrap(B&& wrapper) && -> std::remove_reference_t<B> {
 				// Rvalue: move this builder (the concrete leaf type, via CRTP) onto the heap - no copy needed.
 				std::unique_ptr<StageBuilder> inner(
-					new ConcreteBuilder(std::move(static_cast<ConcreteBuilder&>(*this)))
-				);
+					new ConcreteBuilder(std::move(static_cast<ConcreteBuilder&>(*this))));
 				wrapper.innerBuilder(std::move(inner));
 				return std::move(wrapper);
 			}
@@ -265,6 +265,13 @@ namespace ledpipelines {
 
 		LedPipelineRunningState state = LedPipelineRunningState::NOT_STARTED;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		// A random per-instance identifier, emitted in the serialized JSON (see jsonHeader). Only needed for
+		// serialization, so both the field and its generation (LedPipelineStage's constructor) are compiled out when
+		// serialization is disabled - a non-serializing build pays neither the 10 bytes nor the generation cost.
+		char id[10] = "123456789";
+#endif
+
 		BlendingMode blendingMode;
 
 
@@ -277,6 +284,113 @@ namespace ledpipelines {
 		explicit LedPipelineStage(BlendingMode blendingMode = BlendingMode::NORMAL);
 
 		virtual ~LedPipelineStage();
+
+#ifdef LEDPIPELINES_SERIALIZATION
+
+		/**
+		 * Converts the current stage to a JSON serialized string, without including the current state. Shorthand
+		 * for `toJson(includeState=false)`.
+		 * @return the pipeline without any state information.
+		 */
+		std::string toJson() {
+			return toJson(false);
+		}
+
+		/**
+		 * Serialize the current effect into a JSON string. This can be saved to disk or used to display the current
+		 * state of the pipeline, among other uses. It provides a portable way to share pipelines.
+		 */
+		virtual std::string toJson(bool includeState) = 0;
+
+	protected:
+		/**
+		 * list of helper functions used in serialization.
+		 */
+
+		std::string jsonState() {
+			switch (state) {
+			case LedPipelineRunningState::NOT_STARTED: return R"("state": "NOT_STARTED")";
+			case LedPipelineRunningState::RUNNING: return R"("state": "RUNNING")";
+			case LedPipelineRunningState::DONE: return R"("state": "DONE")";
+			}
+			return R"("state" : "UNSPECIFIED")";
+		}
+
+		std::string jsonHeader(const std::string& type) {
+			return R"("type": ")" + type + R"(", "id": ")" + std::string(id) + "\"";
+		}
+
+		static std::string jsonField(const std::string& name, const std::string& value) {
+			return ",\"" + name + "\" : \"" + value + "\"";
+		}
+
+		static std::string jsonField(const std::string& name, int value) {
+			// Format the number into a fixed scratch buffer, then append. The buffer bounds only the single number's
+			// text (an int is at most 11 chars + sign + NUL), never the returned string; snprintf always NUL-terminates
+			// and never overflows. 32 bytes is comfortably larger than any int/float token.
+			char buf[32];
+			snprintf(buf, sizeof(buf), "%d", value);
+			return (",\"" + name + "\" : ").append(buf);
+		}
+
+		static std::string jsonField(const std::string& name, float value) {
+			// See the int overload. "%.9g" round-trips a 32-bit float (9 significant digits) without the trailing-zero
+			// verbosity of std::to_string, and is locale-independent.
+			char buf[32];
+			snprintf(buf, sizeof(buf), "%.9g", (double)value);
+			return (",\"" + name + "\" : ").append(buf);
+		}
+
+		static std::string jsonField(const std::string& name, bool value) {
+			return ",\"" + name + (value ? "\" : true" : "\" : false");
+		}
+
+		// Enum-typed fields serialize as their stable string name (see each enum's name()/blendingModeName). Routed
+		// through the string overload so they are quoted like any other string value.
+		static std::string jsonField(const std::string& name, SmoothingFunction value) {
+			return jsonField(name, std::string(value.name()));
+		}
+
+		static std::string jsonField(const std::string& name, const SamplingFunction& value) {
+			return jsonField(name, std::string(value.name()));
+		}
+
+		static std::string jsonField(const std::string& name, BlendingMode value) {
+			return jsonField(name, std::string(blendingModeName(value)));
+		}
+
+		// A color serializes as an object of its four channels, e.g. "color" : {"r":255,"g":0,"b":0,"a":255}. Emitted
+		// as a raw (unquoted) JSON object, so it goes through the same raw-value path as a nested stage rather than the
+		// quoted string overload.
+		static std::string jsonField(const std::string& name, const RGBA& value) {
+			std::string obj = "{";
+			obj += jsonField("r", (int)value.r).substr(1);  // substr(1) drops each helper's leading comma
+			obj += jsonField("g", (int)value.g);
+			obj += jsonField("b", (int)value.b);
+			obj += jsonField("a", (int)value.a);
+			obj += "}";
+			return jsonRawField(name, obj);
+		}
+
+		// A floating-point HSVA color serializes as {"h":..,"s":..,"v":..,"a":..}.
+		static std::string jsonField(const std::string& name, const FHSVA& value) {
+			std::string obj = "{";
+			obj += jsonField("h", value.h).substr(1);
+			obj += jsonField("s", value.s);
+			obj += jsonField("v", value.v);
+			obj += jsonField("a", (int)value.a);
+			obj += "}";
+			return jsonRawField(name, obj);
+		}
+
+		// A field whose value is already a JSON fragment (a nested stage's toJson(), or an object built above) - emitted
+		// WITHOUT the surrounding quotes the string overload adds, so the nested JSON is not corrupted into a quoted
+		// string. Use this for nested stages: jsonRawField("stage", inner->toJson(includeState)).
+		static std::string jsonRawField(const std::string& name, const std::string& rawJson) {
+			return ",\"" + name + "\" : " + rawJson;
+		}
+
+#endif
 
 	private:
 		uint64_t lastUpdateTimeMicros;
@@ -332,7 +446,8 @@ namespace ledpipelines {
 			//   - the CHILD is COPIED when passed as an lvalue (a named builder, reusable afterwards) and MOVED when
 			//     passed as an rvalue (a temporary / std::move) - so `p.addStage(x); q.addStage(x);` gives p and q
 			//     independent children and leaves x intact.
-			//   - `*this` (the pipeline builder) chains in place on an lvalue (returns ConcreteBuilder&) and moves out by
+			//   - `*this` (the pipeline builder) chains in place on an lvalue (returns ConcreteBuilder&) and moves out
+			//   by
 			//     value on an rvalue temporary (returns ConcreteBuilder), so a chain ending in addStage needs no
 			//     std::move to be captured.
 			template <typename U, typename V>
@@ -406,6 +521,10 @@ namespace ledpipelines {
 		ParallelLedPipeline(BlendingMode mode = BlendingMode::NORMAL);
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
 	};
 
 	/**
@@ -428,6 +547,10 @@ namespace ledpipelines {
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		void reset() override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
 
 	private:
 		int currentStage = -1;

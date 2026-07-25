@@ -37,6 +37,22 @@ namespace ledpipelines {
 		/** Build from a user-supplied warp (implicit, so a lambda can be passed straight to a builder setter). */
 		SamplingFunction(Warp warp) : warp(std::move(warp)) {}
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		// The preset's stable string name for serialization, or "custom" for a user-supplied warp. Unlike
+		// SmoothingFunction, a SamplingFunction can be built from an arbitrary lambda whose identity is erased into the
+		// std::function, so it is not always reconstructible; the preset name is retained (see the preset ctor) only
+		// when built from a preset. A "custom" warp serializes as a marker and rebuilds as UNIFORM.
+		const char* name() const {
+			if (!builtFromPreset) return "custom";
+			switch (presetValue) {
+			case UNIFORM: return "UNIFORM";
+			case CENTERED: return "CENTERED";
+			case EDGES: return "EDGES";
+			}
+			return "UNIFORM";
+		}
+#endif
+
 		float operator()() const {
 			return this->operator()(0, 1);
 		}
@@ -49,5 +65,13 @@ namespace ledpipelines {
 
 	private:
 		Warp warp;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		// Retained purely for serialization: which preset this was built from, and whether it was built from a preset at
+		// all (vs. a custom warp). Set by the two constructors. Guarded so a non-serializing build carries neither the
+		// extra byte nor the bool.
+		SamplingFunction_ presetValue = UNIFORM;
+		bool builtFromPreset = false;
+#endif
 	};
 } // namespace ledpipelines

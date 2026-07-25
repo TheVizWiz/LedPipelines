@@ -7,7 +7,7 @@ namespace ledpipelines::effects {
 	 * HSVGradient is a source effect that writes a color gradient between two positions on the strip, and can
 	 * optionally animate that gradient over time.
 	 *
-	 * The color at a given (pixel, moment) is a bilinear interpolation across four FHSV corners - two axes, each with a
+	 * The color at a given (pixel, moment) is a bilinear interpolation across four FHSVA corners - two axes, each with a
 	 * start and end:
 	 *
 	 *   - POSITION axis: startPosition .. endPosition along the strip.
@@ -41,29 +41,31 @@ namespace ledpipelines::effects {
 		float endPosition;
 
 		// The gradient at t=0.
-		FHSV startGradientStart;
-		FHSV startGradientEnd;
+		FHSVA startGradientStart;
+		FHSVA startGradientEnd;
 
 		// The gradient at t=runtimeMs. When these equal the startGradient corners, the gradient is static.
-		FHSV endGradientStart;
-		FHSV endGradientEnd;
+		FHSVA endGradientStart;
+		FHSVA endGradientEnd;
 
 		SmoothingFunction smoothingFunction;
-		uint8_t opacity;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		void reset() override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : LedPipelineStage::Builder<HSVGradient, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD(float, startPosition);
 			BUILDER_FIELD(float, endPosition);
-			BUILDER_FIELD_DEFAULT(FHSV, startGradientStart, FHSV());
-			BUILDER_FIELD_DEFAULT(FHSV, startGradientEnd, FHSV());
-			BUILDER_FIELD_DEFAULT(FHSV, endGradientStart, FHSV());
-			BUILDER_FIELD_DEFAULT(FHSV, endGradientEnd, FHSV());
+			BUILDER_FIELD_DEFAULT(FHSVA, startGradientStart, FHSVA());
+			BUILDER_FIELD_DEFAULT(FHSVA, startGradientEnd, FHSVA());
+			BUILDER_FIELD_DEFAULT(FHSVA, endGradientStart, FHSVA());
+			BUILDER_FIELD_DEFAULT(FHSVA, endGradientEnd, FHSVA());
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::LINEAR);
-			BUILDER_FIELD_DEFAULT(uint8_t, opacity, 0xFF);
 
 			// A static gradient: no timeline. endGradient defaults to matching startGradient (see startGradient()).
 			Builder(float startPosition, float endPosition)
@@ -78,7 +80,7 @@ namespace ledpipelines::effects {
 			// toward the default (black) corners. Ref-qualified like the BUILDER_FIELD setters: lvalue chains in place
 			// (returns Builder&), rvalue temporary moves out by value (returns Builder) so a chain can be captured with
 			// auto without hitting the deleted copy constructor.
-			Builder& startGradient(FHSV atStart, FHSV atEnd) & {
+			Builder& startGradient(FHSVA atStart, FHSVA atEnd) & {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -86,7 +88,7 @@ namespace ledpipelines::effects {
 				return *this;
 			}
 
-			Builder startGradient(FHSV atStart, FHSV atEnd) && {
+			Builder startGradient(FHSVA atStart, FHSVA atEnd) && {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -95,13 +97,13 @@ namespace ledpipelines::effects {
 			}
 
 			// Set the gradient morphed toward at t=runtimeMs (start-of-position color -> end-of-position color).
-			Builder& endGradient(FHSV atStart, FHSV atEnd) & {
+			Builder& endGradient(FHSVA atStart, FHSVA atEnd) & {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return *this;
 			}
 
-			Builder endGradient(FHSV atStart, FHSV atEnd) && {
+			Builder endGradient(FHSVA atStart, FHSVA atEnd) && {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return std::move(*this);
@@ -117,7 +119,6 @@ namespace ledpipelines::effects {
 					_endGradientStart,
 					_endGradientEnd,
 					_smoothingFunction,
-					_opacity,
 					_blendingMode
 				));
 			}
@@ -128,12 +129,11 @@ namespace ledpipelines::effects {
 			float startPosition,
 			float endPosition,
 			unsigned long runtimeMs,
-			FHSV startGradientStart,
-			FHSV startGradientEnd,
-			FHSV endGradientStart,
-			FHSV endGradientEnd,
+			FHSVA startGradientStart,
+			FHSVA startGradientEnd,
+			FHSVA endGradientStart,
+			FHSVA endGradientEnd,
 			SmoothingFunction smoothingFunction,
-			uint8_t opacity,
 			BlendingMode blendingMode = BlendingMode::NORMAL
 		);
 	};

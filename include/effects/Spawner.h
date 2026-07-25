@@ -22,6 +22,10 @@ namespace ledpipelines::effects {
 
 		void spawn();
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : LedPipelineStage::Builder<Spawner, Builder> {
 			BUILDER_FIELD(EffectSpawnerFactory, factory);
 			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
@@ -50,6 +54,10 @@ namespace ledpipelines::effects {
 		unsigned long lastSpawnTimeMs = 0;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
 
 		struct Builder : LedPipelineStage::Builder<TimedSpawner, Builder> {
 			BUILDER_FIELD(EffectSpawnerFactory, factory);
@@ -82,6 +90,10 @@ namespace ledpipelines::effects {
 		SamplingFunction spawnTimeSamplingFunction;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
 
 		struct Builder : LedPipelineStage::Builder<RandomTimedSpawner, Builder> {
 			BUILDER_FIELD(EffectSpawnerFactory, factory);

@@ -1,4 +1,3 @@
-#include "FastLED.h"
 #include "LedPipelines.h"
 #include "outputs/FastLEDOutput.h"  // the FastLED backend - opt in explicitly; the core no longer depends on FastLED
 
@@ -73,7 +72,6 @@ void setup() {
 			)
 			.addStage(
 				SolidSegment::Builder(RGBA::White, 10)
-					.opacity(0xFF)
 					.wrap(OpacityGradient::Builder(1))
 					.wrap(OpacityGradient::Builder(1))
 					.wrap(

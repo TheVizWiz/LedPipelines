@@ -37,6 +37,10 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : LedPipelineStage::Builder<Shared, Builder> {
 			// The shared inner stage. Held as a shared_ptr (not a StageBuilder) precisely so build() reuses the same
 			// instance instead of rebuilding a fresh one - that reuse is the whole point of Shared.

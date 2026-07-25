@@ -1,0 +1,139 @@
+{
+  "type": "Loop",
+  "id": "7rR71r83P",
+  "numLoops": 0,
+  "stage": {
+    "type": "SeriesLedPipeline",
+    "id": "unK06onhX",
+    "children": [
+      {
+        "type": "TimeBox",
+        "id": "7q0b0mWBp",
+        "runtimeMs": 2000,
+        "delayMs": 0,
+        "terminateOnComplete": false,
+        "stage": {
+          "type": "Moving",
+          "id": "YkKpjNKgr",
+          "startPosition": 0,
+          "endPosition": 80,
+          "smoothingFunction": "INVERSE_QUADRATIC",
+          "runtimeMs": 2000,
+          "delayMs": 0,
+          "terminateOnComplete": false,
+          "stage": {
+            "type": "Shared",
+            "id": "bbknlVWjb",
+            "stage": {
+              "type": "ResetBlocker",
+              "id": "34aaqwYGQ",
+              "stage": {
+                "type": "Loop",
+                "id": "vor3G7Qly",
+                "numLoops": 0,
+                "stage": {
+                  "type": "HSVGradient",
+                  "id": "csuRP2649",
+                  "startPosition": 0,
+                  "endPosition": 9,
+                  "startGradientStart": {
+                    "h": 0,
+                    "s": 1,
+                    "v": 1,
+                    "a": 255
+                  },
+                  "startGradientEnd": {
+                    "h": 0,
+                    "s": 1,
+                    "v": 1,
+                    "a": 255
+                  },
+                  "endGradientStart": {
+                    "h": 360,
+                    "s": 1,
+                    "v": 1,
+                    "a": 255
+                  },
+                  "endGradientEnd": {
+                    "h": 360,
+                    "s": 1,
+                    "v": 1,
+                    "a": 255
+                  },
+                  "smoothingFunction": "LINEAR",
+                  "runtimeMs": 10000,
+                  "delayMs": 0,
+                  "terminateOnComplete": false
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "TimeBox",
+        "id": "jSdcLaYq6",
+        "runtimeMs": 2000,
+        "delayMs": 0,
+        "terminateOnComplete": false,
+        "stage": {
+          "type": "Moving",
+          "id": "QPrZ1GLSx",
+          "startPosition": 80,
+          "endPosition": 0,
+          "smoothingFunction": "QUADRATIC",
+          "runtimeMs": 2000,
+          "delayMs": 0,
+          "terminateOnComplete": false,
+          "stage": {
+            "type": "Shared",
+            "id": "nrb7bji6D",
+            "stage": {
+              "type": "ResetBlocker",
+              "id": "34aaqwYGQ",
+              "stage": {
+                "type": "Loop",
+                "id": "vor3G7Qly",
+                "numLoops": 0,
+                "stage": {
+                  "type": "HSVGradient",
+                  "id": "csuRP2649",
+                  "startPosition": 0,
+                  "endPosition": 9,
+                  "startGradientStart": {
+                    "h": 0,
+                    "s": 1,
+                    "v": 1,
+                    "a": 255
+                  },
+                  "startGradientEnd": {
+                    "h": 0,
+                    "s": 1,
+                    "v": 1,
+                    "a": 255
+                  },
+                  "endGradientStart": {
+                    "h": 360,
+                    "s": 1,
+                    "v": 1,
+                    "a": 255
+                  },
+                  "endGradientEnd": {
+                    "h": 360,
+                    "s": 1,
+                    "v": 1,
+                    "a": 255
+                  },
+                  "smoothingFunction": "LINEAR",
+                  "runtimeMs": 10000,
+                  "delayMs": 0,
+                  "terminateOnComplete": false
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

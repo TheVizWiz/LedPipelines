@@ -4,12 +4,14 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 namespace {
-	// Per-channel linear interpolation between two RGBA values. Rounds to the nearest byte per channel.
+	// Per-channel linear interpolation between two RGBA values, INCLUDING alpha. Rounds to the nearest byte per
+	// channel. Interpolating alpha lets a gradient fade opacity across its corners (e.g. opaque -> transparent).
 	RGBA lerpRgb(const RGBA& a, const RGBA& b, float t) {
 		return RGBA(
 			(uint8_t)(a.r + (b.r - a.r) * t + 0.5f),
 			(uint8_t)(a.g + (b.g - a.g) * t + 0.5f),
-			(uint8_t)(a.b + (b.b - a.b) * t + 0.5f)
+			(uint8_t)(a.b + (b.b - a.b) * t + 0.5f),
+			(uint8_t)(a.a + (b.a - a.a) * t + 0.5f)
 		);
 	}
 } // namespace
@@ -23,7 +25,6 @@ RGBGradient::RGBGradient(
 	RGBA endGradientStart,
 	RGBA endGradientEnd,
 	SmoothingFunction smoothingFunction,
-	uint8_t opacity,
 	BlendingMode blendingMode
 )
 	: LedPipelineStage(blendingMode),
@@ -34,8 +35,7 @@ RGBGradient::RGBGradient(
 	  startGradientEnd(startGradientEnd),
 	  endGradientStart(endGradientStart),
 	  endGradientEnd(endGradientEnd),
-	  smoothingFunction(smoothingFunction),
-	  opacity(opacity) {}
+	  smoothingFunction(smoothingFunction) {}
 
 void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -92,26 +92,31 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 		return lerpRgb(loColor, hiColor, posT);
 	};
 
+	// Opacity is the interpolated color's own alpha (colorAt(...).a); partial end pixels scale it by their coverage.
 	if (loFloor == hiFloor) {
 		// Whole segment sits within one pixel: light it partially by the segment length, colored at the segment start.
-		tempData.set(loFloor, colorAt(lo) * span, opacity);
+		const RGBA c = colorAt(lo);
+		tempData.set(loFloor, c * span, c.a);
 	} else {
 		// First (possibly partial) pixel: color at the segment start, opacity scaled by how much of the pixel it
 		// covers.
 		const float firstPixelCoverage = 1 - (lo - loFloor);
 		if (firstPixelCoverage != 0) {
-			tempData.set(loFloor, colorAt(lo), opacity * firstPixelCoverage);
+			const RGBA c = colorAt(lo);
+			tempData.set(loFloor, c, c.a * firstPixelCoverage);
 		}
 
 		// Full interior pixels: color sampled at the pixel center (i + 0.5) so the gradient is evaluated mid-pixel.
 		for (int i = loFloor + 1; i < hiFloor; i++) {
-			tempData.set(i, colorAt(i + 0.5f), opacity);
+			const RGBA c = colorAt(i + 0.5f);
+			tempData.set(i, c, c.a);
 		}
 
 		// Last (possibly partial) pixel.
 		const float lastPixelCoverage = hi - hiFloor;
 		if (lastPixelCoverage != 0) {
-			tempData.set(hiFloor, colorAt(hi), opacity * lastPixelCoverage);
+			const RGBA c = colorAt(hi);
+			tempData.set(hiFloor, c, c.a * lastPixelCoverage);
 		}
 	}
 
@@ -126,3 +131,23 @@ void RGBGradient::reset() {
 	LedPipelineStage::reset();
 	TimedEffect::resetTimer();
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string RGBGradient::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("RGBGradient");
+	result += jsonField("startPosition", startPosition);
+	result += jsonField("endPosition", endPosition);
+	result += jsonField("startGradientStart", startGradientStart);
+	result += jsonField("startGradientEnd", startGradientEnd);
+	result += jsonField("endGradientStart", endGradientStart);
+	result += jsonField("endGradientEnd", endGradientEnd);
+	result += jsonField("smoothingFunction", smoothingFunction);
+	result += jsonField("runtimeMs", (int)runtimeMs);
+	result += jsonField("delayMs", (int)delayMs);
+	result += jsonField("terminateOnComplete", terminateOnComplete);
+	result += "}";
+	return result;
+}
+#endif

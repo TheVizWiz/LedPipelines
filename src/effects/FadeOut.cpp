@@ -110,3 +110,32 @@ void RandomFadeOut::reset() {
 	WrapperEffect::reset();
 	RandomTimedEffect::resetTimer();
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string FadeOut::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("FadeOut");
+	result += jsonField("smoothingFunction", smoothingFunction);
+	result += jsonField("runtimeMs", (int)runtimeMs);
+	result += jsonField("delayMs", (int)delayMs);
+	result += jsonField("terminateOnComplete", terminateOnComplete);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+
+std::string RandomFadeOut::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("RandomFadeOut");
+	result += jsonField("smoothingFunction", smoothingFunction);
+	result += jsonField("minRuntimeMs", (int)minRuntimeMs);
+	result += jsonField("maxRuntimeMs", (int)maxRuntimeMs);
+	result += jsonField("samplingFunction", samplingFunction);
+	result += jsonField("delayMs", (int)delayMs);
+	result += jsonField("terminateOnComplete", terminateOnComplete);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

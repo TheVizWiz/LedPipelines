@@ -50,3 +50,27 @@ void RandomShift::reset() {
 	WrapperEffect::reset();
 	this->sampled = false;
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Shift::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Shift");
+	result += jsonField("offset", offset);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+
+std::string RandomShift::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("RandomShift");
+	result += jsonField("minOffset", minOffset);
+	result += jsonField("maxOffset", maxOffset);
+	result += jsonField("samplingFunction", samplingFunction);
+	result += jsonField("useWholePixels", useWholePixels);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

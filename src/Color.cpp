@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-RGBA FHSV::toRGBA() {
+RGBA FHSVA::toRGBA() {
 
 	// Wrap hue into [0, 360) and clamp saturation/value into [0, 1].
 	const float h = this->h - 360.0f * floorf(this->h / 360.0f);
@@ -49,9 +49,11 @@ RGBA FHSV::toRGBA() {
 		break; // case 5 and hPrime == 6 edge (h just under 360)
 	}
 
+	// Carry the HSVA alpha straight through as the RGBA alpha, so opacity authored on the FHSVA survives conversion.
 	return RGBA(static_cast<uint8_t>((r1 + m) * 255 + 0.5f),
 				static_cast<uint8_t>((g1 + m) * 255 + 0.5f),
-				static_cast<uint8_t>((b1 + m) * 255 + 0.5f));
+				static_cast<uint8_t>((b1 + m) * 255 + 0.5f),
+				this->a);
 }
 
 RGBA& RGBA::operator=(uint32_t code) {

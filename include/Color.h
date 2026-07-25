@@ -16,18 +16,26 @@
 struct RGBA;
 
 /**
- * A floating-point HSV color. Unlike FastLED's uint8_t CHSV (hue 0-255, artistic rainbow map), this keeps full
+ * A floating-point HSVA color. Unlike FastLED's uint8_t CHSV (hue 0-255, artistic rainbow map), this keeps full
  * precision so hues can be interpolated smoothly and wrap cleanly. hue is in degrees and may be any value - it is
  * wrapped into [0, 360) at conversion time (e.g. 500 wraps to 140, -30 wraps to 330). s and v are in [0, 1].
+ *
+ * The fourth channel `a` is the pixel's opacity (0-255), matching RGBA - it is carried through toRGBA() so an HSV
+ * gradient can vary opacity across its corners. It defaults to fully opaque (255), and the three-argument constructor
+ * leaves it opaque, so authoring a color as FHSVA(h, s, v) behaves exactly as before.
  */
-struct FHSV {
+struct FHSVA {
 	float h = 0;
 	float s = 1;
 	float v = 1;
+	uint8_t a = 255;
 
-	FHSV() = default;
+	FHSVA() = default;
 
-	FHSV(float h, float s, float v) : h(h), s(s), v(v) {}
+	// Three-arg form: opaque (a = 255). Kept so existing FHSVA(h, s, v) call sites are unchanged.
+	FHSVA(float h, float s, float v) : h(h), s(s), v(v) {}
+
+	FHSVA(float h, float s, float v, uint8_t a) : h(h), s(s), v(v), a(a) {}
 
 	RGBA toRGBA();
 };

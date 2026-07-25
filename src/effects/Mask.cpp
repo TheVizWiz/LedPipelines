@@ -48,3 +48,16 @@ void Mask::reset() {
 	base->reset();
 	mask->reset();
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Mask::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Mask");
+	result += jsonRawField("base", base->toJson(includeState));
+	result += jsonRawField("mask", mask->toJson(includeState));
+	result += jsonField("useMaskRuntime", useMaskRuntime);
+	result += "}";
+	return result;
+}
+#endif

@@ -7,6 +7,11 @@ using namespace ledpipelines;
 // Map a preset enum to its warp. The warp reshapes a uniform draw x in [0, 1] into [0, 1]; operator() rescales the
 // result into [min, max].
 SamplingFunction::SamplingFunction(SamplingFunction_ preset) {
+#ifdef LEDPIPELINES_SERIALIZATION
+	// Retain the preset so serialization can name it (see SamplingFunction::name). The warp itself erases this.
+	presetValue = preset;
+	builtFromPreset = true;
+#endif
 	switch (preset) {
 	// Identity: a uniform draw stays uniform.
 	case UNIFORM:

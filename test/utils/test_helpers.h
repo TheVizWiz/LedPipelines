@@ -64,6 +64,15 @@ namespace test_helpers {
 
 		void calculate(float, TemporaryLedData &) override {}
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override {
+			std::string result = "{";
+			result += jsonHeader("SpyEffect");
+			result += "}";
+			return result;
+		}
+#endif
+
 		struct Builder : LedPipelineStage::Builder<SpyEffect, Builder> {
 			SpyEffect *build() override { return new SpyEffect(); }
 		};

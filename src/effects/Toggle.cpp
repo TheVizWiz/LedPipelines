@@ -28,3 +28,14 @@ void Toggle::activate() {
 void Toggle::toggle() {
 	this->isActive = !this->isActive;
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Toggle::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Toggle");
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

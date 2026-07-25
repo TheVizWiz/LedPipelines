@@ -49,11 +49,14 @@ namespace ledpipelines::effects {
 		RGBA endGradientEnd;
 
 		SmoothingFunction smoothingFunction;
-		uint8_t opacity;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 		void reset() override;
+
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
 
 		struct Builder : LedPipelineStage::Builder<RGBGradient, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD(float, startPosition);
@@ -63,7 +66,6 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD_DEFAULT(RGBA, endGradientStart, RGBA(0, 0, 0));
 			BUILDER_FIELD_DEFAULT(RGBA, endGradientEnd, RGBA(0, 0, 0));
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::LINEAR);
-			BUILDER_FIELD_DEFAULT(uint8_t, opacity, 0xFF);
 
 			// A static gradient: no timeline. endGradient defaults to matching startGradient (see startGradient()).
 			Builder(float startPosition, float endPosition)
@@ -117,7 +119,6 @@ namespace ledpipelines::effects {
 					_endGradientStart,
 					_endGradientEnd,
 					_smoothingFunction,
-					_opacity,
 					_blendingMode
 				));
 			}
@@ -133,7 +134,6 @@ namespace ledpipelines::effects {
 			RGBA endGradientStart,
 			RGBA endGradientEnd,
 			SmoothingFunction smoothingFunction,
-			uint8_t opacity,
 			BlendingMode blendingMode = BlendingMode::NORMAL
 		);
 	};

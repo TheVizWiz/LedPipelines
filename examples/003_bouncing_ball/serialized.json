@@ -1,0 +1,75 @@
+{
+  "type": "Loop",
+  "id": "vrAB5Y965",
+  "numLoops": 0,
+  "stage": {
+    "type": "TimeBox",
+    "id": "JeY4czWCd",
+    "runtimeMs": 2000,
+    "delayMs": 0,
+    "terminateOnComplete": false,
+    "stage": {
+      "type": "Moving",
+      "id": "rySGzqkls",
+      "startPosition": 0,
+      "endPosition": -80,
+      "smoothingFunction": "INVERSE_QUADRATIC",
+      "runtimeMs": 2000,
+      "delayMs": 2000,
+      "terminateOnComplete": false,
+      "stage": {
+        "type": "Moving",
+        "id": "4oHlJZjcA",
+        "startPosition": 0,
+        "endPosition": 80,
+        "smoothingFunction": "INVERSE_QUADRATIC",
+        "runtimeMs": 2000,
+        "delayMs": 0,
+        "terminateOnComplete": false,
+        "stage": {
+          "type": "ResetBlocker",
+          "id": "6Fv74LOLX",
+          "stage": {
+            "type": "Loop",
+            "id": "EHhgcC0fY",
+            "numLoops": 0,
+            "stage": {
+              "type": "HSVGradient",
+              "id": "k5T5PjQpY",
+              "startPosition": 0,
+              "endPosition": 9,
+              "startGradientStart": {
+                "h": 0,
+                "s": 1,
+                "v": 1,
+                "a": 255
+              },
+              "startGradientEnd": {
+                "h": 360,
+                "s": 1,
+                "v": 1,
+                "a": 255
+              },
+              "endGradientStart": {
+                "h": 360,
+                "s": 1,
+                "v": 1,
+                "a": 255
+              },
+              "endGradientEnd": {
+                "h": 720,
+                "s": 1,
+                "v": 1,
+                "a": 255
+              },
+              "smoothingFunction": "LINEAR",
+              "runtimeMs": 1000,
+              "delayMs": 0,
+              "terminateOnComplete": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

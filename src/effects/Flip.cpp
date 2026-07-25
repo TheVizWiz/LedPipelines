@@ -32,3 +32,16 @@ void Flip::calculate(float startIndex, ledpipelines::TemporaryLedData& tempData)
 	}
 	this->state = this->stage->state;
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Flip::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Flip");
+	result += jsonField("minIndex", (int)minIndex);
+	result += jsonField("maxIndex", (int)maxIndex);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

@@ -26,3 +26,14 @@ void ResetBlocker::reset() {
 		LedPipelineStage::reset();
 	}
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string ResetBlocker::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("ResetBlocker");
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif

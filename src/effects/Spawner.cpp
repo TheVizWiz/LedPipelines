@@ -112,4 +112,41 @@ namespace ledpipelines::effects {
 		}
 		Spawner::calculate(startIndex, tempData);
 	}
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+	std::string Spawner::toJson(bool includeState) {
+		std::string result = "{";
+		result += jsonHeader("Spawner");
+		result += jsonField("maxChildren", (int)maxChildren);
+		result += jsonField("keepOldOnSpawn", keepOldOnSpawn);
+		result += jsonField("factory", std::string("non-serializable"));
+		result += "}";
+		return result;
+	}
+
+	std::string TimedSpawner::toJson(bool includeState) {
+		std::string result = "{";
+		result += jsonHeader("TimedSpawner");
+		result += jsonField("maxChildren", (int)maxChildren);
+		result += jsonField("keepOldOnSpawn", keepOldOnSpawn);
+		result += jsonField("spawnTimeMs", (int)spawnTimeMs);
+		result += jsonField("factory", std::string("non-serializable"));
+		result += "}";
+		return result;
+	}
+
+	std::string RandomTimedSpawner::toJson(bool includeState) {
+		std::string result = "{";
+		result += jsonHeader("RandomTimedSpawner");
+		result += jsonField("maxChildren", (int)maxChildren);
+		result += jsonField("keepOldOnSpawn", keepOldOnSpawn);
+		result += jsonField("minSpawnTimeMs", (int)minSpawnTimeMs);
+		result += jsonField("maxSpawnTimeMs", (int)maxSpawnTimeMs);
+		result += jsonField("spawnTimeSamplingFunction", spawnTimeSamplingFunction);
+		result += jsonField("factory", std::string("non-serializable"));
+		result += "}";
+		return result;
+	}
+#endif
 } // namespace ledpipelines::effects

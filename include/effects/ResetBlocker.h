@@ -21,6 +21,10 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : WrapperEffect::Builder<ResetBlocker, Builder> {
 			Builder() = default;
 

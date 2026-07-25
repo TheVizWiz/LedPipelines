@@ -1,10 +1,23 @@
 #include "BaseLedPipeline.h"
-#include "LedOutput.h"  // getOutput() - the registered render backend
+#include "LedOutput.h" // getOutput() - the registered render backend
 
 using namespace ledpipelines;
 
+static void generateRandomId(char* id) {
+	static const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+								"abcdefghijklmnopqrstuvwxyz"
+								"0123456789";
+
+	for (int i = 0; i < 9; i++) {
+		id[i] = chars[rand() % (sizeof(chars) - 1)];
+	}
+	id[9] = '\0';
+}
+
 LedPipelineStage::LedPipelineStage(BlendingMode blendingMode)
-	: blendingMode(blendingMode), lastUpdateTimeMicros(micros()) {}
+	: blendingMode(blendingMode), lastUpdateTimeMicros(micros()) {
+	generateRandomId(id);
+}
 
 LedPipelineStage::~LedPipelineStage() = default;
 
@@ -117,3 +130,35 @@ void SeriesLedPipeline::reset() {
 	LedPipeline::reset();
 	this->currentStage = 0;
 }
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string ParallelLedPipeline::toJson(bool includeState) {
+	std::string children = "[";
+	for (size_t i = 0; i < stages.size(); i++) {
+		if (i > 0) children += ",";
+		children += stages[i]->toJson(includeState);
+	}
+	children += "]";
+
+	std::string result = "{";
+	result += jsonHeader("ParallelLedPipeline");
+	result += jsonRawField("children", children);
+	result += "}";
+	return result;
+}
+
+std::string SeriesLedPipeline::toJson(bool includeState) {
+	std::string children = "[";
+	for (size_t i = 0; i < stages.size(); i++) {
+		if (i > 0) children += ",";
+		children += stages[i]->toJson(includeState);
+	}
+	children += "]";
+
+	std::string result = "{";
+	result += jsonHeader("SeriesLedPipeline");
+	result += jsonRawField("children", children);
+	result += "}";
+	return result;
+}
+#endif

@@ -11,6 +11,10 @@ namespace ledpipelines::effects {
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
+#ifdef LEDPIPELINES_SERIALIZATION
+		std::string toJson(bool includeState) override;
+#endif
+
 		struct Builder : WrapperEffect::Builder<OpacityGradient, Builder> {
 			BUILDER_FIELD_DEFAULT(float, startIndex, 0);
 			BUILDER_FIELD(float, endIndex);

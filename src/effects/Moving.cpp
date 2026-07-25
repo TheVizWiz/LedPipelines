@@ -56,3 +56,20 @@ void Moving::reset() {
 	WrapperEffect::reset();
 	this->currentPosition = this->startPosition;
 }
+
+
+#ifdef LEDPIPELINES_SERIALIZATION
+std::string Moving::toJson(bool includeState) {
+	std::string result = "{";
+	result += jsonHeader("Moving");
+	result += jsonField("startPosition", startPosition);
+	result += jsonField("endPosition", endPosition);
+	result += jsonField("smoothingFunction", smoothingFunction);
+	result += jsonField("runtimeMs", (int)runtimeMs);
+	result += jsonField("delayMs", (int)delayMs);
+	result += jsonField("terminateOnComplete", terminateOnComplete);
+	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
+	result += "}";
+	return result;
+}
+#endif
