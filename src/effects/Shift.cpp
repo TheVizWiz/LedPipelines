@@ -6,49 +6,33 @@ using namespace ledpipelines;
 
 using namespace ledpipelines::effects;
 
+Shift::Shift(LedPipelineStage* stage, Value<float> offset, bool useWholePixels)
+	: WrapperEffect(stage), offset(std::move(offset)), useWholePixels(useWholePixels) {
+	// Sample the offset once for this lifecycle, so this effect gets its own draw off the (possibly shared) recipe -
+	// a constant always yields the same value; a RandomRange draws one. The result is cached in offset.value.
+	this->offset.sample();
+}
+
+float Shift::effectiveOffset() const {
+	// Snap to an integer pixel so the shifted copy lands exactly on LEDs (no fractional-coverage feathering across two
+	// pixels) when useWholePixels is set. Applied on read rather than baked into offset.value, so the raw sampled value
+	// is preserved for serialization.
+	return useWholePixels ? std::round(offset.value) : offset.value;
+}
+
 void Shift::calculate(const float startIndex, TemporaryLedData& tempData) {
-	this->stage->calculate(startIndex + offset, tempData);
+	this->stage->calculate(startIndex + effectiveOffset(), tempData);
 
 	// Pass through the inner's lifecycle: Shift adds no timing of its own, so it is DONE exactly when its inner is.
 	// Without this a Shift-wrapped effect never reports DONE, which (for example) stops a Spawner from ever reaping it.
 	this->state = this->stage->state;
 }
 
-Shift::Shift(LedPipelineStage* stage, const float offset) : WrapperEffect(stage), offset(offset) {}
-
-
-RandomShift::RandomShift(
-	LedPipelineStage* stage,
-	const float minOffset,
-	const float maxOffset,
-	SamplingFunction samplingFunction,
-	bool useWholePixels
-)
-	: WrapperEffect(stage), minOffset(minOffset), maxOffset(maxOffset), samplingFunction(samplingFunction),
-	  useWholePixels(useWholePixels), offset(0) {}
-
-void RandomShift::calculate(const float startIndex, TemporaryLedData& tempData) {
-	// Sample the offset once, on the first run, then keep it stable for the life of this run. reset() (below) drops us
-	// back to NOT_STARTED so a subsequent run re-samples a fresh offset.
-	if (!this->sampled) {
-		this->offset = this->samplingFunction(this->minOffset, this->maxOffset);
-		// Snap to an integer pixel so the shifted copy lands exactly on LEDs (no fractional-coverage feathering across
-		// two pixels). Off by default; a caller sets it when it wants crisp per-pixel placement.
-		if (this->useWholePixels) this->offset = std::round(this->offset);
-		this->sampled = true;
-	}
-
-	this->stage->calculate(startIndex + this->offset, tempData);
-
-	// Pass through the inner's lifecycle so RandomShift reports DONE when its inner finishes (see Shift::calculate).
-	// This is what lets a Spawner reap a Shift-wrapped, terminating child instead of piling children up to maxChildren
-	// and then never spawning again.
-	this->state = this->stage->state;
-}
-
-void RandomShift::reset() {
+void Shift::reset() {
 	WrapperEffect::reset();
-	this->sampled = false;
+	// Re-roll the offset for the next run. For a constant this is a no-op; for a RandomRange it draws a fresh offset -
+	// the "sample once per lifecycle, resample on reset" contract (mirrors the old RandomShift re-sampling).
+	this->offset.sample();
 }
 
 
@@ -56,22 +40,11 @@ void RandomShift::reset() {
 std::string Shift::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Shift");
-	result += jsonField("offset", offset);
-	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
-	if (includeState) result += jsonStateObject(jsonStateHeader());
-	result += "}";
-	return result;
-}
-
-std::string RandomShift::toJson(bool includeState) {
-	std::string result = "{";
-	result += jsonHeader("RandomShift");
-	result += jsonField("minOffset", minOffset);
-	result += jsonField("maxOffset", maxOffset);
-	result += jsonField("samplingFunction", samplingFunction);
+	// Config emits the offset RECIPE (a constant, or a RandomRange spec); the sampled offset is state.
+	result += jsonRawField("offset", offset.describeValue());
 	result += jsonField("useWholePixels", useWholePixels);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
-	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonField("offset", offset) + jsonField("sampled", sampled));
+	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonField("sampledOffset", effectiveOffset()));
 	result += "}";
 	return result;
 }

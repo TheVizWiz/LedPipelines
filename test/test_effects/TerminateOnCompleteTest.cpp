@@ -65,19 +65,21 @@ TEST(TerminateOnCompleteTest, FadeInTerminatesWhenRampCompletes) {
 	delete fade;
 }
 
-// RandomFadeIn honors the flag too. This also guards the applyTiming() wiring: RandomFadeIn::Builder::build() must run
-// the product through applyTiming(), or terminateOnComplete (and delayMs) would silently never reach the effect. With
-// min == max the sampled runtime is deterministic (1000ms), so we can assert an exact boundary.
+// A randomized-duration FadeIn (runtime given as a RandomRange) honors the flag too. This also guards the applyTiming()
+// wiring: FadeIn::Builder::build() must run the product through applyTiming(), or terminateOnComplete (and delayMs)
+// would silently never reach the effect. With min == max the sampled runtime is deterministic (1000ms), so we can
+// assert an exact boundary.
 TEST(TerminateOnCompleteTest, RandomFadeInTerminatesWhenSampledRampCompletes) {
 	setUpLeds();
 	SpyEffect::resetCounters();
 	resetTestClock();
 
-	// minRuntimeMs defaults to 0; pin both ends to 1000 so the uniform sample is exactly 1000ms.
-	auto *fade =
-		SpyEffect::Builder().wrap(RandomFadeIn::Builder(1000).minRuntimeMs(1000).terminateOnComplete(true)).build();
+	// Pin both ends of the range to 1000 so the sample is exactly 1000ms. runtimeMs is a Value<unsigned long>.
+	auto *fade = SpyEffect::Builder()
+					 .wrap(FadeIn::Builder(RandomRange<unsigned long>(1000, 1000)).terminateOnComplete(true))
+					 .build();
 
-	tick(fade);  // stamps start at t=0 and samples runtime (1000)
+	tick(fade);  // stamps start at t=0 (runtime was sampled at build: 1000)
 	advanceTestClock(999);
 	tick(fade);
 	EXPECT_EQ(fade->state, LedPipelineRunningState::RUNNING) << "one ms before the sampled ramp end";
@@ -85,7 +87,7 @@ TEST(TerminateOnCompleteTest, RandomFadeInTerminatesWhenSampledRampCompletes) {
 	advanceTestClock(1);  // total elapsed = 1000 == sampled runtime
 	tick(fade);
 	EXPECT_EQ(fade->state, LedPipelineRunningState::DONE)
-		<< "terminateOnComplete must propagate through applyTiming to RandomFadeIn";
+		<< "terminateOnComplete must propagate through applyTiming to a randomized-duration FadeIn";
 
 	delete fade;
 }

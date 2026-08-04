@@ -70,7 +70,7 @@ void setup() {
 	 * look at an example
 	 */
 
-	HSVGradient::Builder(0, 9).startGradient(FHSVA(0, 1, 1), FHSVA(360, 1, 1));
+	HSVGradient::Builder(0, 9).startGradient(HSVA(0, 1, 1), HSVA(360, 1, 1));
 
 	/**
 	 * This gradient is 10 units long (0-9 in the constructor). It starts at HSV 0-1-1 (red), and ends at HSV 360-1-1
@@ -79,8 +79,8 @@ void setup() {
 	 */
 	HSVGradient::Builder(0, 9)
 		.runtimeMs(1000)
-		.startGradient(FHSVA(0, 1, 1), FHSVA(360, 1, 1))
-		.endGradient(FHSVA(360, 1, 1), FHSVA(720, 1, 1));
+		.startGradient(HSVA(0, 1, 1), HSVA(360, 1, 1))
+		.endGradient(HSVA(360, 1, 1), HSVA(720, 1, 1));
 
 	/**
 	 * Since we go from 0-360 on the start and 360-720 at the end, this essentially makes it look like the rainbow is
@@ -92,8 +92,8 @@ void setup() {
 
 	auto ball = HSVGradient::Builder(0, 9)
 					.runtimeMs(1000)
-					.startGradient(FHSVA(0, 1, 1), FHSVA(360, 1, 1))
-					.endGradient(FHSVA(360, 1, 1), FHSVA(720, 1, 1))
+					.startGradient(HSVA(0, 1, 1), HSVA(360, 1, 1))
+					.endGradient(HSVA(360, 1, 1), HSVA(720, 1, 1))
 					.wrap(Loop::Builder());
 
 	/**

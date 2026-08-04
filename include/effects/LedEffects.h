@@ -2,6 +2,14 @@
 
 #include "BaseEffect.h"
 
+// randomizable value inputs (RandomColor / RandomHSVColor, RandomHSVA, RandomRange<T>, and the generic
+// RandomSet<T> - with RandomColorSet / RandomHSVASet aliases) - drop-in replacements for a plain value in any effect
+// input that takes a Value<T>.
+#include "values/RandomColor.h"
+#include "values/RandomHSVA.h"
+#include "values/RandomNumber.h"
+#include "values/RandomSet.h"
+
 // wrapper effects
 #include "AbsolutePosition.h"
 #include "FadeIn.h"

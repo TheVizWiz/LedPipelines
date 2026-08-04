@@ -17,25 +17,35 @@ namespace {
 } // namespace
 
 RGBGradient::RGBGradient(
-	float startPosition,
-	float endPosition,
-	unsigned long runtimeMs,
-	RGBA startGradientStart,
-	RGBA startGradientEnd,
-	RGBA endGradientStart,
-	RGBA endGradientEnd,
-	SmoothingFunction smoothingFunction,
+	Value<float> startPosition,
+	Value<float> endPosition,
+	Value<unsigned long> runtimeMs,
+	Value<RGBA> startGradientStart,
+	Value<RGBA> startGradientEnd,
+	Value<RGBA> endGradientStart,
+	Value<RGBA> endGradientEnd,
+	Value<SmoothingFunction> smoothingFunction,
 	BlendingMode blendingMode
 )
 	: LedPipelineStage(blendingMode),
-	  TimedEffect(runtimeMs),
-	  startPosition(startPosition),
-	  endPosition(endPosition),
-	  startGradientStart(startGradientStart),
-	  startGradientEnd(startGradientEnd),
-	  endGradientStart(endGradientStart),
-	  endGradientEnd(endGradientEnd),
-	  smoothingFunction(smoothingFunction) {}
+	  TimedEffect(std::move(runtimeMs)),
+	  startPosition(std::move(startPosition)),
+	  endPosition(std::move(endPosition)),
+	  startGradientStart(std::move(startGradientStart)),
+	  startGradientEnd(std::move(startGradientEnd)),
+	  endGradientStart(std::move(endGradientStart)),
+	  endGradientEnd(std::move(endGradientEnd)),
+	  smoothingFunction(std::move(smoothingFunction)) {
+	// Sample every input once for this lifecycle (constants always yield the same value; random ones draw one). Each
+	// Value caches its own draw in .value.
+	this->startPosition.sample();
+	this->endPosition.sample();
+	this->startGradientStart.sample();
+	this->startGradientEnd.sample();
+	this->endGradientStart.sample();
+	this->endGradientEnd.sample();
+	this->smoothingFunction.sample();
+}
 
 void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -51,23 +61,24 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	// smoothing function, clamped and held at 1 past the end. elapsedMs() also holds at 0 during any lead-in delay, so
 	// a delayed animated gradient sits on startGradient until the delay elapses.
 	float timeT;
-	if (runtimeMs == 0) {
+	if (runtimeMs.value == 0) {
 		timeT = 0;
 	} else {
-		this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs;
+		this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs.value;
 		float clamped = elapsedPercentage < 0 ? 0 : (elapsedPercentage > 1 ? 1 : elapsedPercentage);
-		timeT = smoothingFunction(clamped);
+		timeT = smoothingFunction.value(clamped);
 	}
 
-	// Collapse the two time-endpoint gradients into the single gradient in effect right now.
-	const RGBA nowStart = lerpRgb(startGradientStart, endGradientStart, timeT);
-	const RGBA nowEnd = lerpRgb(startGradientEnd, endGradientEnd, timeT);
+	// Collapse the two time-endpoint gradients into the single gradient in effect right now. Uses the SAMPLED corner
+	// colors (each Value caches its own draw, re-drawn on reset()).
+	const RGBA nowStart = lerpRgb(startGradientStart.value, endGradientStart.value, timeT);
+	const RGBA nowEnd = lerpRgb(startGradientEnd.value, endGradientEnd.value, timeT);
 
 	// POSITION axis. Endpoints are relative to where this stage sits in the pipeline (startIndex), matching
 	// SolidSegment. Normalize so lo < hi regardless of the order given, swapping the colors alongside the positions so
 	// the gradient stays anchored to its endpoints.
-	float lo = startIndex + startPosition;
-	float hi = startIndex + endPosition;
+	float lo = startIndex + startPosition.value;
+	float hi = startIndex + endPosition.value;
 	RGBA loColor = nowStart;
 	RGBA hiColor = nowEnd;
 	if (lo > hi) {
@@ -121,7 +132,7 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	}
 
 	// Hold on endGradient once the timeline completes (only meaningful for an animated gradient).
-	if (runtimeMs != 0 && elapsedPercentage >= 1) {
+	if (runtimeMs.value != 0 && elapsedPercentage >= 1) {
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 	}
@@ -130,6 +141,15 @@ void RGBGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 void RGBGradient::reset() {
 	LedPipelineStage::reset();
 	TimedEffect::resetTimer();
+	// Re-roll every input for the next run. For constants these are no-ops; for RandomColor/RandomRange inputs they
+	// draw fresh values - the "sample once per lifecycle, resample on reset" contract (see Solid::reset).
+	startPosition.sample();
+	endPosition.sample();
+	startGradientStart.sample();
+	startGradientEnd.sample();
+	endGradientStart.sample();
+	endGradientEnd.sample();
+	smoothingFunction.sample();
 }
 
 
@@ -137,17 +157,26 @@ void RGBGradient::reset() {
 std::string RGBGradient::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("RGBGradient");
-	result += jsonField("startPosition", startPosition);
-	result += jsonField("endPosition", endPosition);
-	result += jsonField("startGradientStart", startGradientStart);
-	result += jsonField("startGradientEnd", startGradientEnd);
-	result += jsonField("endGradientStart", endGradientStart);
-	result += jsonField("endGradientEnd", endGradientEnd);
-	result += jsonField("smoothingFunction", smoothingFunction);
-	result += jsonField("runtimeMs", (int)runtimeMs);
-	result += jsonField("delayMs", (int)delayMs);
+	// Config emits each input's RECIPE; state (below) emits the sampled values.
+	result += jsonRawField("startPosition", startPosition.describeValue());
+	result += jsonRawField("endPosition", endPosition.describeValue());
+	result += jsonRawField("startGradientStart", startGradientStart.describeValue());
+	result += jsonRawField("startGradientEnd", startGradientEnd.describeValue());
+	result += jsonRawField("endGradientStart", endGradientStart.describeValue());
+	result += jsonRawField("endGradientEnd", endGradientEnd.describeValue());
+	result += jsonRawField("smoothingFunction", smoothingFunction.describeValue());
+	result += jsonRawField("runtimeMs", runtimeMs.describeValue());
+	result += jsonRawField("delayMs", delayMs.describeValue());
 	result += jsonField("terminateOnComplete", terminateOnComplete);
-	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
+	if (includeState) {
+		result += jsonStateObject(
+			jsonStateHeader() + jsonTimedEffect() +
+			jsonField("startGradientStartSampled", startGradientStart.value) +
+			jsonField("startGradientEndSampled", startGradientEnd.value) +
+			jsonField("endGradientStartSampled", endGradientStart.value) +
+			jsonField("endGradientEndSampled", endGradientEnd.value)
+		);
+	}
 	result += "}";
 	return result;
 }

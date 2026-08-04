@@ -27,14 +27,16 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<Spawner, Builder> {
-			BUILDER_FIELD(EffectSpawnerFactory, factory);
+			// factory is a callable, not a randomizable value, so it is a plain field (hand-rolled, not via the
+			// Value-wrapping BUILDER_FIELD macro). The other fields are Value<T> recipes; build() reads their .value.
+			EffectSpawnerFactory _factory;
 			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
 			BUILDER_FIELD_DEFAULT(bool, keepOldOnSpawn, true);
 
 			explicit Builder(EffectSpawnerFactory factory) : _factory(std::move(factory)) {};
 
 			Spawner* build() override {
-				return new Spawner(_factory, _maxChildren, _keepOldOnSpawn, _blendingMode);
+				return new Spawner(_factory, _maxChildren.value, _keepOldOnSpawn.value, _blendingMode);
 			}
 		};
 
@@ -49,7 +51,11 @@ namespace ledpipelines::effects {
 
 
 	struct TimedSpawner : public Spawner {
-		unsigned long spawnTimeMs;
+		// The spawn interval: a Value<unsigned long> caching its own draw (see Value). A constant keeps a fixed cadence;
+		// a RandomRange gives irregular spacing - this replaces the old RandomTimedSpawner. Unlike the once-per-lifecycle
+		// sampling elsewhere, a spawn interval's "lifecycle" is a single interval: spawnTimeMs is re-sampled after every
+		// spawn (calculate()), so each gap gets a fresh random length. calculate() waits spawnTimeMs.value between spawns.
+		Value<unsigned long> spawnTimeMs;
 
 		unsigned long lastSpawnTimeMs = 0;
 
@@ -60,16 +66,19 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<TimedSpawner, Builder> {
-			BUILDER_FIELD(EffectSpawnerFactory, factory);
+			// factory is a plain field (see Spawner::Builder). The rest are Value<T> recipes; build() reads their .value
+			// except spawnTimeMs, which is passed as a Value so the effect can re-sample it each spawn.
+			EffectSpawnerFactory _factory;
 			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
+			// A plain interval converts implicitly (regular cadence), or pass a RandomRange for irregular spacing.
 			BUILDER_FIELD(unsigned long, spawnTimeMs);
 			BUILDER_FIELD_DEFAULT(bool, keepOldOnSpawn, true);
 
-			Builder(EffectSpawnerFactory factory, const unsigned long spawnTimeMs)
-				: _factory(std::move(factory)), _spawnTimeMs(spawnTimeMs) {};
+			Builder(EffectSpawnerFactory factory, Value<unsigned long> spawnTimeMs)
+				: _factory(std::move(factory)), _spawnTimeMs(std::move(spawnTimeMs)) {};
 
 			TimedSpawner* build() override {
-				return new TimedSpawner(_factory, _maxChildren, _keepOldOnSpawn, _spawnTimeMs, _blendingMode);
+				return new TimedSpawner(_factory, _maxChildren.value, _keepOldOnSpawn.value, _spawnTimeMs, _blendingMode);
 			}
 		};
 
@@ -78,55 +87,7 @@ namespace ledpipelines::effects {
 			EffectSpawnerFactory factory,
 			uint16_t maxChildren,
 			bool keepOldOnSpawn,
-			unsigned long spawnTimeMs,
-			BlendingMode blendingMode = BlendingMode::NORMAL
-		);
-	};
-
-
-	struct RandomTimedSpawner : public TimedSpawner {
-		unsigned long minSpawnTimeMs;
-		unsigned long maxSpawnTimeMs;
-		SamplingFunction spawnTimeSamplingFunction;
-
-		void calculate(float startIndex, TemporaryLedData& tempData) override;
-
-#ifdef LEDPIPELINES_SERIALIZATION
-		std::string toJson(bool includeState) override;
-#endif
-
-		struct Builder : LedPipelineStage::Builder<RandomTimedSpawner, Builder> {
-			BUILDER_FIELD(EffectSpawnerFactory, factory);
-			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
-			BUILDER_FIELD_DEFAULT(unsigned long, minSpawnTimeMs, 0);
-			BUILDER_FIELD(unsigned long, maxSpawnTimeMs);
-			BUILDER_FIELD_DEFAULT(SamplingFunction, spawnTimeSamplingFunction, SamplingFunction::UNIFORM);
-			BUILDER_FIELD_DEFAULT(bool, keepOldOnSpawn, true);
-
-			Builder(EffectSpawnerFactory factory, const unsigned long maxSpawnTimeMs)
-				: _factory(std::move(factory)), _maxSpawnTimeMs(maxSpawnTimeMs) {};
-
-			RandomTimedSpawner* build() override {
-				return new RandomTimedSpawner(
-					_factory,
-					_maxChildren,
-					_keepOldOnSpawn,
-					_minSpawnTimeMs,
-					_maxSpawnTimeMs,
-					_spawnTimeSamplingFunction,
-					_blendingMode
-				);
-			}
-		};
-
-	protected:
-		RandomTimedSpawner(
-			EffectSpawnerFactory factory,
-			uint16_t maxChildren,
-			bool keepOldOnSpawn,
-			unsigned long minSpawnTimeMs,
-			unsigned long maxSpawnTimeMs,
-			SamplingFunction spawnTimeSamplingFunction,
+			Value<unsigned long> spawnTimeMs,
 			BlendingMode blendingMode = BlendingMode::NORMAL
 		);
 	};

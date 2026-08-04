@@ -8,14 +8,32 @@ using namespace ledpipelines::effects;
 
 OpacityGradient::OpacityGradient(
 	LedPipelineStage* stage,
-	float startIndex,
-	float endIndex,
+	Value<float> startIndex,
+	Value<float> endIndex,
 	SmoothingFunction smoothingFunction
 )
-	: WrapperEffect(stage), startIndex(startIndex), endIndex(endIndex), smoothingFunction(smoothingFunction) {}
+	: WrapperEffect(stage),
+	  startIndex(std::move(startIndex)),
+	  endIndex(std::move(endIndex)),
+	  smoothingFunction(smoothingFunction) {
+	// Sample the endpoints once for this lifecycle (constants yield the same value; randoms draw one).
+	this->startIndex.sample();
+	this->endIndex.sample();
+}
 
 
-void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedData& tempData) const {
+void OpacityGradient::reset() {
+	WrapperEffect::reset();
+	// Re-roll the endpoints for the next run (no-ops for constants; fresh draws for randoms).
+	this->startIndex.sample();
+	this->endIndex.sample();
+}
+
+
+void OpacityGradient::calculateForwardGradient(float startPos, float endIndex, TemporaryLedData& tempData) const {
+	// startPos is the offset-applied start position; endIndex is the sampled end value (passed in, matching the pre-Value
+	// behavior where the helper read the raw endIndex member).
+	const float startIndex = startPos;
 	int startIndexFloor = (int)startIndex;
 	int endIndexFloor = (int)endIndex;
 
@@ -81,9 +99,11 @@ void OpacityGradient::calculateForwardGradient(float startIndex, TemporaryLedDat
 }
 
 
-void OpacityGradient::calculateBackwardGradient(float startIndex, TemporaryLedData& tempData) {
+void OpacityGradient::calculateBackwardGradient(float startPos, float endIndex, TemporaryLedData& tempData) {
 	// if the gradient is backwards, the left value is 1 and the right value is 0.
 	// instead of doing complex math, we just flip how we are calculating start and end indices.
+	// startPos is the offset-applied start position; endIndex is the sampled end value (see calculateForwardGradient).
+	const float startIndex = startPos;
 	int startIndexFloor = (int)startIndex;
 	int endIndexFloor = (int)endIndex;
 
@@ -156,10 +176,12 @@ void OpacityGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	this->stage->calculate(startIndex, tempData);
 
-	if (this->startIndex > this->endIndex)
-		calculateBackwardGradient(startIndex + this->startIndex, tempData);
+	// Preserves the original behavior exactly: the start is offset by this stage's pipeline position (startIndex), the
+	// end is passed as the raw sampled member value (the helpers previously read this->endIndex directly, un-offset).
+	if (this->startIndex.value > this->endIndex.value)
+		calculateBackwardGradient(startIndex + this->startIndex.value, this->endIndex.value, tempData);
 	else
-		calculateForwardGradient(startIndex + this->startIndex, tempData);
+		calculateForwardGradient(startIndex + this->startIndex.value, this->endIndex.value, tempData);
 
 	this->state = this->stage->state;
 }
@@ -169,11 +191,16 @@ void OpacityGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 std::string OpacityGradient::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("OpacityGradient");
-	result += jsonField("startIndex", startIndex);
-	result += jsonField("endIndex", endIndex);
+	// Config emits each endpoint's RECIPE; sampled values are state.
+	result += jsonRawField("startIndex", startIndex.describeValue());
+	result += jsonRawField("endIndex", endIndex.describeValue());
 	result += jsonField("smoothingFunction", smoothingFunction);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
-	if (includeState) result += jsonStateObject(jsonStateHeader());
+	if (includeState) {
+		result += jsonStateObject(
+			jsonStateHeader() + jsonField("sampledStartIndex", startIndex.value) +
+			jsonField("sampledEndIndex", endIndex.value));
+	}
 	result += "}";
 	return result;
 }

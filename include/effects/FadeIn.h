@@ -9,7 +9,9 @@ namespace ledpipelines::effects {
 	// in place; it does NOT terminate on its own timer (that would make the wrapped content vanish once the ramp
 	// finished), so its done-state defers to the inner effect.
 	struct FadeIn : public WrapperEffect, TimedEffect {
-		SmoothingFunction smoothingFunction;
+		// The fade curve: a Value<SmoothingFunction> caching its own draw (see Value), like every other input. A plain
+		// preset is a constant; a RandomSet gives a randomized curve re-rolled on reset(). calculate() reads its .value.
+		Value<SmoothingFunction> smoothingFunction;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
@@ -22,7 +24,9 @@ namespace ledpipelines::effects {
 		struct Builder : WrapperEffect::Builder<FadeIn, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::SMOOTH_LINEAR);
 
-			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
+			// runtimeMs is a Value<unsigned long>: a plain duration converts implicitly, or pass a RandomRange for a
+			// randomized ramp (this replaces the old RandomFadeIn).
+			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
 			FadeIn* build() override {
 				return applyTiming(new FadeIn(buildInner(), _runtimeMs, _smoothingFunction, _blendingMode));
@@ -32,48 +36,8 @@ namespace ledpipelines::effects {
 	private:
 		FadeIn(
 			LedPipelineStage* stage,
-			unsigned long runtimeMs,
-			SmoothingFunction smoothingFunction,
-			BlendingMode blendingMode = BlendingMode::NORMAL
-		);
-	};
-
-	struct RandomFadeIn : public WrapperEffect, RandomTimedEffect {
-		SmoothingFunction smoothingFunction;
-
-
-		void calculate(float startIndex, TemporaryLedData& tempData) override;
-
-		void reset() override;
-
-#ifdef LEDPIPELINES_SERIALIZATION
-		std::string toJson(bool includeState) override;
-#endif
-
-		struct Builder : WrapperEffect::Builder<RandomFadeIn, Builder>, RandomTimedEffect::Builder<Builder> {
-			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::SMOOTH_LINEAR);
-
-			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
-
-			RandomFadeIn* build() override {
-				return applyTiming(new RandomFadeIn(
-					buildInner(),
-					_minRuntimeMs,
-					_maxRuntimeMs,
-					_samplingFunction,
-					_smoothingFunction,
-					_blendingMode
-				));
-			};
-		};
-
-	private:
-		RandomFadeIn(
-			LedPipelineStage* stage,
-			unsigned long minRuntimeMs,
-			unsigned long maxRuntimeMs,
-			SamplingFunction samplingFunction,
-			SmoothingFunction smoothingFunction,
+			Value<unsigned long> runtimeMs,
+			Value<SmoothingFunction> smoothingFunction,
 			BlendingMode blendingMode = BlendingMode::NORMAL
 		);
 	};

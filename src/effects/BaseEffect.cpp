@@ -15,27 +15,19 @@ void WrapperEffect::reset() {
 	stage->reset();
 }
 
-TimedEffect::TimedEffect(unsigned long runtimeMs) : startTimeMs(0), elapsedPercentage(0), runtimeMs(runtimeMs) {}
+TimedEffect::TimedEffect(Value<unsigned long> runtimeMs)
+	: startTimeMs(0), elapsedPercentage(0), runtimeMs(std::move(runtimeMs)) {
+	// Sample the duration once for this lifecycle (a constant always yields the same value; a RandomRange draws one).
+	// The result is cached in runtimeMs.value.
+	this->runtimeMs.sample();
+}
 
 
 void TimedEffect::resetTimer() {
 	this->elapsedPercentage = 0;
-}
-
-RandomTimedEffect::RandomTimedEffect(
-	const unsigned long minRuntimeMs,
-	const unsigned long maxRuntimeMs,
-	SamplingFunction samplingFunction
-)
-	: TimedEffect(minRuntimeMs),
-	  minRuntimeMs(minRuntimeMs),
-	  maxRuntimeMs(maxRuntimeMs),
-	  samplingFunction(std::move(samplingFunction)) {}
-
-void RandomTimedEffect::resetTimer() {
-	TimedEffect::resetTimer();
-}
-
-void RandomTimedEffect::sampleRuntime() {
-	this->runtimeMs = samplingFunction(minRuntimeMs, maxRuntimeMs);
+	// Re-roll the duration and lead-in delay for the next run. For constants these are no-ops; for a RandomRange they draw
+	// fresh values - the "sample once per lifecycle, resample on reset" contract that the old RandomTimedEffect family
+	// provided.
+	this->runtimeMs.sample();
+	this->delayMs.sample();
 }

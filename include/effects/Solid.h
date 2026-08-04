@@ -1,22 +1,31 @@
 #pragma once
 
 #include "BaseLedPipeline.h"
+#include "Value.h"  // Value<RGBA> - the color input may be a constant or a randomized color
 
 namespace ledpipelines::effects {
 	struct Solid : LedPipelineStage {
-		RGBA color;
+		// The color: a Value<RGBA> recipe that caches its own sampled draw (see Value - the Value IS the cache, so no
+		// separate sampledColor member). A plain RGBA is a constant; a RandomColor/RandomColorSet re-rolls on reset().
+		// calculate() renders color.value; reset() re-samples it.
+		Value<RGBA> color;
 
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
+		void reset() override;
 
 #ifdef LEDPIPELINES_SERIALIZATION
 		std::string toJson(bool includeState) override;
 #endif
 
+		// The builder's color field is a Value<RGBA> (the BUILDER_FIELD macro wraps the given type in Value): a plain
+		// RGBA converts implicitly (constant), or pass a RandomColor / RandomColorSet for a randomized color. Same slot,
+		// no RandomSolid needed.
 		struct Builder : LedPipelineStage::Builder<Solid, Builder> {
 			BUILDER_FIELD(RGBA, color);
 
-			explicit Builder(const RGBA color) : _color(color) {}
+			explicit Builder(Value<RGBA> color) : _color(std::move(color)) {}
 
 			Solid* build() override {
 				return new Solid(_color, _blendingMode);
@@ -24,14 +33,18 @@ namespace ledpipelines::effects {
 		};
 
 	protected:
-		Solid(RGBA color, BlendingMode blendingMode = BlendingMode::NORMAL);
+		Solid(Value<RGBA> color, BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 
 
 	struct SolidSegment : Solid {
-		float length;
+		// Like color, length is a Value<float> that caches its own draw: a plain float is constant, or a RandomRange
+		// gives a randomized segment length re-rolled on reset(). calculate() reads length.value.
+		Value<float> length;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
+		void reset() override;
 
 #ifdef LEDPIPELINES_SERIALIZATION
 		std::string toJson(bool includeState) override;
@@ -40,7 +53,7 @@ namespace ledpipelines::effects {
 		struct Builder : LedPipelineStage::Builder<SolidSegment, Builder> {
 			BUILDER_FIELD(RGBA, color);
 			BUILDER_FIELD(float, length);
-			explicit Builder(const RGBA color, const float length) : _color(color), _length(length) {}
+			explicit Builder(Value<RGBA> color, Value<float> length) : _color(std::move(color)), _length(std::move(length)) {}
 
 			SolidSegment* build() override {
 				return new SolidSegment(_color, _length, _blendingMode);
@@ -48,6 +61,6 @@ namespace ledpipelines::effects {
 		};
 
 	protected:
-		SolidSegment(const RGBA color, float length, BlendingMode blendingMode = BlendingMode::NORMAL);
+		SolidSegment(Value<RGBA> color, Value<float> length, BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 } // namespace ledpipelines::effects

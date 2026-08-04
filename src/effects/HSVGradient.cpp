@@ -4,11 +4,11 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 namespace {
-	// Component-wise linear interpolation between two FHSVA values, INCLUDING alpha. Hue is interpolated on its raw
+	// Component-wise linear interpolation between two HSVA values, INCLUDING alpha. Hue is interpolated on its raw
 	// value (no wheel wrapping) so multi-turn sweeps like 0..720 are preserved; wrapping happens only at conversion in
-	// FHSVA::toRGBA. Alpha is interpolated so a gradient can fade opacity across its corners.
-	FHSVA lerpFhsv(const FHSVA& a, const FHSVA& b, float t) {
-		return FHSVA{
+	// HSVA::toRGBA. Alpha is interpolated so a gradient can fade opacity across its corners.
+	HSVA lerpFhsv(const HSVA& a, const HSVA& b, float t) {
+		return HSVA{
 			a.h + (b.h - a.h) * t,
 			a.s + (b.s - a.s) * t,
 			a.v + (b.v - a.v) * t,
@@ -18,25 +18,35 @@ namespace {
 } // namespace
 
 HSVGradient::HSVGradient(
-	float startPosition,
-	float endPosition,
-	unsigned long runtimeMs,
-	FHSVA startGradientStart,
-	FHSVA startGradientEnd,
-	FHSVA endGradientStart,
-	FHSVA endGradientEnd,
-	SmoothingFunction smoothingFunction,
+	Value<float> startPosition,
+	Value<float> endPosition,
+	Value<unsigned long> runtimeMs,
+	Value<HSVA> startGradientStart,
+	Value<HSVA> startGradientEnd,
+	Value<HSVA> endGradientStart,
+	Value<HSVA> endGradientEnd,
+	Value<SmoothingFunction> smoothingFunction,
 	BlendingMode blendingMode
 )
 	: LedPipelineStage(blendingMode),
-	  TimedEffect(runtimeMs),
-	  startPosition(startPosition),
-	  endPosition(endPosition),
-	  startGradientStart(startGradientStart),
-	  startGradientEnd(startGradientEnd),
-	  endGradientStart(endGradientStart),
-	  endGradientEnd(endGradientEnd),
-	  smoothingFunction(smoothingFunction) {}
+	  TimedEffect(std::move(runtimeMs)),
+	  startPosition(std::move(startPosition)),
+	  endPosition(std::move(endPosition)),
+	  startGradientStart(std::move(startGradientStart)),
+	  startGradientEnd(std::move(startGradientEnd)),
+	  endGradientStart(std::move(endGradientStart)),
+	  endGradientEnd(std::move(endGradientEnd)),
+	  smoothingFunction(std::move(smoothingFunction)) {
+	// Sample every input once for this lifecycle (constants always yield the same value; random ones draw one). Each
+	// Value caches its own draw in .value.
+	this->startPosition.sample();
+	this->endPosition.sample();
+	this->startGradientStart.sample();
+	this->startGradientEnd.sample();
+	this->endGradientStart.sample();
+	this->endGradientEnd.sample();
+	this->smoothingFunction.sample();
+}
 
 void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
@@ -52,30 +62,31 @@ void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	// smoothing function, clamped and held at 1 past the end. elapsedMs() also holds at 0 during any lead-in delay, so
 	// a delayed animated gradient sits on startGradient until the delay elapses.
 	float timeT;
-	if (runtimeMs == 0) {
+	if (runtimeMs.value == 0) {
 		timeT = 0;
 	} else {
-		this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs;
+		this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs.value;
 		float clamped = elapsedPercentage < 0 ? 0 : (elapsedPercentage > 1 ? 1 : elapsedPercentage);
-		timeT = smoothingFunction(clamped);
+		timeT = smoothingFunction.value(clamped);
 	}
 
-	// Collapse the two time-endpoint gradients into the single gradient in effect right now.
-	const FHSVA nowStart = lerpFhsv(startGradientStart, endGradientStart, timeT);
-	const FHSVA nowEnd = lerpFhsv(startGradientEnd, endGradientEnd, timeT);
+	// Collapse the two time-endpoint gradients into the single gradient in effect right now. Uses the SAMPLED corner
+	// colors (each Value caches its own draw, re-drawn on reset()).
+	const HSVA nowStart = lerpFhsv(startGradientStart.value, endGradientStart.value, timeT);
+	const HSVA nowEnd = lerpFhsv(startGradientEnd.value, endGradientEnd.value, timeT);
 
 	// POSITION axis. Endpoints are relative to where this stage sits in the pipeline (startIndex), matching
 	// SolidSegment. Normalize so lo < hi regardless of the order given, swapping the colors alongside the positions so
 	// the gradient stays anchored to its endpoints.
-	float lo = startIndex + startPosition;
-	float hi = startIndex + endPosition;
-	FHSVA loColor = nowStart;
-	FHSVA hiColor = nowEnd;
+	float lo = startIndex + startPosition.value;
+	float hi = startIndex + endPosition.value;
+	HSVA loColor = nowStart;
+	HSVA hiColor = nowEnd;
 	if (lo > hi) {
 		float tmpPos = lo;
 		lo = hi;
 		hi = tmpPos;
-		FHSVA tmpColor = loColor;
+		HSVA tmpColor = loColor;
 		loColor = hiColor;
 		hiColor = tmpColor;
 	}
@@ -85,7 +96,7 @@ void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	const int loFloor = (int)lo;
 	const int hiFloor = (int)hi;
 
-	// The FHSVA at a position along the segment, by fractional distance. A zero-length span collapses to the low color.
+	// The HSVA at a position along the segment, by fractional distance. A zero-length span collapses to the low color.
 	auto colorAt = [&](float pos) -> RGBA {
 		float posT = span > 0 ? (pos - lo) / span : 0.0f;
 		if (posT < 0) posT = 0;
@@ -93,7 +104,7 @@ void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 		return lerpFhsv(loColor, hiColor, posT).toRGBA();
 	};
 
-	// Opacity is the interpolated color's own alpha (colorAt(...).a, carried through from the FHSVA corners); partial
+	// Opacity is the interpolated color's own alpha (colorAt(...).a, carried through from the HSVA corners); partial
 	// end pixels scale it by their coverage.
 	if (loFloor == hiFloor) {
 		// Whole segment sits within one pixel: light it partially by the segment length, colored at the segment start.
@@ -123,7 +134,7 @@ void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	}
 
 	// Hold on endGradient once the timeline completes (only meaningful for an animated gradient).
-	if (runtimeMs != 0 && elapsedPercentage >= 1) {
+	if (runtimeMs.value != 0 && elapsedPercentage >= 1) {
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 	}
@@ -132,6 +143,15 @@ void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 void HSVGradient::reset() {
 	LedPipelineStage::reset();
 	TimedEffect::resetTimer();
+	// Re-roll every input for the next run. For constants these are no-ops; for RandomHSVA/RandomRange inputs they draw
+	// fresh values - the "sample once per lifecycle, resample on reset" contract (see RGBGradient::reset).
+	startPosition.sample();
+	endPosition.sample();
+	startGradientStart.sample();
+	startGradientEnd.sample();
+	endGradientStart.sample();
+	endGradientEnd.sample();
+	smoothingFunction.sample();
 }
 
 
@@ -139,17 +159,25 @@ void HSVGradient::reset() {
 std::string HSVGradient::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("HSVGradient");
-	result += jsonField("startPosition", startPosition);
-	result += jsonField("endPosition", endPosition);
-	result += jsonField("startGradientStart", startGradientStart);
-	result += jsonField("startGradientEnd", startGradientEnd);
-	result += jsonField("endGradientStart", endGradientStart);
-	result += jsonField("endGradientEnd", endGradientEnd);
-	result += jsonField("smoothingFunction", smoothingFunction);
-	result += jsonField("runtimeMs", (int)runtimeMs);
-	result += jsonField("delayMs", (int)delayMs);
+	// Config emits each input's RECIPE; state (below) emits the sampled values.
+	result += jsonRawField("startPosition", startPosition.describeValue());
+	result += jsonRawField("endPosition", endPosition.describeValue());
+	result += jsonRawField("startGradientStart", startGradientStart.describeValue());
+	result += jsonRawField("startGradientEnd", startGradientEnd.describeValue());
+	result += jsonRawField("endGradientStart", endGradientStart.describeValue());
+	result += jsonRawField("endGradientEnd", endGradientEnd.describeValue());
+	result += jsonRawField("smoothingFunction", smoothingFunction.describeValue());
+	result += jsonRawField("runtimeMs", runtimeMs.describeValue());
+	result += jsonRawField("delayMs", delayMs.describeValue());
 	result += jsonField("terminateOnComplete", terminateOnComplete);
-	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
+	if (includeState) {
+		result += jsonStateObject(
+			jsonStateHeader() + jsonTimedEffect() +
+			jsonField("startGradientStartSampled", startGradientStart.value) +
+			jsonField("startGradientEndSampled", startGradientEnd.value) +
+			jsonField("endGradientStartSampled", endGradientStart.value) +
+			jsonField("endGradientEndSampled", endGradientEnd.value));
+	}
 	result += "}";
 	return result;
 }

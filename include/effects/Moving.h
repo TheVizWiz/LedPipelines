@@ -7,10 +7,13 @@
 namespace ledpipelines::effects {
 	struct Moving : public WrapperEffect, TimedEffect {
 	private:
+		// currentPosition is live runtime state (the interpolated position this frame), not an input. The inputs are
+		// Value<T> recipes caching their own draw (see Value): plain values are constants, or pass a RandomRange<T> for
+		// randomized endpoints/duration. calculate() reads startPosition.value / endPosition.value.
 		float currentPosition;
-		float startPosition;
-		float endPosition;
-		SmoothingFunction smoothingFunction;
+		Value<float> startPosition;
+		Value<float> endPosition;
+		Value<SmoothingFunction> smoothingFunction;
 
 	public:
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
@@ -26,7 +29,7 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD_DEFAULT(float, endPosition, TemporaryLedData::size);
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::LINEAR);
 
-			explicit Builder(unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
+			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
 			Moving* build() override {
 				return applyTiming(
@@ -36,9 +39,9 @@ namespace ledpipelines::effects {
 
 	protected:
 		Moving(LedPipelineStage* stage,
-			   unsigned long runtimeMs,
-			   float startPosition,
-			   float endPosition,
-			   SmoothingFunction smoothingFunction);
+			   Value<unsigned long> runtimeMs,
+			   Value<float> startPosition,
+			   Value<float> endPosition,
+			   Value<SmoothingFunction> smoothingFunction);
 	};
 } // namespace ledpipelines::effects

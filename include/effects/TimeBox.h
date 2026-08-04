@@ -13,7 +13,9 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : WrapperEffect::Builder<TimeBox, Builder>, TimedEffect::Builder<Builder> {
-			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
+			// runtimeMs is a Value<unsigned long>: a plain duration converts implicitly, or pass a RandomRange for a
+			// randomized box duration (this replaces the old RandomTimeBox).
+			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
 			TimeBox* build() override {
 				return applyTiming(new TimeBox(buildInner(), _runtimeMs));
@@ -21,34 +23,6 @@ namespace ledpipelines::effects {
 		};
 
 	protected:
-		TimeBox(LedPipelineStage* stage, unsigned long runtimeMs);
-	};
-
-	struct RandomTimeBox : public WrapperEffect, RandomTimedEffect {
-		void reset() override;
-
-		void calculate(float startIndex, TemporaryLedData& tempData) override;
-
-#ifdef LEDPIPELINES_SERIALIZATION
-		std::string toJson(bool includeState) override;
-#endif
-
-		struct Builder : WrapperEffect::Builder<RandomTimeBox, Builder>, RandomTimedEffect::Builder<Builder> {
-			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
-
-			RandomTimeBox* build() override {
-				return applyTiming(
-					new RandomTimeBox(buildInner(), _minRuntimeMs, _maxRuntimeMs, _samplingFunction)
-				);
-			}
-		};
-
-	protected:
-		RandomTimeBox(
-			LedPipelineStage* stage,
-			unsigned long minRuntimeMs,
-			unsigned long maxRuntimeMs,
-			SamplingFunction samplingFunction
-		);
+		TimeBox(LedPipelineStage* stage, Value<unsigned long> runtimeMs);
 	};
 } // namespace ledpipelines::effects

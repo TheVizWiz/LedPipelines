@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BaseEffect.h"
+#include "Value.h"  // Value<RGBA> - each gradient corner may be a constant or a randomized color
 
 namespace ledpipelines::effects {
 	/**
@@ -37,18 +38,21 @@ namespace ledpipelines::effects {
 	 * runtimeMs defaults to 0, in which case the effect renders startGradient statically and never advances.
 	 */
 	struct RGBGradient : LedPipelineStage, TimedEffect {
-		float startPosition;
-		float endPosition;
+		// Every input is a Value<T> that caches its own sampled draw (see Value - the Value IS the cache, so there are
+		// no separate *Sampled members). Plain values are constants; a RandomColor/RandomRange re-rolls on reset().
+		// calculate() reads each input's .value.
+		Value<float> startPosition;
+		Value<float> endPosition;
 
 		// The gradient at t=0.
-		RGBA startGradientStart;
-		RGBA startGradientEnd;
+		Value<RGBA> startGradientStart;
+		Value<RGBA> startGradientEnd;
 
 		// The gradient at t=runtimeMs. When these equal the startGradient corners, the gradient is static.
-		RGBA endGradientStart;
-		RGBA endGradientEnd;
+		Value<RGBA> endGradientStart;
+		Value<RGBA> endGradientEnd;
 
-		SmoothingFunction smoothingFunction;
+		Value<SmoothingFunction> smoothingFunction;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
@@ -68,19 +72,21 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::LINEAR);
 
 			// A static gradient: no timeline. endGradient defaults to matching startGradient (see startGradient()).
-			Builder(float startPosition, float endPosition)
-				: TimedEffect::Builder<Builder>(0), _startPosition(startPosition), _endPosition(endPosition) {}
+			Builder(Value<float> startPosition, Value<float> endPosition)
+				: TimedEffect::Builder<Builder>(0ul), _startPosition(std::move(startPosition)),
+				  _endPosition(std::move(endPosition)) {}
 
 			// A time-animated gradient: give the runtime up front, then set startGradient()/endGradient().
-			Builder(float startPosition, float endPosition, unsigned long runtimeMs)
-				: TimedEffect::Builder<Builder>(runtimeMs), _startPosition(startPosition), _endPosition(endPosition) {}
+			Builder(Value<float> startPosition, Value<float> endPosition, Value<unsigned long> runtimeMs)
+				: TimedEffect::Builder<Builder>(std::move(runtimeMs)), _startPosition(std::move(startPosition)),
+				  _endPosition(std::move(endPosition)) {}
 
 			// Set the gradient shown at t=0 (start-of-position color -> end-of-position color). Also seeds endGradient
 			// to the same pair, so a caller that never sets endGradient() gets a static gradient rather than a morph
 			// toward the default (black) corners. Ref-qualified like the BUILDER_FIELD setters: lvalue chains in place
 			// (returns Builder&), rvalue temporary moves out by value (returns Builder) so a chain can be captured with
 			// auto without hitting the deleted copy constructor.
-			Builder& startGradient(RGBA atStart, RGBA atEnd) & {
+			Builder& startGradient(Value<RGBA> atStart, Value<RGBA> atEnd) & {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -88,7 +94,7 @@ namespace ledpipelines::effects {
 				return *this;
 			}
 
-			Builder startGradient(RGBA atStart, RGBA atEnd) && {
+			Builder startGradient(Value<RGBA> atStart, Value<RGBA> atEnd) && {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -97,13 +103,13 @@ namespace ledpipelines::effects {
 			}
 
 			// Set the gradient morphed toward at t=runtimeMs (start-of-position color -> end-of-position color).
-			Builder& endGradient(RGBA atStart, RGBA atEnd) & {
+			Builder& endGradient(Value<RGBA> atStart, Value<RGBA> atEnd) & {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return *this;
 			}
 
-			Builder endGradient(RGBA atStart, RGBA atEnd) && {
+			Builder endGradient(Value<RGBA> atStart, Value<RGBA> atEnd) && {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return std::move(*this);
@@ -126,14 +132,14 @@ namespace ledpipelines::effects {
 
 	protected:
 		RGBGradient(
-			float startPosition,
-			float endPosition,
-			unsigned long runtimeMs,
-			RGBA startGradientStart,
-			RGBA startGradientEnd,
-			RGBA endGradientStart,
-			RGBA endGradientEnd,
-			SmoothingFunction smoothingFunction,
+			Value<float> startPosition,
+			Value<float> endPosition,
+			Value<unsigned long> runtimeMs,
+			Value<RGBA> startGradientStart,
+			Value<RGBA> startGradientEnd,
+			Value<RGBA> endGradientStart,
+			Value<RGBA> endGradientEnd,
+			Value<SmoothingFunction> smoothingFunction,
 			BlendingMode blendingMode = BlendingMode::NORMAL
 		);
 	};

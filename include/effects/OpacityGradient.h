@@ -5,11 +5,15 @@
 
 namespace ledpipelines::effects {
 	struct OpacityGradient : WrapperEffect {
-		float startIndex;
-		float endIndex;
+		// The gradient's endpoints: Value<float> recipes caching their own draw (see Value). Plain floats are constants;
+		// a RandomRange/RandomSet re-rolls on reset(). calculate() reads startIndex.value / endIndex.value.
+		Value<float> startIndex;
+		Value<float> endIndex;
 		SmoothingFunction smoothingFunction;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
+		void reset() override;
 
 #ifdef LEDPIPELINES_SERIALIZATION
 		std::string toJson(bool includeState) override;
@@ -20,22 +24,28 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD(float, endIndex);
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::SMOOTH_LINEAR);
 
-			explicit Builder(const float endIndex) : _endIndex(endIndex) {}
+			explicit Builder(Value<float> endIndex) : _endIndex(std::move(endIndex)) {}
 
-			explicit Builder(const float startIndex, const float endIndex)
-				: _startIndex(startIndex), _endIndex(endIndex) {}
+			explicit Builder(Value<float> startIndex, Value<float> endIndex)
+				: _startIndex(std::move(startIndex)), _endIndex(std::move(endIndex)) {}
 
 			OpacityGradient* build() override {
-				return new OpacityGradient(buildInner(), _startIndex, _endIndex, _smoothingFunction);
+				return new OpacityGradient(buildInner(), _startIndex, _endIndex, _smoothingFunction.value);
 			}
 		};
 
 	private:
-		void calculateForwardGradient(float startIndex, TemporaryLedData& tempData) const;
+		// endGradientIndex is the SAMPLED end value; the helpers take the offset-applied start position as their param.
+		void calculateForwardGradient(float startPos, float endGradientIndex, TemporaryLedData& tempData) const;
 
-		void calculateBackwardGradient(float startIndex, TemporaryLedData& tempData);
+		void calculateBackwardGradient(float startPos, float endGradientIndex, TemporaryLedData& tempData);
 
 	protected:
-		OpacityGradient(LedPipelineStage* stage, float startIndex, float endIndex, SmoothingFunction smoothingFunction);
+		OpacityGradient(
+			LedPipelineStage* stage,
+			Value<float> startIndex,
+			Value<float> endIndex,
+			SmoothingFunction smoothingFunction
+		);
 	};
 } // namespace ledpipelines::effects

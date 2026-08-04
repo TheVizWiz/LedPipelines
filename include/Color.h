@@ -22,20 +22,32 @@ struct RGBA;
  *
  * The fourth channel `a` is the pixel's opacity (0-255), matching RGBA - it is carried through toRGBA() so an HSV
  * gradient can vary opacity across its corners. It defaults to fully opaque (255), and the three-argument constructor
- * leaves it opaque, so authoring a color as FHSVA(h, s, v) behaves exactly as before.
+ * leaves it opaque, so authoring a color as HSVA(h, s, v) behaves exactly as before.
  */
-struct FHSVA {
+struct HSVA {
 	float h = 0;
 	float s = 1;
 	float v = 1;
 	uint8_t a = 255;
 
-	FHSVA() = default;
+	HSVA() = default;
 
-	// Three-arg form: opaque (a = 255). Kept so existing FHSVA(h, s, v) call sites are unchanged.
-	FHSVA(float h, float s, float v) : h(h), s(s), v(v) {}
+	// Three-arg form: opaque (a = 255). Kept so existing HSVA(h, s, v) call sites are unchanged.
+	HSVA(float h, float s, float v) : h(h), s(s), v(v) {}
 
-	FHSVA(float h, float s, float v, uint8_t a) : h(h), s(s), v(v), a(a) {}
+	HSVA(float h, float s, float v, uint8_t a) : h(h), s(s), v(v), a(a) {}
+
+	// Build an HSVA from an RGBA color (RGB -> HSV; the inverse of toRGBA), carrying the alpha through unchanged.
+	// Non-explicit ON PURPOSE: it makes RGBA implicitly convertible to HSVA, so an RGBA drops into any Value<HSVA>
+	// input (HSVGradient corners, RandomHSVASet palettes) and lands as a ConstantProvider<HSVA> - author an HSV
+	// gradient corner as `RGBA::Red` and it is converted once, at build. See the uint32_t ctor for the named-literal
+	// case (RGBA::Red is an HTMLColorCode enum, which reaches HSVA through this ctor's uint32_t sibling, not this one).
+	HSVA(const RGBA& rgba);
+
+	// Build from a 24-bit hex RGB code (0xRRGGBB), interpreted as an RGB color and converted to HSV; alpha is opaque.
+	// Mirrors RGBA(uint32_t). This is what lets a named color literal reach HSVA in a single user-defined conversion:
+	// RGBA::Red is an HTMLColorCode enum -> uint32_t (standard) -> HSVA (here).
+	HSVA(uint32_t rgbCode);
 
 	RGBA toRGBA();
 };
@@ -266,9 +278,9 @@ struct RGBA {
 		Gold4 = 0x8B7500,
 	} HTMLColorCode;
 
-	// Default is opaque black. RGB ctors default alpha to 255 (opaque) - a color literal like RGBA::Red is fully
-	// opaque; compositing code overrides `a` when it wants a specific opacity.
-	RGBA() : r(0), g(0), b(0), a(255) {}
+	// Default is opaque white. Alpha defaults to 255 (full opacity) if not provided, e.g. when RGB color codes
+	// are used.
+	RGBA() : r(255), g(255), b(255), a(255) {}
 	RGBA(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255) : r(red), g(green), b(blue), a(alpha) {}
 
 	// 24-bit hex code (0xRRGGBB), including all the named-color enum values above. Alpha defaults to opaque.

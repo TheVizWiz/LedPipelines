@@ -15,7 +15,7 @@ namespace ledpipelines::effects {
 
 	void Spawner::calculate(float startIndex, TemporaryLedData& tempData) {
 		// A Spawner runs indefinitely (it has no completion condition of its own), but it must report RUNNING once it
-		// starts rather than sitting at NOT_STARTED. TimedSpawner/RandomTimedSpawner delegate to this method, so this
+		// starts rather than sitting at NOT_STARTED. TimedSpawner delegates to this method, so this
 		// single guard re-arms the whole family after a reset(). It never reaches DONE - a Spawner does not finish.
 		if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
@@ -71,48 +71,22 @@ namespace ledpipelines::effects {
 		EffectSpawnerFactory factory,
 		uint16_t maxChildren,
 		bool keepOldOnSpawn,
-		unsigned long spawnTimeMs,
+		Value<unsigned long> spawnTimeMs,
 		BlendingMode blendingMode
 	)
-		: Spawner(std::move(factory), maxChildren, keepOldOnSpawn, blendingMode), spawnTimeMs(spawnTimeMs) {}
+		: Spawner(std::move(factory), maxChildren, keepOldOnSpawn, blendingMode), spawnTimeMs(std::move(spawnTimeMs)) {
+		// Sample the first interval up front (a constant always yields the same value; a RandomRange draws one).
+		this->spawnTimeMs.sample();
+	}
 
 
 	void TimedSpawner::calculate(float startIndex, TemporaryLedData& tempData) {
 		auto currentTimeMs = millis();
-		if (currentTimeMs - lastSpawnTimeMs >= spawnTimeMs) {
+		if (currentTimeMs - lastSpawnTimeMs >= spawnTimeMs.value) {
 			lastSpawnTimeMs = currentTimeMs;
-			spawn();
-		}
-		Spawner::calculate(startIndex, tempData);
-	}
-
-
-	RandomTimedSpawner::RandomTimedSpawner(
-		EffectSpawnerFactory factory,
-		uint16_t maxChildren,
-		bool keepOldOnSpawn,
-		unsigned long minSpawnTimeMs,
-		unsigned long maxSpawnTimeMs,
-		SamplingFunction spawnTimeSamplingFunction,
-		BlendingMode blendingMode
-	)
-		: TimedSpawner(
-			  std::move(factory),
-			  maxChildren,
-			  keepOldOnSpawn,
-			  spawnTimeSamplingFunction(minSpawnTimeMs, maxSpawnTimeMs),
-			  blendingMode
-		  ),
-		  minSpawnTimeMs(minSpawnTimeMs),
-		  maxSpawnTimeMs(maxSpawnTimeMs),
-		  spawnTimeSamplingFunction(spawnTimeSamplingFunction) {}
-
-
-	void RandomTimedSpawner::calculate(float startIndex, TemporaryLedData& tempData) {
-		auto currentTimeMs = millis();
-		if (currentTimeMs - lastSpawnTimeMs >= spawnTimeMs) {
-			lastSpawnTimeMs = currentTimeMs;
-			spawnTimeMs = spawnTimeSamplingFunction(minSpawnTimeMs, maxSpawnTimeMs);
+			// Re-sample the interval for the NEXT gap. For a constant this is a no-op (fixed cadence); for a RandomRange it
+			// draws a fresh gap length, so successive spawns are irregularly spaced (the old RandomTimedSpawner behavior).
+			spawnTimeMs.sample();
 			spawn();
 		}
 		Spawner::calculate(startIndex, tempData);
@@ -144,7 +118,8 @@ namespace ledpipelines::effects {
 		result += jsonHeader("TimedSpawner");
 		result += jsonField("maxChildren", (int)maxChildren);
 		result += jsonField("keepOldOnSpawn", keepOldOnSpawn);
-		result += jsonField("spawnTimeMs", (int)spawnTimeMs);
+		// Config emits the spawn-interval RECIPE (a constant, or a RandomRange spec); the sampled interval is state.
+		result += jsonRawField("spawnTimeMs", spawnTimeMs.describeValue());
 		result += jsonField("factory", std::string("non-serializable"));
 		if (includeState) {
 			std::string kids = "[";
@@ -153,29 +128,9 @@ namespace ledpipelines::effects {
 				kids += activeChildren[i]->toJson(includeState);
 			}
 			kids += "]";
-			result += jsonStateObject(jsonStateHeader() + jsonField("lastSpawnTimeMs", (int)lastSpawnTimeMs) + jsonRawField("activeChildren", kids));
-		}
-		result += "}";
-		return result;
-	}
-
-	std::string RandomTimedSpawner::toJson(bool includeState) {
-		std::string result = "{";
-		result += jsonHeader("RandomTimedSpawner");
-		result += jsonField("maxChildren", (int)maxChildren);
-		result += jsonField("keepOldOnSpawn", keepOldOnSpawn);
-		result += jsonField("minSpawnTimeMs", (int)minSpawnTimeMs);
-		result += jsonField("maxSpawnTimeMs", (int)maxSpawnTimeMs);
-		result += jsonField("spawnTimeSamplingFunction", spawnTimeSamplingFunction);
-		result += jsonField("factory", std::string("non-serializable"));
-		if (includeState) {
-			std::string kids = "[";
-			for (size_t i = 0; i < activeChildren.size(); i++) {
-				if (i > 0) kids += ",";
-				kids += activeChildren[i]->toJson(includeState);
-			}
-			kids += "]";
-			result += jsonStateObject(jsonStateHeader() + jsonField("lastSpawnTimeMs", (int)lastSpawnTimeMs) + jsonRawField("activeChildren", kids));
+			result += jsonStateObject(
+				jsonStateHeader() + jsonField("lastSpawnTimeMs", (int)lastSpawnTimeMs) +
+				jsonField("sampledSpawnTimeMs", (int)spawnTimeMs.value) + jsonRawField("activeChildren", kids));
 		}
 		result += "}";
 		return result;

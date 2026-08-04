@@ -4,6 +4,7 @@
 #include <utility>  // std::move
 
 #include "BaseLedPipeline.h"
+#include "Value.h"  // Value<unsigned long> - runtimeMs may be a constant or a randomized duration (RandomRange)
 
 namespace ledpipelines::effects {
 	struct WrapperEffect : LedPipelineStage {
@@ -75,17 +76,27 @@ namespace ledpipelines::effects {
 
 		unsigned long startTimeMs;
 		float elapsedPercentage;
-		unsigned long runtimeMs;
+
+		// The runtime: a Value<unsigned long> recipe that caches its own sampled draw (see Value - the Value IS the
+		// cache, so there is no separate sampled-scalar member). A plain duration is a constant; a RandomRange re-rolls its
+		// duration on each run - this is what replaces the old RandomTimedEffect family
+		// (RandomFadeOut/RandomWait/RandomTimeBox/...). Timing math reads runtimeMs.value; resetTimer() re-samples it.
+		Value<unsigned long> runtimeMs;
 
 		/**
 		 * A lead-in delay, in ms, before the effect's own timeline begins. The effect still runs (and renders its
-		 * inner) from the moment it becomes RUNNING, but its clock is held at t=0 for the first delayMs. So a delayed
-		 * effect sits in its start state during the delay - FadeOut stays fully visible, FadeIn stays invisible, Moving
-		 * sits at its startPosition, TimeBox keeps showing its inner - and only begins progressing once the delay
+		 * inner) from the moment it becomes RUNNING, but its clock is held at t=0 for the first delayMs.value. So a
+		 * delayed effect sits in its start state during the delay - FadeOut stays fully visible, FadeIn stays invisible,
+		 * Moving sits at its startPosition, TimeBox keeps showing its inner - and only begins progressing once the delay
 		 * elapses. This lets e.g. `content.wrap(FadeOut(1000).delayMs(5000))` show content for 5s and then fade it out
-		 * over 1s. Defaults to 0 (no delay), so every existing effect is unchanged.
+		 * over 1s.
+		 *
+		 * Like runtimeMs, the delay is a Value<unsigned long> caching its own draw: a plain duration is constant, or a
+		 * RandomRange gives a randomized lead-in that re-rolls each run. elapsedMs() reads delayMs.value. Set
+		 * post-construction by applyTiming() (not the ctor), then sampled there and re-rolled in resetTimer(). Defaults
+		 * to 0 (no delay), so every existing effect is unchanged.
 		 */
-		unsigned long delayMs = 0;
+		Value<unsigned long> delayMs = 0ul;
 
 		/**
 		 * When true, the effect reports DONE the moment its OWN timer completes (elapsedMs() >= runtimeMs), instead of
@@ -107,20 +118,23 @@ namespace ledpipelines::effects {
 		 */
 		unsigned long elapsedMs() const {
 			unsigned long sinceStart = millis() - startTimeMs;
-			return sinceStart > delayMs ? sinceStart - delayMs : 0;
+			return sinceStart > delayMs.value ? sinceStart - delayMs.value : 0;
 		}
 
 		virtual void resetTimer();
 
 #ifdef LEDPIPELINES_SERIALIZATION
 		// The timed-effect STATE fields, as comma-prefixed JSON fragments to append after jsonStateHeader() inside a
-		// stage's state object. Only the live timeline is state: startTimeMs (when the effect began) and
-		// elapsedPercentage (how far along it is). runtimeMs/delayMs/terminateOnComplete are author-set CONFIG and are
-		// emitted by each effect's config section, not here. Formats via the shared free functions since TimedEffect
-		// does not inherit LedPipelineStage.
+		// stage's state object. The live timeline is state: startTimeMs (when the effect began) and elapsedPercentage
+		// (how far along it is). sampledRuntimeMs and sampledDelayMs are also state - the duration and lead-in RESOLVED
+		// from runtimeMsValue/delayMsValue for this lifecycle, which for a RandomRange are re-rolled each run and so are
+		// not knowable from config alone. The recipes (runtimeMsValue, delayMsValue) plus terminateOnComplete are
+		// author-set CONFIG, emitted by each effect's config section. Formats via the shared free functions since
+		// TimedEffect does not inherit LedPipelineStage.
 		std::string jsonTimedEffect() const {
 			using namespace ledpipelines::serialization;
-			return jsonField("startTimeMs", (int)startTimeMs) + jsonField("elapsedPercentage", elapsedPercentage);
+			return jsonField("startTimeMs", (int)startTimeMs) + jsonField("elapsedPercentage", elapsedPercentage) +
+				   jsonField("sampledRuntimeMs", (int)runtimeMs.value) + jsonField("sampledDelayMs", (int)delayMs.value);
 		}
 #endif
 
@@ -132,89 +146,39 @@ namespace ledpipelines::effects {
 		 */
 		template <typename ConcreteBuilder>
 		struct Builder {
+			// The runtime is a Value<unsigned long>: a plain duration converts implicitly (constant), or pass a
+			// RandomRange for a randomized duration. Same slot, no RandomFadeOut/RandomWait/RandomTimeBox needed.
 			BUILDER_FIELD_CRTP(unsigned long, runtimeMs);
 
-			// Lead-in delay before the effect's timeline begins (see TimedEffect::delayMs). Inherited by every timed
-			// effect's builder, so any of them - fades, Moving, TimeBox, Wait - can be delayed with .delayMs(...).
+			// Lead-in delay before the effect's timeline begins (see TimedEffect::delayMs). A Value<unsigned long>: a
+			// plain duration converts implicitly (constant), or pass a RandomRange for a randomized lead-in. Inherited by
+			// every timed effect's builder, so any of them - fades, Moving, TimeBox, Wait - can be delayed with
+			// .delayMs(...). Defaults to 0 (no delay).
 			BUILDER_FIELD_CRTP_DEFAULT(unsigned long, delayMs, 0);
 
 			// End as soon as this effect's own timer completes, rather than deferring to the inner (see
 			// TimedEffect::terminateOnComplete). Inherited by every timed effect's builder.
 			BUILDER_FIELD_CRTP_DEFAULT(bool, terminateOnComplete, false);
 
-			explicit Builder(const unsigned long runtimeMs) : _runtimeMs(runtimeMs) {}
+			explicit Builder(Value<unsigned long> runtimeMs) : _runtimeMs(std::move(runtimeMs)) {}
 
 		protected:
 			// Copy this builder's timing config onto a freshly built product. Called by each leaf build() after
-			// constructing its product, so delayMs (and any future TimedEffect-level timing field) is applied in one
-			// place rather than threaded through every effect's constructor. Returns the product for convenience:
+			// constructing its product, so the delay recipe (and any future TimedEffect-level timing field) is applied
+			// in one place rather than threaded through every effect's constructor. Copies the delay recipe and samples
+			// it once for this lifecycle (a constant always yields the same value; a RandomRange draws one), mirroring how
+			// the ctor samples runtimeMs. Returns the product for convenience:
 			//   return applyTiming(new FadeOut(...));
 			template <typename Product>
 			Product* applyTiming(Product* product) {
 				product->delayMs = this->_delayMs;
-				product->terminateOnComplete = this->_terminateOnComplete;
+				product->delayMs.sample();
+				product->terminateOnComplete = this->_terminateOnComplete.value;
 				return product;
 			}
 		};
 
 	protected:
-		explicit TimedEffect(unsigned long runtimeMs);
-	};
-
-
-	struct RandomTimedEffect : TimedEffect {
-		unsigned long minRuntimeMs;
-		unsigned long maxRuntimeMs;
-		SamplingFunction samplingFunction;
-
-
-		void sampleRuntime();
-
-		void resetTimer() override;
-
-#ifdef LEDPIPELINES_SERIALIZATION
-		// The random-timed-effect STATE fields, as comma-prefixed JSON fragments to append after jsonStateHeader().
-		// Unlike a plain TimedEffect, runtimeMs here is SAMPLED at runtime (re-rolled each resetTimer via
-		// sampleRuntime), so it is state, not config - minRuntimeMs/maxRuntimeMs/samplingFunction are the config. Also
-		// includes the inherited timeline (startTimeMs, elapsedPercentage) so an effect needs only this one call.
-		std::string jsonRandomTimedEffect() const {
-			using namespace ledpipelines::serialization;
-			return jsonField("runtimeMs", (int)runtimeMs) + jsonTimedEffect();
-		}
-#endif
-
-		/**
-		 * Standalone mixin builder (see TimedEffect::Builder for why it does not derive from
-		 * LedPipelineStage::Builder). Templated on the leaf builder type (CRTP) so its setters return the leaf type and
-		 * chain cleanly.
-		 */
-		template <typename ConcreteBuilder>
-		struct Builder {
-			BUILDER_FIELD_CRTP_DEFAULT(unsigned long, minRuntimeMs, 0);
-			BUILDER_FIELD_CRTP(unsigned long, maxRuntimeMs);
-			BUILDER_FIELD_CRTP_DEFAULT(SamplingFunction, samplingFunction, SamplingFunction::UNIFORM);
-
-			// Lead-in delay before the effect's timeline begins (see TimedEffect::delayMs). Mirrors
-			// TimedEffect::Builder::delayMs so random timed effects can be delayed identically.
-			BUILDER_FIELD_CRTP_DEFAULT(unsigned long, delayMs, 0);
-
-			// End as soon as this effect's own (sampled) timer completes (see TimedEffect::terminateOnComplete). Mirrors
-			// TimedEffect::Builder::terminateOnComplete so random timed effects can opt in identically.
-			BUILDER_FIELD_CRTP_DEFAULT(bool, terminateOnComplete, false);
-
-			explicit Builder(const unsigned long maxRuntimeMs) : _maxRuntimeMs(maxRuntimeMs) {}
-
-		protected:
-			// See TimedEffect::Builder::applyTiming.
-			template <typename Product>
-			Product* applyTiming(Product* product) {
-				product->delayMs = this->_delayMs;
-				product->terminateOnComplete = this->_terminateOnComplete;
-				return product;
-			}
-		};
-
-	protected:
-		RandomTimedEffect(unsigned long minRuntimeMs, unsigned long maxRuntimeMs, SamplingFunction samplingFunction);
+		explicit TimedEffect(Value<unsigned long> runtimeMs);
 	};
 } // namespace ledpipelines::effects

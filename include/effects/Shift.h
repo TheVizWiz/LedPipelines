@@ -2,51 +2,19 @@
 
 
 #include "BaseEffect.h"
-#include "enums/SamplingFunction.h"
+#include "Value.h"  // Value<float> - the offset may be a constant or a randomized position (RandomRange)
 
 namespace ledpipelines::effects {
+	// Shifts its inner effect along the strip by an offset. The offset is a Value<float> that caches its own sampled
+	// draw (see Value - the Value IS the cache): a plain number for a fixed shift, or a RandomRange for a randomized
+	// position (this replaces the old RandomShift - the offset is sampled once per lifecycle and re-rolled on reset(),
+	// same as every other Value input). useWholePixels snaps the effective offset to an integer pixel so the shifted
+	// copy lands exactly on LEDs (no fractional-coverage feathering); off by default.
 	struct Shift : WrapperEffect {
-		float offset;
-
-		void calculate(float startIndex, TemporaryLedData& tempData) override;
-
-#ifdef LEDPIPELINES_SERIALIZATION
-		std::string toJson(bool includeState) override;
-#endif
-
-
-		struct Builder : WrapperEffect::Builder<Shift, Builder> {
-			BUILDER_FIELD(float, offset);
-
-			Builder(float offset) : _offset(offset) {}
-
-			Shift* build() override {
-				return new Shift(buildInner(), _offset);
-			}
-		};
-
-	protected:
-		Shift(LedPipelineStage* stage, float offset);
-	};
-
-
-	// Like Shift, but the offset is sampled once from [minOffset, maxOffset] the first time the effect runs, rather
-	// than fixed at build time. reset() returns the effect to NOT_STARTED, so a re-run (e.g. inside a Loop) re-samples
-	// a fresh offset - mirroring how the random timed effects re-roll their duration on each run. Not a
-	// RandomTimedEffect: the randomized quantity here is a position, not a duration, so there is no timer involved.
-	struct RandomShift : WrapperEffect {
-		float minOffset;
-		float maxOffset;
-		SamplingFunction samplingFunction;
+		// The offset RECIPE that caches its draw for the current lifecycle. calculate() shifts by effectiveOffset()
+		// (offset.value, rounded when useWholePixels). reset() re-samples it.
+		Value<float> offset;
 		bool useWholePixels;
-
-		// The offset sampled for the current run. Set on the first calculate() after a reset; undefined until then.
-		float offset;
-
-		// Whether offset has been sampled for the current run. Tracked explicitly (rather than keying off state) so an
-		// inner that never advances past NOT_STARTED - e.g. a bare Solid - doesn't cause a fresh sample every frame.
-		// reset() clears this so the next run re-samples.
-		bool sampled = false;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
@@ -57,24 +25,21 @@ namespace ledpipelines::effects {
 #endif
 
 
-		struct Builder : WrapperEffect::Builder<RandomShift, Builder> {
-			BUILDER_FIELD_DEFAULT(float, minOffset, 0);
-			BUILDER_FIELD(float, maxOffset);
-			BUILDER_FIELD_DEFAULT(SamplingFunction, samplingFunction, SamplingFunction::UNIFORM);
+		struct Builder : WrapperEffect::Builder<Shift, Builder> {
+			BUILDER_FIELD(float, offset);
 			BUILDER_FIELD_DEFAULT(bool, useWholePixels, false);
 
-			Builder(float maxOffset) : _maxOffset(maxOffset) {}
+			Builder(Value<float> offset) : _offset(std::move(offset)) {}
 
-			RandomShift* build() override {
-				return new RandomShift(buildInner(), _minOffset, _maxOffset, _samplingFunction, _useWholePixels);
+			Shift* build() override {
+				return new Shift(buildInner(), _offset, _useWholePixels.value);
 			}
 		};
 
 	protected:
-		RandomShift(LedPipelineStage* stage,
-					float minOffset,
-					float maxOffset,
-					SamplingFunction samplingFunction,
-					bool useWholePixels);
+		Shift(LedPipelineStage* stage, Value<float> offset, bool useWholePixels = false);
+
+		// The offset actually applied this lifecycle: the cached sample, snapped to a whole pixel when useWholePixels.
+		float effectiveOffset() const;
 	};
 } // namespace ledpipelines::effects

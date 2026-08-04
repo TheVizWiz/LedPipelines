@@ -62,8 +62,8 @@ void setup() {
 
 	auto ball_003 = HSVGradient::Builder(0, 9)
 						.runtimeMs(1000)
-						.startGradient(FHSVA(0, 1, 1), FHSVA(360, 1, 1))
-						.endGradient(FHSVA(360, 1, 1), FHSVA(720, 1, 1))
+						.startGradient(HSVA(0, 1, 1), HSVA(360, 1, 1))
+						.endGradient(HSVA(360, 1, 1), HSVA(720, 1, 1))
 						.wrap(Loop::Builder());
 
 	auto upstroke_003 =
@@ -100,8 +100,8 @@ void setup() {
 
 	auto ball = HSVGradient::Builder(0, 9)
 					.runtimeMs(10000)
-					.startGradient(FHSVA(0, 1, 1), FHSVA(0, 1, 1))
-					.endGradient(FHSVA(360, 1, 1), FHSVA(360, 1, 1))
+					.startGradient(HSVA(0, 1, 1), HSVA(0, 1, 1))
+					.endGradient(HSVA(360, 1, 1), HSVA(360, 1, 1))
 					.wrap(Loop::Builder());
 
 	auto upstroke = ball.wrap(Moving::Builder(2000).startPosition(0).endPosition(80).smoothingFunction(
@@ -142,8 +142,8 @@ void setup() {
 
 	auto sharedBall = HSVGradient::Builder(0, 9)
 						  .runtimeMs(10000)
-						  .startGradient(FHSVA(0, 1, 1), FHSVA(0, 1, 1))
-						  .endGradient(FHSVA(360, 1, 1), FHSVA(360, 1, 1))
+						  .startGradient(HSVA(0, 1, 1), HSVA(0, 1, 1))
+						  .endGradient(HSVA(360, 1, 1), HSVA(360, 1, 1))
 						  .loop()
 						  .block()
 						  .shared(); // shorthand for wrapping in Shared::Builder(buildShared()): builds this effect NOW and

@@ -14,7 +14,9 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<Wait, Builder>, TimedEffect::Builder<Builder> {
-			explicit Builder(const unsigned long runtimeMs) : TimedEffect::Builder<Builder>(runtimeMs) {};
+			// runtimeMs is a Value<unsigned long>: a plain duration converts implicitly, or pass a RandomRange for a
+			// randomized wait (this replaces the old RandomWait).
+			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
 			Wait* build() override {
 				return applyTiming(new Wait(_runtimeMs, _blendingMode));
@@ -22,35 +24,6 @@ namespace ledpipelines::effects {
 		};
 
 	private:
-		explicit Wait(unsigned long runtimeMs, BlendingMode blendingMode = BlendingMode::NORMAL);
-	};
-
-
-	struct RandomWait : public LedPipelineStage, RandomTimedEffect {
-		void calculate(float startIndex, TemporaryLedData& tempData) override;
-
-		void reset() override;
-
-#ifdef LEDPIPELINES_SERIALIZATION
-		std::string toJson(bool includeState) override;
-#endif
-
-		struct Builder : LedPipelineStage::Builder<RandomWait, Builder>, RandomTimedEffect::Builder<Builder> {
-			explicit Builder(const unsigned long maxRuntimeMs) : RandomTimedEffect::Builder<Builder>(maxRuntimeMs) {};
-
-			RandomWait* build() override {
-				return applyTiming(
-					new RandomWait(_minRuntimeMs, _maxRuntimeMs, _samplingFunction, _blendingMode)
-				);
-			}
-		};
-
-	private:
-		RandomWait(
-			unsigned long minRuntimeMs,
-			unsigned long maxRuntimeMs,
-			SamplingFunction samplingFunction,
-			BlendingMode blendingMode = BlendingMode::NORMAL
-		);
+		explicit Wait(Value<unsigned long> runtimeMs, BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
 } // namespace ledpipelines::effects

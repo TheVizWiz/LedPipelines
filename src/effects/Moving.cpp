@@ -7,17 +7,23 @@ using namespace ledpipelines::effects;
 
 Moving::Moving(
 	LedPipelineStage* stage,
-	const unsigned long runtimeMs,
-	const float startPosition,
-	const float endPosition,
-	SmoothingFunction smoothingFunction
+	Value<unsigned long> runtimeMs,
+	Value<float> startPosition,
+	Value<float> endPosition,
+	Value<SmoothingFunction> smoothingFunction
 )
 	: WrapperEffect(stage),
-	  TimedEffect(runtimeMs),
-	  currentPosition(startPosition),
-	  startPosition(startPosition),
-	  endPosition(endPosition),
-	  smoothingFunction(smoothingFunction) {}
+	  TimedEffect(std::move(runtimeMs)),
+	  startPosition(std::move(startPosition)),
+	  endPosition(std::move(endPosition)),
+	  smoothingFunction(std::move(smoothingFunction)) {
+	// Sample the position/smoothing inputs once for this lifecycle (constants yield the same value; randoms draw one).
+	this->startPosition.sample();
+	this->endPosition.sample();
+	this->smoothingFunction.sample();
+	// currentPosition starts at the sampled start position.
+	this->currentPosition = this->startPosition.value;
+}
 
 
 void Moving::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -30,13 +36,13 @@ void Moving::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	// elapsedMs() holds at 0 during the lead-in delay, so a delayed Moving sits at its startPosition until the delay
 	// elapses, then begins moving.
-	this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs;
+	this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs.value;
 
 	// smoothingFunction clamps the percentage to [0, 1], so once the movement timer completes the inner is pinned
 	// exactly at endPosition. We keep rendering it there until the inner itself finishes - the movement running out
 	// does NOT end this effect; only the inner reaching DONE does. This lets the inner keep animating at its final
 	// destination after the move completes.
-	this->currentPosition = smoothingFunction(elapsedPercentage, startPosition, endPosition);
+	this->currentPosition = smoothingFunction.value(elapsedPercentage, startPosition.value, endPosition.value);
 
 	this->stage->calculate(startIndex + currentPosition, tempData);
 
@@ -54,7 +60,12 @@ void Moving::calculate(float startIndex, TemporaryLedData& tempData) {
 
 void Moving::reset() {
 	WrapperEffect::reset();
-	this->currentPosition = this->startPosition;
+	TimedEffect::resetTimer();
+	// Re-roll the position/smoothing inputs for the next run (no-ops for constants; fresh draws for randoms).
+	this->startPosition.sample();
+	this->endPosition.sample();
+	this->smoothingFunction.sample();
+	this->currentPosition = this->startPosition.value;
 }
 
 
@@ -62,11 +73,12 @@ void Moving::reset() {
 std::string Moving::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Moving");
-	result += jsonField("startPosition", startPosition);
-	result += jsonField("endPosition", endPosition);
-	result += jsonField("smoothingFunction", smoothingFunction);
-	result += jsonField("runtimeMs", (int)runtimeMs);
-	result += jsonField("delayMs", (int)delayMs);
+	// Config emits each input's RECIPE (a constant, or a random spec); sampled values are state (below / jsonTimedEffect).
+	result += jsonRawField("startPosition", startPosition.describeValue());
+	result += jsonRawField("endPosition", endPosition.describeValue());
+	result += jsonRawField("smoothingFunction", smoothingFunction.describeValue());
+	result += jsonRawField("runtimeMs", runtimeMs.describeValue());
+	result += jsonRawField("delayMs", delayMs.describeValue());
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
 	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect() + jsonField("currentPosition", currentPosition));

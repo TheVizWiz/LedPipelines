@@ -20,18 +20,18 @@ namespace ledpipelines {
 	}
 
 	template <class T, class ConcreteBuilder>
-	auto LedPipelineStage::Builder<T, ConcreteBuilder>::loop(size_t numLoops) {
-		return wrap(effects::Loop::Builder().numLoops(numLoops));
+	auto LedPipelineStage::Builder<T, ConcreteBuilder>::loop(Value<size_t> numLoops) {
+		return wrap(effects::Loop::Builder().numLoops(std::move(numLoops)));
 	}
 
 	template <class T, class ConcreteBuilder>
-	auto LedPipelineStage::Builder<T, ConcreteBuilder>::timebox(unsigned long runtimeMs) {
-		return wrap(effects::TimeBox::Builder(runtimeMs));
+	auto LedPipelineStage::Builder<T, ConcreteBuilder>::timebox(Value<unsigned long> runtimeMs) {
+		return wrap(effects::TimeBox::Builder(std::move(runtimeMs)));
 	}
 
 	template <class T, class ConcreteBuilder>
-	auto LedPipelineStage::Builder<T, ConcreteBuilder>::shift(float numPixels) {
-		return wrap(effects::Shift::Builder(numPixels));
+	auto LedPipelineStage::Builder<T, ConcreteBuilder>::shift(Value<float> numPixels) {
+		return wrap(effects::Shift::Builder(std::move(numPixels)));
 	}
 
 	template <class T, class ConcreteBuilder>

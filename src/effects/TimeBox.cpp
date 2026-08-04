@@ -3,7 +3,8 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-TimeBox::TimeBox(LedPipelineStage* stage, unsigned long runtimeMs) : WrapperEffect(stage), TimedEffect(runtimeMs) {}
+TimeBox::TimeBox(LedPipelineStage* stage, Value<unsigned long> runtimeMs)
+	: WrapperEffect(stage), TimedEffect(std::move(runtimeMs)) {}
 
 
 void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -19,14 +20,14 @@ void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 	unsigned long elapsedTime = elapsedMs();
 
 
-	this->elapsedPercentage = (float)elapsedTime / (float)runtimeMs;
+	this->elapsedPercentage = (float)elapsedTime / (float)runtimeMs.value;
 	this->stage->calculate(startIndex, tempData);
 	// if the internal stage is done, we set it to done.
 	if (this->stage->state == LedPipelineRunningState::DONE) {
 		this->state = LedPipelineRunningState::DONE;
 	}
 
-	if (elapsedTime >= runtimeMs) {
+	if (elapsedTime >= runtimeMs.value) {
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 		return;
@@ -39,71 +40,17 @@ void TimeBox::reset() {
 	TimedEffect::resetTimer();
 }
 
-RandomTimeBox::RandomTimeBox(
-	LedPipelineStage* stage,
-	unsigned long minRuntimeMs,
-	unsigned long maxRuntimeMs,
-	SamplingFunction samplingFunction
-)
-	: WrapperEffect(stage), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
-
-
-void RandomTimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
-	if (this->state == LedPipelineRunningState::DONE) return;
-
-	if (this->state == LedPipelineRunningState::NOT_STARTED) {
-		this->state = LedPipelineRunningState::RUNNING;
-		this->sampleRuntime();
-		startTimeMs = millis();
-	}
-
-	unsigned long elapsedTime = elapsedMs();
-
-
-	this->elapsedPercentage = (float)elapsedTime / (float)runtimeMs;
-	this->stage->calculate(startIndex, tempData);
-	// if the internal stage is done, we set it to done.
-	if (this->stage->state == LedPipelineRunningState::DONE) {
-		this->state = LedPipelineRunningState::DONE;
-	}
-
-	if (elapsedTime >= runtimeMs) {
-		this->elapsedPercentage = 1;
-		this->state = LedPipelineRunningState::DONE;
-		return;
-	}
-}
-
-
-void RandomTimeBox::reset() {
-	WrapperEffect::reset();
-	RandomTimedEffect::resetTimer();
-}
-
 
 #ifdef LEDPIPELINES_SERIALIZATION
 std::string TimeBox::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("TimeBox");
-	result += jsonField("runtimeMs", (int)runtimeMs);
-	result += jsonField("delayMs", (int)delayMs);
+	// Config emits the runtime RECIPE (a constant, or a RandomRange spec); the sampled duration is state (jsonTimedEffect).
+	result += jsonRawField("runtimeMs", runtimeMs.describeValue());
+	result += jsonRawField("delayMs", delayMs.describeValue());
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
 	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
-	result += "}";
-	return result;
-}
-
-std::string RandomTimeBox::toJson(bool includeState) {
-	std::string result = "{";
-	result += jsonHeader("RandomTimeBox");
-	result += jsonField("minRuntimeMs", (int)minRuntimeMs);
-	result += jsonField("maxRuntimeMs", (int)maxRuntimeMs);
-	result += jsonField("samplingFunction", samplingFunction);
-	result += jsonField("delayMs", (int)delayMs);
-	result += jsonField("terminateOnComplete", terminateOnComplete);
-	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
-	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonRandomTimedEffect());
 	result += "}";
 	return result;
 }

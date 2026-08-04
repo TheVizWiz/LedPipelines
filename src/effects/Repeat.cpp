@@ -3,16 +3,28 @@
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-Repeat::Repeat(LedPipelineStage* stage, int numRepeats, float repeatDistance, BlendingMode repeatBlendingMode)
+Repeat::Repeat(LedPipelineStage* stage, int numRepeats, Value<float> repeatDistance, BlendingMode repeatBlendingMode)
 	: WrapperEffect(stage),
 	  numRepeats(numRepeats),
-	  repeatDistance(repeatDistance),
-	  repeatBlendingMode(repeatBlendingMode) {}
+	  repeatDistance(std::move(repeatDistance)),
+	  repeatBlendingMode(repeatBlendingMode) {
+	// Sample the spacing once for this lifecycle (a constant yields the same value; a random one draws one).
+	this->repeatDistance.sample();
+}
+
+void Repeat::reset() {
+	WrapperEffect::reset();
+	// Re-roll the spacing for the next run (no-op for a constant; fresh draw for a random one).
+	this->repeatDistance.sample();
+}
 
 void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
+
+	// Read the sampled spacing once so it is stable for the whole frame's tiling below.
+	const float repeatDistance = this->repeatDistance.value;
 
 	//    // only calculate the data once. We first calculate it at 0, and then shift it by how much
 	//    TemporaryLedData stageData = TemporaryLedData();
@@ -82,10 +94,13 @@ std::string Repeat::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Repeat");
 	result += jsonField("numRepeats", (int)numRepeats);
-	result += jsonField("repeatDistance", repeatDistance);
+	// Config emits the spacing RECIPE; the sampled spacing is state.
+	result += jsonRawField("repeatDistance", repeatDistance.describeValue());
 	result += jsonField("repeatBlendingMode", repeatBlendingMode);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
-	if (includeState) result += jsonStateObject(jsonStateHeader());
+	if (includeState) {
+		result += jsonStateObject(jsonStateHeader() + jsonField("sampledRepeatDistance", repeatDistance.value));
+	}
 	result += "}";
 	return result;
 }

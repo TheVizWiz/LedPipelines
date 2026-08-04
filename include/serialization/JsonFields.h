@@ -2,7 +2,7 @@
 
 // Free-function JSON field formatters, shared by everything that serializes. LedPipelineStage exposes these as
 // protected member helpers (thin forwarders) so effect toJson() bodies read as jsonField(...); the standalone timing
-// mixins (TimedEffect / RandomTimedEffect in BaseEffect.h), which do NOT inherit LedPipelineStage and so cannot reach
+// mixin (TimedEffect in BaseEffect.h), which does NOT inherit LedPipelineStage and so cannot reach
 // its protected members, call these free functions directly. Keeping the formatting in one place means both paths
 // produce identical JSON.
 //
@@ -10,10 +10,11 @@
 // unconditionally but its body is empty otherwise, so a non-serializing build pulls in nothing.
 #ifdef LEDPIPELINES_SERIALIZATION
 
-#include <cstdio>   // snprintf
+#include <cstdio>       // snprintf
 #include <string>
+#include <type_traits>  // is_integral / is_signed - the integral jsonValue template
 
-#include "Color.h"                   // RGBA, FHSVA
+#include "Color.h"                   // RGBA, HSVA
 #include "enums/BlendingMode.h"       // BlendingMode + blendingModeName
 #include "enums/SamplingFunction.h"   // SamplingFunction
 #include "enums/SmoothingFunction.h"  // SmoothingFunction
@@ -67,27 +68,92 @@ namespace ledpipelines::serialization {
 		return ",\"" + name + "\" : " + rawJson;
 	}
 
-	// A color serializes as an object of its four channels, e.g. "color" : {"r":255,"g":0,"b":0,"a":255}. Emitted as a
-	// raw (unquoted) JSON object. substr(1) drops each helper's leading comma so the first field opens cleanly.
-	inline std::string jsonField(const std::string& name, const RGBA& value) {
+	// Opens a Value<T> provider object with its discriminator - the value analog of jsonHeader() for stages. Every
+	// serialized Value<T> is an object tagged with a "provider" naming the provider kind ("constant", "randomColor",
+	// "randomHsvColor", "randomColorSet", ...); the remaining fields are that provider's own params. No leading comma:
+	// this is the FIRST field of the object, so provider params appended after (jsonField / jsonRawField) add theirs.
+	// Usage: "{" + jsonProvider("constant") + jsonRawField("value", ...) + "}".
+	inline std::string jsonProvider(const std::string& kind) {
+		return "\"provider\" : \"" + kind + "\"";
+	}
+
+	// jsonValue(x): the bare JSON value for x (no key), used where a value stands alone rather than as a named field -
+	// e.g. inside an array, or a ConstantProvider<T>::describeValue() rendering its wrapped value. The jsonField(name,
+	// x) overloads for object-typed values (RGBA, HSVA) are defined in terms of these.
+
+	// Bare bool, for ConstantProvider<bool>::describeValue() (e.g. Spawner's keepOldOnSpawn). A non-template exact match,
+	// so it wins over the integral template below (which excludes bool) - a Value<bool> serializes as true/false, not 1/0.
+	inline std::string jsonValue(bool value) {
+		return value ? "true" : "false";
+	}
+
+	// Bare integer, for ConstantProvider<T>::describeValue() over any integral T (int, unsigned long, long, size_t,
+	// uint16_t, uint8_t, ...). A single template rather than one overload per width, so every builder field of integral
+	// type resolves unambiguously. bool is excluded (handled above); printed via long long / unsigned long long to
+	// cover the full range. Formatted into a fixed scratch buffer like the jsonField numeric overloads.
+	template <typename T, typename = std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>>>
+	inline std::string jsonValue(T value) {
+		char buf[32];
+		if (std::is_signed_v<T>) {
+			snprintf(buf, sizeof(buf), "%lld", (long long)value);
+		} else {
+			snprintf(buf, sizeof(buf), "%llu", (unsigned long long)value);
+		}
+		return std::string(buf);
+	}
+
+	inline std::string jsonValue(float value) {
+		char buf[32];
+		snprintf(buf, sizeof(buf), "%.9g", (double)value);
+		return std::string(buf);
+	}
+
+	// Enum-typed bare values, for ConstantProvider<SmoothingFunction/SamplingFunction/BlendingMode>::describeValue()
+	// (every builder field is now a Value<T>, so these T's get a ConstantProvider too). Each serializes as its stable
+	// string name, quoted - matching the corresponding jsonField overload above.
+	inline std::string jsonValue(SmoothingFunction value) {
+		return "\"" + std::string(value.name()) + "\"";
+	}
+
+	inline std::string jsonValue(const SamplingFunction& value) {
+		return "\"" + std::string(value.name()) + "\"";
+	}
+
+	inline std::string jsonValue(BlendingMode value) {
+		return "\"" + std::string(blendingModeName(value)) + "\"";
+	}
+
+	// A color's bare value: {"r":255,"g":0,"b":0,"a":255}.
+	inline std::string jsonValue(const RGBA& value) {
 		std::string obj = "{";
-		obj += jsonField("r", (int)value.r).substr(1);
+		obj += jsonField("r", (int)value.r).substr(1);  // substr(1) drops the leading comma so the object opens cleanly
 		obj += jsonField("g", (int)value.g);
 		obj += jsonField("b", (int)value.b);
 		obj += jsonField("a", (int)value.a);
 		obj += "}";
-		return jsonRawField(name, obj);
+		return obj;
 	}
 
-	// A floating-point HSVA color serializes as {"h":..,"s":..,"v":..,"a":..}.
-	inline std::string jsonField(const std::string& name, const FHSVA& value) {
+	// A floating-point HSVA color's bare value: {"h":..,"s":..,"v":..,"a":..}.
+	inline std::string jsonValue(const HSVA& value) {
 		std::string obj = "{";
 		obj += jsonField("h", value.h).substr(1);
 		obj += jsonField("s", value.s);
 		obj += jsonField("v", value.v);
 		obj += jsonField("a", (int)value.a);
 		obj += "}";
-		return jsonRawField(name, obj);
+		return obj;
+	}
+
+	// A color serializes as an object of its four channels, e.g. "color" : {"r":255,"g":0,"b":0,"a":255}. Emitted as a
+	// raw (unquoted) JSON object.
+	inline std::string jsonField(const std::string& name, const RGBA& value) {
+		return jsonRawField(name, jsonValue(value));
+	}
+
+	// A floating-point HSVA color: "grad" : {"h":..,"s":..,"v":..,"a":..}.
+	inline std::string jsonField(const std::string& name, const HSVA& value) {
+		return jsonRawField(name, jsonValue(value));
 	}
 } // namespace ledpipelines::serialization
 

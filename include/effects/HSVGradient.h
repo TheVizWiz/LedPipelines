@@ -1,13 +1,14 @@
 #pragma once
 
 #include "BaseEffect.h"
+#include "Value.h"  // Value<HSVA> - each gradient corner may be a constant or a randomized color
 
 namespace ledpipelines::effects {
 	/**
 	 * HSVGradient is a source effect that writes a color gradient between two positions on the strip, and can
 	 * optionally animate that gradient over time.
 	 *
-	 * The color at a given (pixel, moment) is a bilinear interpolation across four FHSVA corners - two axes, each with a
+	 * The color at a given (pixel, moment) is a bilinear interpolation across four HSVA corners - two axes, each with a
 	 * start and end:
 	 *
 	 *   - POSITION axis: startPosition .. endPosition along the strip.
@@ -37,18 +38,21 @@ namespace ledpipelines::effects {
 	 * differs. runtimeMs defaults to 0, in which case the effect renders startGradient statically and never advances.
 	 */
 	struct HSVGradient : LedPipelineStage, TimedEffect {
-		float startPosition;
-		float endPosition;
+		// Every input is a Value<T> that caches its own sampled draw (see Value - the Value IS the cache, so there are
+		// no separate *Sampled members). Plain values are constants; a RandomHSVA/RandomRange re-rolls on reset().
+		// calculate() reads each input's .value.
+		Value<float> startPosition;
+		Value<float> endPosition;
 
 		// The gradient at t=0.
-		FHSVA startGradientStart;
-		FHSVA startGradientEnd;
+		Value<HSVA> startGradientStart;
+		Value<HSVA> startGradientEnd;
 
 		// The gradient at t=runtimeMs. When these equal the startGradient corners, the gradient is static.
-		FHSVA endGradientStart;
-		FHSVA endGradientEnd;
+		Value<HSVA> endGradientStart;
+		Value<HSVA> endGradientEnd;
 
-		SmoothingFunction smoothingFunction;
+		Value<SmoothingFunction> smoothingFunction;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
@@ -61,26 +65,28 @@ namespace ledpipelines::effects {
 		struct Builder : LedPipelineStage::Builder<HSVGradient, Builder>, TimedEffect::Builder<Builder> {
 			BUILDER_FIELD(float, startPosition);
 			BUILDER_FIELD(float, endPosition);
-			BUILDER_FIELD_DEFAULT(FHSVA, startGradientStart, FHSVA());
-			BUILDER_FIELD_DEFAULT(FHSVA, startGradientEnd, FHSVA());
-			BUILDER_FIELD_DEFAULT(FHSVA, endGradientStart, FHSVA());
-			BUILDER_FIELD_DEFAULT(FHSVA, endGradientEnd, FHSVA());
+			BUILDER_FIELD_DEFAULT(HSVA, startGradientStart, HSVA());
+			BUILDER_FIELD_DEFAULT(HSVA, startGradientEnd, HSVA());
+			BUILDER_FIELD_DEFAULT(HSVA, endGradientStart, HSVA());
+			BUILDER_FIELD_DEFAULT(HSVA, endGradientEnd, HSVA());
 			BUILDER_FIELD_DEFAULT(SmoothingFunction, smoothingFunction, SmoothingFunction::LINEAR);
 
 			// A static gradient: no timeline. endGradient defaults to matching startGradient (see startGradient()).
-			Builder(float startPosition, float endPosition)
-				: TimedEffect::Builder<Builder>(0), _startPosition(startPosition), _endPosition(endPosition) {}
+			Builder(Value<float> startPosition, Value<float> endPosition)
+				: TimedEffect::Builder<Builder>(0ul), _startPosition(std::move(startPosition)),
+				  _endPosition(std::move(endPosition)) {}
 
 			// A time-animated gradient: give the runtime up front, then set startGradient()/endGradient().
-			Builder(float startPosition, float endPosition, unsigned long runtimeMs)
-				: TimedEffect::Builder<Builder>(runtimeMs), _startPosition(startPosition), _endPosition(endPosition) {}
+			Builder(Value<float> startPosition, Value<float> endPosition, Value<unsigned long> runtimeMs)
+				: TimedEffect::Builder<Builder>(std::move(runtimeMs)), _startPosition(std::move(startPosition)),
+				  _endPosition(std::move(endPosition)) {}
 
 			// Set the gradient shown at t=0 (start-of-position color -> end-of-position color). Also seeds endGradient
 			// to the same pair, so a caller that never sets endGradient() gets a static gradient rather than a morph
 			// toward the default (black) corners. Ref-qualified like the BUILDER_FIELD setters: lvalue chains in place
 			// (returns Builder&), rvalue temporary moves out by value (returns Builder) so a chain can be captured with
 			// auto without hitting the deleted copy constructor.
-			Builder& startGradient(FHSVA atStart, FHSVA atEnd) & {
+			Builder& startGradient(Value<HSVA> atStart, Value<HSVA> atEnd) & {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -88,7 +94,7 @@ namespace ledpipelines::effects {
 				return *this;
 			}
 
-			Builder startGradient(FHSVA atStart, FHSVA atEnd) && {
+			Builder startGradient(Value<HSVA> atStart, Value<HSVA> atEnd) && {
 				this->_startGradientStart = atStart;
 				this->_startGradientEnd = atEnd;
 				this->_endGradientStart = atStart;
@@ -97,13 +103,13 @@ namespace ledpipelines::effects {
 			}
 
 			// Set the gradient morphed toward at t=runtimeMs (start-of-position color -> end-of-position color).
-			Builder& endGradient(FHSVA atStart, FHSVA atEnd) & {
+			Builder& endGradient(Value<HSVA> atStart, Value<HSVA> atEnd) & {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return *this;
 			}
 
-			Builder endGradient(FHSVA atStart, FHSVA atEnd) && {
+			Builder endGradient(Value<HSVA> atStart, Value<HSVA> atEnd) && {
 				this->_endGradientStart = atStart;
 				this->_endGradientEnd = atEnd;
 				return std::move(*this);
@@ -126,14 +132,14 @@ namespace ledpipelines::effects {
 
 	protected:
 		HSVGradient(
-			float startPosition,
-			float endPosition,
-			unsigned long runtimeMs,
-			FHSVA startGradientStart,
-			FHSVA startGradientEnd,
-			FHSVA endGradientStart,
-			FHSVA endGradientEnd,
-			SmoothingFunction smoothingFunction,
+			Value<float> startPosition,
+			Value<float> endPosition,
+			Value<unsigned long> runtimeMs,
+			Value<HSVA> startGradientStart,
+			Value<HSVA> startGradientEnd,
+			Value<HSVA> endGradientStart,
+			Value<HSVA> endGradientEnd,
+			Value<SmoothingFunction> smoothingFunction,
 			BlendingMode blendingMode = BlendingMode::NORMAL
 		);
 	};

@@ -23,7 +23,9 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : WrapperEffect::Builder<Path, Builder> {
-			BUILDER_FIELD_DEFAULT(Segments, segments, Segments());
+			// segments is a list, not a randomizable scalar, so it is a plain field (hand-rolled, not via the
+			// Value-wrapping BUILDER_FIELD macro).
+			Segments _segments;
 
 			Builder& addSegment(int start, int end) {
 				this->_segments.push_back(std::make_pair(start, end));

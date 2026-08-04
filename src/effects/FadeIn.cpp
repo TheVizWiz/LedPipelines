@@ -6,11 +6,13 @@ using namespace ledpipelines::effects;
 
 FadeIn::FadeIn(
 	LedPipelineStage* stage,
-	unsigned long runtimeMs,
-	SmoothingFunction smoothingFunction,
+	Value<unsigned long> runtimeMs,
+	Value<SmoothingFunction> smoothingFunction,
 	BlendingMode blendingMode
 )
-	: WrapperEffect(stage), TimedEffect(runtimeMs), smoothingFunction(smoothingFunction) {
+	: WrapperEffect(stage), TimedEffect(std::move(runtimeMs)), smoothingFunction(std::move(smoothingFunction)) {
+	// Sample the fade curve once for this lifecycle (a constant yields the same preset; a random one draws one).
+	this->smoothingFunction.sample();
 	this->blendingMode = blendingMode;
 }
 
@@ -29,7 +31,7 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 	// then ramps in.
 	unsigned long timeFadingMs = elapsedMs();
 
-	if (timeFadingMs >= runtimeMs) {
+	if (timeFadingMs >= runtimeMs.value) {
 		// Ramp complete: full opacity, so leave the inner effect's opacity untouched (multiplier == 1). By default we do
 		// NOT go DONE here - FadeIn is a pass-through once faded in, and terminating would hide the wrapped content.
 		elapsedPercentage = 1;
@@ -42,8 +44,8 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 			return;
 		}
 	} else {
-		elapsedPercentage = (float)timeFadingMs / (float)runtimeMs;
-		float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
+		elapsedPercentage = (float)timeFadingMs / (float)runtimeMs.value;
+		float opacityMultiplier = smoothingFunction.value(timeFadingMs, 0, runtimeMs.value, 0, UINT8_MAX);
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.data[i].a = (tempData.data[i].a * opacityMultiplier) / 255;
 		}
@@ -60,62 +62,8 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 void FadeIn::reset() {
 	WrapperEffect::reset();
 	TimedEffect::resetTimer();
-}
-
-
-RandomFadeIn::RandomFadeIn(
-	LedPipelineStage* stage,
-	const unsigned long minRuntimeMs,
-	const unsigned long maxRuntimeMs,
-	SamplingFunction samplingFunction,
-	SmoothingFunction smoothingFunction,
-	BlendingMode blendingMode
-)
-	: WrapperEffect(stage),
-	  RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction),
-	  smoothingFunction(smoothingFunction) {
-	this->blendingMode = blendingMode;
-}
-
-void RandomFadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
-	if (this->state == LedPipelineRunningState::DONE) return;
-
-	if (this->state == LedPipelineRunningState::NOT_STARTED) {
-		this->startTimeMs = millis();
-		this->sampleRuntime();
-		this->state = LedPipelineRunningState::RUNNING;
-	}
-
-	this->stage->calculate(startIndex, tempData);
-
-	unsigned long timeFadingMs = elapsedMs();
-
-	if (timeFadingMs >= runtimeMs) {
-		elapsedPercentage = 1;
-
-		// See FadeIn::calculate: terminateOnComplete ends the fade the instant its (randomly sampled) ramp completes,
-		// rather than passing through until the inner finishes - letting a Series flow straight into the next stage.
-		if (this->terminateOnComplete) {
-			this->state = LedPipelineRunningState::DONE;
-			return;
-		}
-	} else {
-		elapsedPercentage = static_cast<float>(timeFadingMs) / static_cast<float>(runtimeMs);
-		float opacityMultiplier = smoothingFunction(timeFadingMs, 0, runtimeMs, 0, UINT8_MAX);
-		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
-			tempData.data[i].a = (tempData.data[i].a * opacityMultiplier) / 255;
-		}
-	}
-
-	// Defer termination to the inner effect (see FadeIn::calculate for why we don't copy the inner state wholesale).
-	if (this->stage->state == LedPipelineRunningState::DONE) {
-		this->state = LedPipelineRunningState::DONE;
-	}
-}
-
-void RandomFadeIn::reset() {
-	WrapperEffect::reset();
-	RandomTimedEffect::resetTimer();
+	// Re-roll the fade curve for the next run (no-op for a constant; fresh draw for a random one).
+	smoothingFunction.sample();
 }
 
 
@@ -123,27 +71,13 @@ void RandomFadeIn::reset() {
 std::string FadeIn::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("FadeIn");
-	result += jsonField("smoothingFunction", smoothingFunction);
-	result += jsonField("runtimeMs", (int)runtimeMs);
-	result += jsonField("delayMs", (int)delayMs);
+	// Config emits each input's RECIPE (a constant, or a random spec); sampled values are state (jsonTimedEffect).
+	result += jsonRawField("smoothingFunction", smoothingFunction.describeValue());
+	result += jsonRawField("runtimeMs", runtimeMs.describeValue());
+	result += jsonRawField("delayMs", delayMs.describeValue());
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
 	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
-	result += "}";
-	return result;
-}
-
-std::string RandomFadeIn::toJson(bool includeState) {
-	std::string result = "{";
-	result += jsonHeader("RandomFadeIn");
-	result += jsonField("smoothingFunction", smoothingFunction);
-	result += jsonField("minRuntimeMs", (int)minRuntimeMs);
-	result += jsonField("maxRuntimeMs", (int)maxRuntimeMs);
-	result += jsonField("samplingFunction", samplingFunction);
-	result += jsonField("delayMs", (int)delayMs);
-	result += jsonField("terminateOnComplete", terminateOnComplete);
-	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
-	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonRandomTimedEffect());
 	result += "}";
 	return result;
 }

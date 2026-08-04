@@ -22,6 +22,10 @@
 #include "enums/SamplingFunction.h"
 #include "enums/SmoothingFunction.h"
 
+// Every builder field is a Value<T> recipe (see the BUILDER_FIELD macros below), so Value must be visible wherever
+// those macros expand. Included here, where the macros are defined, rather than relied on transitively.
+#include "Value.h"
+
 // Free-function JSON field formatters shared with the timing mixins. Under LEDPIPELINES_SERIALIZATION this defines
 // ledpipelines::serialization::jsonField(...); otherwise it is empty, so this include costs nothing when serialization
 // is off.
@@ -44,56 +48,62 @@ namespace ledpipelines {
 	void setMaxRefreshRate(float refreshesPerSecond);
 } // namespace ledpipelines
 
-// Fluent field + setter. The setter is ref-qualified so capturing a chain works without std::move:
+// Fluent field + setter. The stored field is a Value<type>, not a bare `type`: every builder field is a "recipe" that
+// resolves to a `type` (a constant when given a plain value, or a provider like RandomColor/RandomRange for a randomized
+// one). The setter takes a Value<type> by value, so a plain `type`, a provider, or an existing Value<type> all convert
+// in implicitly - authoring `.color(RGBA::Red)` and `.color(RandomColor())` both work through the one setter.
+//
+// The setter is ref-qualified so capturing a chain works without std::move:
 //   - called on an lvalue (a named builder):   returns Builder&,  chaining mutates in place (no copy)
 //   - called on an rvalue (a temporary chain): returns Builder    by moving *this out, so `auto b =
 //   X::Builder(..).f(..)`
 //     move-constructs a value instead of trying to copy the (deleted-copy, move-only) builder.
 #define BUILDER_FIELD(type, field)                                                                                     \
-	type _##field;                                                                                                     \
-	Builder& field(type v) & {                                                                                         \
-		this->_##field = v;                                                                                            \
+	Value<type> _##field;                                                                                              \
+	Builder& field(Value<type> v) & {                                                                                  \
+		this->_##field = std::move(v);                                                                                 \
 		return *this;                                                                                                  \
 	}                                                                                                                  \
-	Builder field(type v) && {                                                                                         \
-		this->_##field = v;                                                                                            \
+	Builder field(Value<type> v) && {                                                                                  \
+		this->_##field = std::move(v);                                                                                 \
 		return std::move(*this);                                                                                       \
 	}
 
 #define BUILDER_FIELD_DEFAULT(type, field, defaultValue)                                                               \
-	type _##field = defaultValue;                                                                                      \
-	Builder& field(type v) & {                                                                                         \
-		this->_##field = v;                                                                                            \
+	Value<type> _##field = defaultValue;                                                                               \
+	Builder& field(Value<type> v) & {                                                                                  \
+		this->_##field = std::move(v);                                                                                 \
 		return *this;                                                                                                  \
 	}                                                                                                                  \
-	Builder field(type v) && {                                                                                         \
-		this->_##field = v;                                                                                            \
+	Builder field(Value<type> v) && {                                                                                  \
+		this->_##field = std::move(v);                                                                                 \
 		return std::move(*this);                                                                                       \
 	}
 
-// CRTP variants of the above, for the standalone mixin builders (TimedEffect::Builder, RandomTimedEffect::Builder)
+// CRTP variants of the above, for the standalone mixin builder (TimedEffect::Builder)
 // that are templated on the leaf builder type. Unlike BUILDER_FIELD, whose setters return the enclosing `Builder`,
 // these return `ConcreteBuilder` (the leaf, via a static_cast of *this) so a chain keeps the leaf type and can call
-// leaf-level setters afterwards. Requires the enclosing scope to have a `ConcreteBuilder` template parameter.
+// leaf-level setters afterwards. Requires the enclosing scope to have a `ConcreteBuilder` template parameter. The field
+// is a Value<type> for the same reason as BUILDER_FIELD above.
 #define BUILDER_FIELD_CRTP(type, field)                                                                                \
-	type _##field;                                                                                                     \
-	ConcreteBuilder& field(type v) & {                                                                                 \
-		this->_##field = v;                                                                                            \
+	Value<type> _##field;                                                                                              \
+	ConcreteBuilder& field(Value<type> v) & {                                                                          \
+		this->_##field = std::move(v);                                                                                 \
 		return static_cast<ConcreteBuilder&>(*this);                                                                   \
 	}                                                                                                                  \
-	ConcreteBuilder field(type v) && {                                                                                 \
-		this->_##field = v;                                                                                            \
+	ConcreteBuilder field(Value<type> v) && {                                                                          \
+		this->_##field = std::move(v);                                                                                 \
 		return std::move(static_cast<ConcreteBuilder&>(*this));                                                        \
 	}
 
 #define BUILDER_FIELD_CRTP_DEFAULT(type, field, defaultValue)                                                          \
-	type _##field = defaultValue;                                                                                      \
-	ConcreteBuilder& field(type v) & {                                                                                 \
-		this->_##field = v;                                                                                            \
+	Value<type> _##field = defaultValue;                                                                               \
+	ConcreteBuilder& field(Value<type> v) & {                                                                          \
+		this->_##field = std::move(v);                                                                                 \
 		return static_cast<ConcreteBuilder&>(*this);                                                                   \
 	}                                                                                                                  \
-	ConcreteBuilder field(type v) && {                                                                                 \
-		this->_##field = v;                                                                                            \
+	ConcreteBuilder field(Value<type> v) && {                                                                          \
+		this->_##field = std::move(v);                                                                                 \
 		return std::move(static_cast<ConcreteBuilder&>(*this));                                                        \
 	}
 
@@ -261,9 +271,11 @@ namespace ledpipelines {
 			 * hard include dependency on the effect headers, and why these need no dummy template parameter.
 			 */
 			auto loop(); // wrap(Loop::Builder()) - loops forever
-			auto loop(size_t numLoops); // wrap(Loop::Builder().numLoops(n))
-			auto timebox(unsigned long runtimeMs); // wrap(TimeBox::Builder(runtimeMs))
-			auto shift(float numPixels); // wrap(Shift::Builder(numPixels))
+			// The scalar-taking conveniences take Value<T>, mirroring the effect builders they forward to: a plain
+			// number converts implicitly (constant), or a RandomRange/RandomSet passes through randomized.
+			auto loop(Value<size_t> numLoops); // wrap(Loop::Builder().numLoops(n))
+			auto timebox(Value<unsigned long> runtimeMs); // wrap(TimeBox::Builder(runtimeMs))
+			auto shift(Value<float> numPixels); // wrap(Shift::Builder(numPixels))
 			auto block(); // wrap(ResetBlocker::Builder())
 			auto shared(); // Shared::Builder(buildShared())
 		};

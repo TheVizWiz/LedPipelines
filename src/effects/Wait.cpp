@@ -6,8 +6,8 @@ using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
 
-Wait::Wait(unsigned long runtimeMs, BlendingMode blendingMode)
-	: LedPipelineStage(blendingMode), TimedEffect(runtimeMs) {}
+Wait::Wait(Value<unsigned long> runtimeMs, BlendingMode blendingMode)
+	: LedPipelineStage(blendingMode), TimedEffect(std::move(runtimeMs)) {}
 
 
 void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
@@ -20,13 +20,13 @@ void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	unsigned long totalTimeWaited = elapsedMs();
 
-	if (totalTimeWaited >= this->runtimeMs) {
+	if (totalTimeWaited >= this->runtimeMs.value) {
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 		return;
 	}
 
-	this->elapsedPercentage = (float)totalTimeWaited / (float)this->runtimeMs;
+	this->elapsedPercentage = (float)totalTimeWaited / (float)this->runtimeMs.value;
 	this->state = LedPipelineRunningState::RUNNING;
 }
 
@@ -36,64 +36,15 @@ void Wait::reset() {
 }
 
 
-RandomWait::RandomWait(
-	unsigned long minRuntimeMs,
-	unsigned long maxRuntimeMs,
-	SamplingFunction samplingFunction,
-	BlendingMode blendingMode
-)
-	: LedPipelineStage(blendingMode), RandomTimedEffect(minRuntimeMs, maxRuntimeMs, samplingFunction) {}
-
-void RandomWait::calculate(float startIndex, TemporaryLedData& tempData) {
-	if (this->state == LedPipelineRunningState::DONE) {
-		return;
-	}
-
-	if (this->state == LedPipelineRunningState::NOT_STARTED) {
-		this->state = LedPipelineRunningState::RUNNING;
-		this->startTimeMs = millis();
-		this->sampleRuntime();
-	}
-
-	unsigned long totalTimeWaited = elapsedMs();
-
-	if (totalTimeWaited >= this->runtimeMs) {
-		this->elapsedPercentage = 1;
-		this->state = LedPipelineRunningState::DONE;
-		return;
-	}
-
-	this->elapsedPercentage = (float)totalTimeWaited / (float)this->runtimeMs;
-	this->state = LedPipelineRunningState::RUNNING;
-}
-
-void RandomWait::reset() {
-	LedPipelineStage::reset();
-	RandomTimedEffect::resetTimer();
-}
-
-
 #ifdef LEDPIPELINES_SERIALIZATION
 std::string Wait::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Wait");
-	result += jsonField("runtimeMs", (int)runtimeMs);
-	result += jsonField("delayMs", (int)delayMs);
+	// Config emits the runtime RECIPE (a constant, or a RandomRange spec); the sampled duration is state (jsonTimedEffect).
+	result += jsonRawField("runtimeMs", runtimeMs.describeValue());
+	result += jsonRawField("delayMs", delayMs.describeValue());
 	result += jsonField("terminateOnComplete", terminateOnComplete);
 	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonTimedEffect());
-	result += "}";
-	return result;
-}
-
-std::string RandomWait::toJson(bool includeState) {
-	std::string result = "{";
-	result += jsonHeader("RandomWait");
-	result += jsonField("minRuntimeMs", (int)minRuntimeMs);
-	result += jsonField("maxRuntimeMs", (int)maxRuntimeMs);
-	result += jsonField("samplingFunction", samplingFunction);
-	result += jsonField("delayMs", (int)delayMs);
-	result += jsonField("terminateOnComplete", terminateOnComplete);
-	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonRandomTimedEffect());
 	result += "}";
 	return result;
 }
