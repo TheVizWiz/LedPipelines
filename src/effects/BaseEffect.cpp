@@ -15,6 +15,11 @@ void WrapperEffect::reset() {
 	stage->reset();
 }
 
+void WrapperEffect::calculate(float startIndex, TemporaryLedData& tempData) {
+	stage->calculate(startIndex, tempData);
+	this->state = stage->state;
+}
+
 TimedEffect::TimedEffect(Value<unsigned long> runtimeMs)
 	: startTimeMs(0), elapsedPercentage(0), runtimeMs(std::move(runtimeMs)) {
 	// Sample the duration once for this lifecycle (a constant always yields the same value; a RandomRange draws one).

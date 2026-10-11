@@ -18,6 +18,8 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
+		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
 		template <typename T, typename ConcreteBuilder>
 		class Builder : public LedPipelineStage::Builder<T, ConcreteBuilder> {
 		public:
