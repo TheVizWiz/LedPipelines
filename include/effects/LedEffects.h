@@ -15,6 +15,7 @@
 #include "FadeIn.h"
 #include "FadeOut.h"
 #include "Flip.h"
+#include "Hook.h"
 #include "Loop.h"
 #include "Moving.h"
 #include "OpacityGradient.h"

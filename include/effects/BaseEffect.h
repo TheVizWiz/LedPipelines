@@ -18,7 +18,18 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
+		/**
+		 * Render the inner stage and mirror its state, so a subclass that only defers to WrapperEffect acts as an empty
+		 * passthrough that presents itself as its inner stage.
+		 */
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
+
+		/**
+		 * The wrapped inner stage (may be null if nothing was wrapped).
+		 */
+		LedPipelineStage* innerStage() const {
+			return stage;
+		}
 
 		template <typename T, typename ConcreteBuilder>
 		class Builder : public LedPipelineStage::Builder<T, ConcreteBuilder> {

@@ -11,6 +11,7 @@
 #ifdef LEDPIPELINES_SERIALIZATION
 
 #include <cstdio>       // snprintf
+#include <functional>
 #include <string>
 #include <type_traits>  // is_integral / is_signed - the integral jsonValue template
 
@@ -143,6 +144,15 @@ namespace ledpipelines::serialization {
 		obj += jsonField("a", (int)value.a);
 		obj += "}";
 		return obj;
+	}
+
+	/**
+	 * A callable's bare value. Callbacks (e.g. a Hook's callback) have no JSON representation, so they serialize as
+	 * null.
+	 */
+	template <typename R, typename... Args>
+	inline std::string jsonValue(const std::function<R(Args...)>&) {
+		return "null";
 	}
 
 	// A color serializes as an object of its four channels, e.g. "color" : {"r":255,"g":0,"b":0,"a":255}. Emitted as a
