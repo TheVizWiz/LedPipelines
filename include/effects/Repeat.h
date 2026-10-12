@@ -5,11 +5,9 @@
 namespace ledpipelines::effects {
 	struct Repeat : WrapperEffect {
 		int numRepeats;
-		// The spacing between repeated copies: a Value<float> caching its own draw (see Value). A plain float is a
-		// constant; a RandomRange/RandomSet re-rolls on reset(). calculate() reads repeatDistance.value.
 		Value<float> repeatDistance;
-		// How the repeated copies stack onto each other within this effect. Distinct from the inherited blendingMode,
-		// which controls how the whole Repeat result blends into its parent (a wrapper inherits that from its child).
+		// How the repeated copies stack onto each other. Distinct from the inherited blendingMode, which controls how
+		// the whole Repeat result blends into its parent.
 		BlendingMode repeatBlendingMode;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
@@ -35,4 +33,4 @@ namespace ledpipelines::effects {
 	protected:
 		Repeat(LedPipelineStage* stage, int numRepeats, Value<float> repeatDistance, BlendingMode repeatBlendingMode);
 	};
-} // namespace ledpipelines::effects
+}

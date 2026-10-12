@@ -1,12 +1,11 @@
 #include "TemporaryLedData.h"
-#include "LedOutput.h"  // getOutput() - topology comes from the registered backend
+#include "LedOutput.h"
 
-#include <algorithm>  // std::min
-#include <cmath>      // floorf
+#include <algorithm>
+#include <cmath>
 #include <vector>
 
 using namespace ledpipelines;
-
 
 int TemporaryLedData::size = 0;
 
@@ -18,16 +17,9 @@ int* TemporaryLedData::startIndexes = nullptr;
 
 namespace {
 	/**
-	 * A buffer pool for the backing array of TemporaryLedData. Effects allocate a fresh buffer every frame (often many
-	 * per frame), which on a microcontroller causes heap fragmentation and timing jitter. Instead of new[]/delete[] on
-	 * every construction, we hand out preallocated arrays from this free list and return them on destruction.
-	 *
-	 * The pool is self-sizing: it grows to the high-water mark (the deepest pipeline tree ever rendered) over the first
-	 * few frames, then never allocates again in steady state. Buffers are only freed when the pool is reset in
-	 * initialize(), so on an embedded device memory usage is deterministic.
-	 *
-	 * Each buffer is a single RGBA array: color and opacity (RGBA::a) live together, so there is no parallel opacity
-	 * array to keep in lockstep.
+	 * Free list of backing arrays, to avoid per-frame new[]/delete[] (heap fragmentation and jitter on
+	 * microcontrollers). Grows to the high-water mark and then stops allocating; buffers are only freed in
+	 * initialize().
 	 */
 	std::vector<RGBA*> bufferPool;
 
@@ -43,18 +35,14 @@ namespace {
 	void releaseBuffer(RGBA* buffer) {
 		bufferPool.push_back(buffer);
 	}
-} // namespace
+}
 
 void TemporaryLedData::initialize() {
-	// Topology comes from the registered output backend (FastLED, ESPHome, viewer, ...). setOutput() is required
-	// before initialize(); without it there are no strips to measure, so bail loudly and leave size == 0 (run() also
-	// guards on a null output, so nothing renders until one is registered).
 	LedOutput* output = getOutput();
 	if (output == nullptr) {
 		return;
 	}
 
-	// calculate the total number of LEDs.
 	TemporaryLedData::startIndexes = new int[output->stripCount()];
 	size = 0;
 	for (int i = 0; i < output->stripCount(); i++) {
@@ -62,12 +50,10 @@ void TemporaryLedData::initialize() {
 		size += output->stripSize(i);
 	}
 
-	// One strip-width of off-strip headroom on each side, so moving/repeating effects can render past the strip edges
-	// without losing pixels (see the header). The backing buffer is therefore three strip-widths wide.
 	padding = size;
 	bufferSize = size + 2 * padding;
 
-	// Drop any pooled buffers: they were sized for a previous `size` and would be too small if re-initialized.
+	// Pooled buffers were sized for the previous `size`.
 	for (auto& buffer : bufferPool) {
 		delete[] buffer;
 	}
@@ -76,14 +62,11 @@ void TemporaryLedData::initialize() {
 
 TemporaryLedData::TemporaryLedData(RGBA color) {
 	data = acquireBuffer();
-	// Buffers are reused, so they carry stale data from a previous owner. Clear to defaults so each effect starts with
-	// its own clean buffer and cannot bleed into another effect's pixels.
+	// Pooled buffers carry stale data from a previous owner.
 	clear(color);
 }
 
 void TemporaryLedData::clear(RGBA color) {
-	// Physical sweep over the whole padded buffer so the off-strip padding is cleared too (a stale value left in the
-	// padding could otherwise be shifted into view by a later shift()/Repeat). Opacity 0 = unlit.
 	color.a = 0;
 	for (int i = 0; i < bufferSize; i++) {
 		data[i] = color;
@@ -91,33 +74,24 @@ void TemporaryLedData::clear(RGBA color) {
 	anyAreModified = false;
 }
 
-
 TemporaryLedData::TemporaryLedData(TemporaryLedData&& other) noexcept
 	: data(other.data), anyAreModified(other.anyAreModified) {
-	// Take ownership of the buffer and null out the source so its destructor releases nothing.
 	other.data = nullptr;
 }
 
-
 TemporaryLedData::~TemporaryLedData() {
-	// A moved-from instance owns no buffer; nothing to return to the pool.
 	if (data != nullptr) releaseBuffer(data);
 }
 
 TemporaryLedData TemporaryLedData::shift(float offset) const {
 	TemporaryLedData result = TemporaryLedData();
 
-	// A shift by `offset` maps source pixel i to i + offset. Split into a whole-pixel move and a fractional
-	// remainder, then work per output pixel: output j draws from exactly two source pixels - (j - whole) with weight
-	// (1 - frac) and (j - whole - 1) with weight frac. Each source's light contribution is opacity * weight; the
-	// output color is those two colors averaged by their light contribution (so equal colors pass through unchanged
-	// and partial coverage dims via opacity rather than tinting toward black), and the output opacity is their sum.
+	// Output j draws from sources (j - whole) with weight (1 - frac) and (j - whole - 1) with weight frac. The color
+	// is averaged by each source's light (opacity * weight) so partial coverage dims via opacity rather than tinting
+	// toward black; the output opacity is the summed light.
 	int whole = (int)floorf(offset);
 	float frac = offset - whole;
 
-	// Work in PHYSICAL buffer coordinates across the whole padded buffer, reading/writing the raw array directly.
-	// Because the source's off-strip data lives in the padding, a shift that brings a padded pixel into the visible
-	// window (e.g. a Repeat copy wrapping in from the left) carries the full, un-clipped pixel with it.
 	for (int j = 0; j < bufferSize; j++) {
 		int nearIndex = j - whole;
 		int farIndex = j - whole - 1;
@@ -131,8 +105,6 @@ TemporaryLedData TemporaryLedData::shift(float offset) const {
 		RGBA nearColor = (nearLight > 0) ? this->data[nearIndex] : RGBA(RGBA::Black);
 		RGBA farColor = (farLight > 0) ? this->data[farIndex] : RGBA(RGBA::Black);
 
-		// Average the two colors weighted by their light share. Weights are normalized to [0, 1] and summed per
-		// channel in float so intermediate products never overflow a channel.
 		float nearWeight = nearLight / totalLight;
 		float farWeight = farLight / totalLight;
 		RGBA blended(
@@ -150,15 +122,12 @@ TemporaryLedData TemporaryLedData::shift(float offset) const {
 }
 
 void TemporaryLedData::merge(TemporaryLedData& other, BlendingMode blendingMode) {
-	// Physical sweep over the whole padded buffer: merging in the padding too keeps off-strip data consistent so a
-	// later shift() can bring correctly-merged pixels into view. Each pixel's opacity is its RGBA::a channel.
 	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 		auto A_alpha = this->data[i].a;
 		auto A_rgb = this->data[i];
 		auto B_alpha = other.data[i].a;
 		auto B_rgb = other.data[i];
-		// if other pixel has no opacity, we skip this pixel. We can't skip it in MASK mode, because in MASK mode
-		// opacity of 0 pixels are masked out.
+		// Can't skip in MASK mode: zero-opacity mask pixels must mask out the destination.
 		if (!B_alpha && blendingMode != BlendingMode::MASK) continue;
 
 		this->anyAreModified = true;
@@ -182,8 +151,6 @@ void TemporaryLedData::merge(TemporaryLedData& other, BlendingMode blendingMode)
 			this->data[i].a = B_alpha + ((255 - B_alpha) * A_alpha) / 255;
 			break;
 		case BlendingMode::MASK:
-			// in mask mode, let through everywhere that has 100% opacity
-			// and nothing through where the mask has 0% opacity.
 			this->data[i] = (A_rgb * B_rgb);
 			this->data[i].a = (A_alpha * B_alpha) / 255;
 			break;
@@ -192,7 +159,6 @@ void TemporaryLedData::merge(TemporaryLedData& other, BlendingMode blendingMode)
 }
 
 bool TemporaryLedData::hasVisiblePixels() const {
-	// Scan only the visible middle third (logical 0..size -> physical padding..padding+size).
 	for (int i = padding; i < padding + size; i++) {
 		if (data[i].a) return true;
 	}
@@ -200,8 +166,6 @@ bool TemporaryLedData::hasVisiblePixels() const {
 }
 
 void TemporaryLedData::set(int index, RGBA color, uint8_t opacity) {
-	// `index` is a LOGICAL coordinate. Accept the padded range [-padding, size+padding) so an effect can write
-	// slightly off-strip (its pixels live in the padding rather than being discarded); reject anything beyond that.
 	if (index < -padding || index >= size + padding) return;
 	int physical = index + padding;
 	color.a = opacity;
@@ -211,13 +175,12 @@ void TemporaryLedData::set(int index, RGBA color, uint8_t opacity) {
 
 void TemporaryLedData::set(int stripIndex, int ledIndex, RGBA& color, uint8_t opacity) {
 	LedOutput* output = getOutput();
-	if (output == nullptr || stripIndex < 0 || stripIndex >= output->stripCount()) return; // strip doesn't exist
-	int index = startIndexes[stripIndex] + ledIndex; // index in array
+	if (output == nullptr || stripIndex < 0 || stripIndex >= output->stripCount()) return;
+	int index = startIndexes[stripIndex] + ledIndex;
 	this->set(index, color, opacity);
 }
 
 RGBA TemporaryLedData::get(int index) const {
-	// LOGICAL index; accept the padded range and offset into the physical buffer.
 	if (index < -padding || index >= size + padding) return RGBA(RGBA::Black);
 
 	return this->data[index + padding];

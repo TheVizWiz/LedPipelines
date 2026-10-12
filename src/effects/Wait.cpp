@@ -40,7 +40,6 @@ void Wait::reset() {
 std::string Wait::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Wait");
-	// Config emits the runtime RECIPE (a constant, or a RandomRange spec); the sampled duration is state (jsonTimedEffect).
 	result += jsonRawField("runtimeMs", runtimeMs.describeValue());
 	result += jsonRawField("delayMs", delayMs.describeValue());
 	result += jsonField("terminateOnComplete", terminateOnComplete);

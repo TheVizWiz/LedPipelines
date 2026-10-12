@@ -14,8 +14,6 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<Wait, Builder>, TimedEffect::Builder<Builder> {
-			// runtimeMs is a Value<unsigned long>: a plain duration converts implicitly, or pass a RandomRange for a
-			// randomized wait (this replaces the old RandomWait).
 			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
 			Wait* build() override {
@@ -26,4 +24,4 @@ namespace ledpipelines::effects {
 	private:
 		explicit Wait(Value<unsigned long> runtimeMs, BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
-} // namespace ledpipelines::effects
+}

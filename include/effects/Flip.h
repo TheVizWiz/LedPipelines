@@ -5,9 +5,7 @@
 
 namespace ledpipelines::effects {
 	struct Flip : public WrapperEffect {
-		// The mirror-region bounds: Value<long> recipes caching their own draw (see Value). Plain longs are constants; a
-		// RandomRange/RandomSet re-rolls on reset(). calculate() reads .value and normalizes their order itself, so either
-		// order (or a random draw where min > max) is fine.
+		// Bounds of the mirrored region. Either order (or a random draw where min > max) is fine.
 		Value<long> minIndex;
 		Value<long> maxIndex;
 
@@ -36,4 +34,4 @@ namespace ledpipelines::effects {
 	private:
 		Flip(LedPipelineStage* stage, Value<long> minIndex, Value<long> maxIndex);
 	};
-} // namespace ledpipelines::effects
+}

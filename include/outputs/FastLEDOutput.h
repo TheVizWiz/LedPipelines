@@ -1,19 +1,17 @@
 #pragma once
 
 // The FastLED backend for LedPipelines. This is the ONLY header in the library that includes FastLED, and it is NOT
-// pulled in by LedPipelines.h - the core never references it. Hardware sketches include it explicitly:
+// pulled in by LedPipelines.h. Hardware sketches include it explicitly:
 //
 //     #include "LedPipelines.h"
 //     #include "outputs/FastLEDOutput.h"
 //     ...
-//     FastLED.addLeds<WS2812B, PIN, GRB>(leds, COUNT);   // register strips with FastLED as usual
-//     static ledpipelines::FastLEDOutput output;         // then register the backend
+//     FastLED.addLeds<WS2812B, PIN, GRB>(leds, COUNT);
+//     static ledpipelines::FastLEDOutput output;
 //     ledpipelines::setOutput(&output);
-//     ledpipelines::initialize();                        // reads topology from the output (i.e. from FastLED)
+//     ledpipelines::initialize();                        // reads topology from FastLED
 //
-// It compiles because the sketch's own project supplies FastLED (see library.json: FastLED is an example dependency,
-// not a library dependency). LedPipelines' own CRGB (Color.h) is layout-compatible with FastLED's, so the pixel copy
-// in setPixel is a plain field assignment.
+// The sketch's own project must supply FastLED (it is an example dependency, not a library dependency).
 
 #include "FastLED.h"
 
@@ -41,10 +39,8 @@ namespace ledpipelines {
 		}
 
 		void setPixel(int strip, int indexInStrip, RGBA color) override {
-			// LedPipelines' RGBA -> FastLED's CRGB. Distinct types (that's what avoids the global-name collision), so
-			// copy the RGB channels explicitly. `color` is already opacity-baked by populate(); alpha is not sent to
-			// the LED (physical LEDs have no alpha).
+			// `color` is already opacity-baked by populate(), so alpha is dropped.
 			FastLED[strip][indexInStrip] = ::CRGB(color.r, color.g, color.b);
 		}
 	};
-} // namespace ledpipelines
+}

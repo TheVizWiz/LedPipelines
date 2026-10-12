@@ -6,8 +6,6 @@
 
 namespace ledpipelines::effects {
 	struct OpacityScale : public WrapperEffect {
-		// The opacity ceiling: a Value<uint8_t> caching its own draw (see Value). A plain byte is a constant; a
-		// RandomRange/RandomSet re-rolls on reset(). calculate() reads maxOpacity.value.
 		Value<uint8_t> maxOpacity;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
@@ -31,4 +29,4 @@ namespace ledpipelines::effects {
 	private:
 		OpacityScale(LedPipelineStage* stage, Value<uint8_t> maxOpacity);
 	};
-} // namespace ledpipelines::effects
+}

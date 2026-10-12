@@ -5,8 +5,6 @@
 
 namespace ledpipelines::effects {
 	struct OpacityGradient : WrapperEffect {
-		// The gradient's endpoints: Value<float> recipes caching their own draw (see Value). Plain floats are constants;
-		// a RandomRange/RandomSet re-rolls on reset(). calculate() reads startIndex.value / endIndex.value.
 		Value<float> startIndex;
 		Value<float> endIndex;
 		SmoothingFunction smoothingFunction;
@@ -35,7 +33,7 @@ namespace ledpipelines::effects {
 		};
 
 	private:
-		// endGradientIndex is the SAMPLED end value; the helpers take the offset-applied start position as their param.
+		// startPos is the offset-applied start position.
 		void calculateForwardGradient(float startPos, float endGradientIndex, TemporaryLedData& tempData) const;
 
 		void calculateBackwardGradient(float startPos, float endGradientIndex, TemporaryLedData& tempData);
@@ -48,4 +46,4 @@ namespace ledpipelines::effects {
 			SmoothingFunction smoothingFunction
 		);
 	};
-} // namespace ledpipelines::effects
+}

@@ -8,13 +8,11 @@ Repeat::Repeat(LedPipelineStage* stage, int numRepeats, Value<float> repeatDista
 	  numRepeats(numRepeats),
 	  repeatDistance(std::move(repeatDistance)),
 	  repeatBlendingMode(repeatBlendingMode) {
-	// Sample the spacing once for this lifecycle (a constant yields the same value; a random one draws one).
 	this->repeatDistance.sample();
 }
 
 void Repeat::reset() {
 	WrapperEffect::reset();
-	// Re-roll the spacing for the next run (no-op for a constant; fresh draw for a random one).
 	this->repeatDistance.sample();
 }
 
@@ -23,19 +21,7 @@ void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
-	// Read the sampled spacing once so it is stable for the whole frame's tiling below.
 	const float repeatDistance = this->repeatDistance.value;
-
-	//    // only calculate the data once. We first calculate it at 0, and then shift it by how much
-	//    TemporaryLedData stageData = TemporaryLedData();
-	//    this->stage->calculate(0, stageData);
-	//
-	//    TemporaryLedData shiftedStageData = TemporaryLedData();
-	//
-	//    for (int i = 0; i < TemporaryLedData::ledCount; i++) {
-	//        shiftedStageData.set(i + startIndex, stageData[i], stageData.opacity[i]);
-	//    }
-	//
 
 	if (numRepeats == 0 && repeatDistance <= 0) {
 		// In infinite-repeat mode a non-positive repeatDistance would never advance the offset in the loops below,
@@ -47,27 +33,21 @@ void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 		return;
 	}
 
-	// Render the wrapped stage exactly once per frame, then tile that result by shifting copies. Rendering once (rather
-	// than re-running the stage at each offset) keeps stateful/timed children - Loop, Series, Moving - advancing at the
-	// correct rate instead of many times per frame. The base is rendered at the true startIndex; because
-	// TemporaryLedData now has off-strip padding on both sides, a segment pushed partly past an edge keeps its
-	// off-strip pixels intact in the padding, so the shifted copies below are faithful full copies rather than shifts
-	// of an already-clipped render.
+	// Render once per frame, then tile shifted copies, so stateful/timed children (Loop, Series, Moving) advance at the
+	// correct rate. The off-strip padding keeps pixels pushed past an edge, so copies are not shifts of a clipped render.
 	TemporaryLedData stageData = TemporaryLedData();
 	this->stage->calculate(startIndex, stageData);
 	this->state = this->stage->state;
 
 	if (numRepeats == 0) {
-		// Infinite repeats: tile the rendered buffer forward and backward, stopping in each direction once a shifted
-		// copy no longer lights any VISIBLE pixel. hasVisiblePixels() (not anyAreModified) is the right stop condition
-		// because a copy can still light the off-strip padding after it has scrolled out of the visible window.
+		// hasVisiblePixels() (not anyAreModified) is the stop condition because a copy can still light the off-strip
+		// padding after it has scrolled out of the visible window.
 		float offset = 0;
 		while (true) {
 			TemporaryLedData copy = stageData.shift(offset);
 			bool visible = copy.hasVisiblePixels();
 			tempData.merge(copy, this->repeatBlendingMode);
-			// Keep going while still visible; also take one step past the last visible copy on the very first
-			// iteration so a base that starts off-screen (fully in the negative padding) doesn't stop us immediately.
+			// Never stop on the first iteration, so a base that starts fully in the negative padding still tiles forward.
 			if (!visible && offset > 0) break;
 			offset += repeatDistance;
 		}
@@ -79,8 +59,6 @@ void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 			offset -= repeatDistance;
 		}
 	} else {
-		// Finite repeats: absolute placement matters (N copies anchored at startIndex), so tile forward exactly
-		// numRepeats times. Copies now also benefit from the padded render (no edge-clipping of the base).
 		for (int i = 0; i < numRepeats; i++) {
 			TemporaryLedData copy = stageData.shift(i * repeatDistance);
 			tempData.merge(copy, this->repeatBlendingMode);
@@ -94,7 +72,6 @@ std::string Repeat::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Repeat");
 	result += jsonField("numRepeats", (int)numRepeats);
-	// Config emits the spacing RECIPE; the sampled spacing is state.
 	result += jsonRawField("repeatDistance", repeatDistance.describeValue());
 	result += jsonField("repeatBlendingMode", repeatBlendingMode);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");

@@ -13,9 +13,9 @@
 //     #include "outputs/NeoPixelOutput.h"
 //     ...
 //     static ledpipelines::NeoPixelOutput output(COUNT, PIN, NEO_GRB + NEO_KHZ800);
-//     output.begin();                 // inits the underlying strip (calls Adafruit_NeoPixel::begin)
+//     output.begin();
 //     ledpipelines::setOutput(&output);
-//     ledpipelines::initialize();     // reads topology (the count) from the output
+//     ledpipelines::initialize();
 //
 // This backend drives a SINGLE strip (stripCount() == 1), since one Adafruit_NeoPixel object is one strip. That covers
 // the common case; multiple strips would need one NeoPixelOutput per strip and a small multiplexing output on top.
@@ -26,23 +26,20 @@
 #include "../LedOutput.h"
 
 namespace ledpipelines {
-	// Bridges LedPipelines to one Adafruit_NeoPixel strip, which this object owns. Construct with the same
-	// (count, pin, type) you would pass Adafruit_NeoPixel, call begin() once, then register via setOutput().
+	// Owns one Adafruit_NeoPixel strip. Call begin() once, then register via setOutput().
 	struct NeoPixelOutput : LedOutput {
 		Adafruit_NeoPixel strip;
 
-		// count: number of LEDs. pin: data pin. type: NEO_* color-order + speed flags (e.g. NEO_GRB + NEO_KHZ800).
-		// The type flag makes Adafruit_NeoPixel handle the strand's byte order internally, so setPixel() below always
-		// passes plain r, g, b.
+		// Same arguments as Adafruit_NeoPixel. `type` (NEO_* color-order + speed flags) makes Adafruit_NeoPixel handle the
+		// strand's byte order internally.
 		NeoPixelOutput(uint16_t count, int16_t pin, neoPixelType type = NEO_GRB + NEO_KHZ800)
 			: strip(count, pin, type) {}
 
-		// Initialize the underlying strip (allocates its buffer and configures the pin). Call once before rendering,
-		// after construction. Provided as a passthrough so callers do not need to touch the wrapped object.
+		// Initializes the underlying strip and blanks it. Call once before rendering.
 		void begin() {
 			strip.begin();
 			strip.clear();
-			strip.show();  // start dark
+			strip.show();
 		}
 
 		int stripCount() const override {
@@ -54,8 +51,6 @@ namespace ledpipelines {
 		}
 
 		void clear() override {
-			// Buffer-only clear (Adafruit_NeoPixel::clear does not touch the LEDs until show()), matching LedOutput's
-			// contract that clear() blanks the pending frame and show() latches it.
 			strip.clear();
 		}
 
@@ -64,9 +59,8 @@ namespace ledpipelines {
 		}
 
 		void setPixel(int /*strip*/, int indexInStrip, RGBA color) override {
-			// Always r, g, b - Adafruit_NeoPixel remaps to the strand's native order via the type flag. `color` is
-			// already opacity-baked by populate(); alpha is not sent to the LED (physical LEDs have no alpha).
+			// `color` is already opacity-baked by populate(), so alpha is dropped.
 			this->strip.setPixelColor(indexInStrip, color.r, color.g, color.b);
 		}
 	};
-} // namespace ledpipelines
+}

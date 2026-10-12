@@ -33,4 +33,4 @@ namespace ledpipelines::effects {
 	private:
 		explicit Toggle(LedPipelineStage* stage);
 	};
-} // namespace ledpipelines::effects
+}

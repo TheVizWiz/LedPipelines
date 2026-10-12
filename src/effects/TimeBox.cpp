@@ -22,7 +22,6 @@ void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	this->elapsedPercentage = (float)elapsedTime / (float)runtimeMs.value;
 	this->stage->calculate(startIndex, tempData);
-	// if the internal stage is done, we set it to done.
 	if (this->stage->state == LedPipelineRunningState::DONE) {
 		this->state = LedPipelineRunningState::DONE;
 	}
@@ -45,7 +44,6 @@ void TimeBox::reset() {
 std::string TimeBox::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("TimeBox");
-	// Config emits the runtime RECIPE (a constant, or a RandomRange spec); the sampled duration is state (jsonTimedEffect).
 	result += jsonRawField("runtimeMs", runtimeMs.describeValue());
 	result += jsonRawField("delayMs", delayMs.describeValue());
 	result += jsonField("terminateOnComplete", terminateOnComplete);

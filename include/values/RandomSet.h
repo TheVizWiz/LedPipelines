@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdlib>  // rand
+#include <cstdlib>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -12,12 +12,8 @@
 #include "serialization/JsonFields.h"
 #endif
 
-// A randomized input that picks one option uniformly from a fixed set on each sample. Fully generic over T: the
-// "hold a list, pick one at random" logic is type-agnostic, so a single RandomSet<T> covers colors (RandomSet<RGBA> /
-// RandomSet<HSVA>), smoothing curves (RandomSet<SmoothingFunction>), durations, positions - anything with a
-// serialization::jsonValue(T) overload. This replaces the former per-type set providers (RandomColorSetProvider,
-// RandomHSVASetProvider). Like every Value input, the choice is sampled once per lifecycle and re-rolled on the owning
-// effect's reset().
+// A Value<T> that picks one option uniformly from a fixed, non-empty set. Sampled once per lifecycle and re-rolled on
+// the owning effect's reset(). Serialization requires a serialization::jsonValue(T) overload.
 namespace ledpipelines {
 	namespace providers {
 		template <typename T>
@@ -27,15 +23,11 @@ namespace ledpipelines {
 			explicit RandomSetProvider(std::vector<T> options) : options(std::move(options)) {}
 
 			T sample() const override {
-				// Precondition: the set is non-empty (a RandomSet with nothing to choose from is a misuse - there is no
-				// value to return, and T need not be default-constructible so we cannot synthesize one). rand() % size
-				// picks a uniform index.
+				// Precondition: non-empty. T need not be default-constructible, so there is no fallback value.
 				return options[rand() % options.size()];
 			}
 
 #ifdef LEDPIPELINES_SERIALIZATION
-			// Serializes as {"provider":"randomSet","options":[<bare value>, ...]}. Requires a serialization::jsonValue
-			// overload for T (the bare-value formatter) - the same one ConstantProvider<T> needs.
 			std::string describeValue() const override {
 				using namespace serialization;
 				std::string arr = "[";
@@ -48,15 +40,11 @@ namespace ledpipelines {
 			}
 #endif
 		};
-	} // namespace providers
+	}
 
-	// Value<T> wrapper so users write the intent directly: Solid::Builder(RandomSet<RGBA>({RGBA::Red, RGBA::Blue})),
-	// FadeOut::Builder(1000).smoothingFunction(RandomSet<SmoothingFunction>({SmoothingFunction::SINE,
-	// SmoothingFunction::QUADRATIC})). Adds no data of its own - just constructs the provider - so it passes wherever a
-	// Value<T> is expected.
 	template <typename T>
 	struct RandomSet : Value<T> {
 		explicit RandomSet(std::vector<T> options)
 			: Value<T>(std::make_shared<const providers::RandomSetProvider<T>>(std::move(options))) {}
 	};
-} // namespace ledpipelines
+}

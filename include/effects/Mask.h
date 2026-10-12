@@ -21,8 +21,6 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<Mask, Builder> {
-			// base/mask are stage pointers, not randomizable values, so they are plain fields (hand-rolled, not via the
-			// Value-wrapping BUILDER_FIELD macro). useMaskRuntime is a Value<bool>; build() reads its .value.
 			LedPipelineStage* _base;
 			LedPipelineStage* _mask;
 			BUILDER_FIELD_DEFAULT(bool, useMaskRuntime, false);
@@ -42,4 +40,4 @@ namespace ledpipelines::effects {
 			BlendingMode blendingMode = BlendingMode::NORMAL
 		);
 	};
-} // namespace ledpipelines::effects
+}

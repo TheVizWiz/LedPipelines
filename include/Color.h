@@ -1,28 +1,16 @@
 #pragma once
 
-// LedPipelines' own color types, RGBA and HSV. This is what lets the library stand alone without depending on FastLED:
-// the color type is a plain value type (RGB bytes + an alpha/opacity byte + color math) with no hardware ties, so the
-// core compiles against no external library. A backend (see LedOutput / outputs/FastLEDOutput.h) converts these colors
-// to whatever the LED driver wants at the output boundary.
-//
-// Why RGBA (not CRGB): the fourth channel `a` is the pixel's opacity, folded directly into the color instead of a
-// parallel opacity array - so a pixel is one 4-byte value (color + alpha) rather than a color plus a separate byte
-// tracked in lockstep. The names RGBA / HSV are also deliberately DISTINCT from FastLED's CRGB / CHSV, so the FastLED
-// backend can include both FastLED and this header in one translation unit without a redefinition collision.
-
+// Hardware-independent color types; backends (see outputs/FastLEDOutput.h) convert at the output boundary. The names
+// are deliberately distinct from FastLED's CRGB / CHSV so both can be included in one translation unit.
 
 #include <cstdint>
 
 struct RGBA;
 
 /**
- * A floating-point HSVA color. Unlike FastLED's uint8_t CHSV (hue 0-255, artistic rainbow map), this keeps full
- * precision so hues can be interpolated smoothly and wrap cleanly. hue is in degrees and may be any value - it is
- * wrapped into [0, 360) at conversion time (e.g. 500 wraps to 140, -30 wraps to 330). s and v are in [0, 1].
- *
- * The fourth channel `a` is the pixel's opacity (0-255), matching RGBA - it is carried through toRGBA() so an HSV
- * gradient can vary opacity across its corners. It defaults to fully opaque (255), and the three-argument constructor
- * leaves it opaque, so authoring a color as HSVA(h, s, v) behaves exactly as before.
+ * A floating-point HSVA color. Unlike FastLED's uint8_t CHSV, this keeps full precision so hues interpolate smoothly.
+ * h is in degrees and may be any value - it is wrapped into [0, 360) at conversion time (e.g. -30 wraps to 330).
+ * s and v are in [0, 1]; a is opacity (0-255), carried through toRGBA().
  */
 struct HSVA {
 	float h = 0;
@@ -32,30 +20,23 @@ struct HSVA {
 
 	HSVA() = default;
 
-	// Three-arg form: opaque (a = 255). Kept so existing HSVA(h, s, v) call sites are unchanged.
 	HSVA(float h, float s, float v) : h(h), s(s), v(v) {}
 
 	HSVA(float h, float s, float v, uint8_t a) : h(h), s(s), v(v), a(a) {}
 
-	// Build an HSVA from an RGBA color (RGB -> HSV; the inverse of toRGBA), carrying the alpha through unchanged.
-	// Non-explicit ON PURPOSE: it makes RGBA implicitly convertible to HSVA, so an RGBA drops into any Value<HSVA>
-	// input (HSVGradient corners, RandomHSVASet palettes) and lands as a ConstantProvider<HSVA> - author an HSV
-	// gradient corner as `RGBA::Red` and it is converted once, at build. See the uint32_t ctor for the named-literal
-	// case (RGBA::Red is an HTMLColorCode enum, which reaches HSVA through this ctor's uint32_t sibling, not this one).
+	// Non-explicit on purpose: lets an RGBA be passed to any Value<HSVA> input (converted once, at build).
 	HSVA(const RGBA& rgba);
 
-	// Build from a 24-bit hex RGB code (0xRRGGBB), interpreted as an RGB color and converted to HSV; alpha is opaque.
-	// Mirrors RGBA(uint32_t). This is what lets a named color literal reach HSVA in a single user-defined conversion:
-	// RGBA::Red is an HTMLColorCode enum -> uint32_t (standard) -> HSVA (here).
+	// From a 0xRRGGBB code; alpha is opaque. Lets named literals like RGBA::Red reach HSVA in a single user-defined
+	// conversion.
 	HSVA(uint32_t rgbCode);
 
 	RGBA toRGBA();
 };
 
 struct RGBA {
-	// The RGB channels, exposed under two names (r/g/b and red/green/blue) via a union, plus the alpha/opacity byte.
-	// `a` is the pixel's opacity: 0 = fully transparent (unlit), 255 = fully opaque. It is NOT part of the RGB color
-	// math below - compositing (TemporaryLedData) reads and writes it explicitly.
+	// `a` is opacity: 0 = fully transparent, 255 = fully opaque. It is NOT part of the color math operators below -
+	// compositing (TemporaryLedData) handles it explicitly.
 	union {
 		struct {
 			uint8_t r;
@@ -71,8 +52,7 @@ struct RGBA {
 	};
 	uint8_t a;
 
-	// The full FastLED HTML color table (all 148 CSS/X11 names + FastLED's FairyLight and TCL extensions), values
-	// copied verbatim so RGBA::Green (0x008000), RGBA::Lime (0x00FF00), etc. match hardware exactly.
+	// FastLED's HTML color table, values copied verbatim (note RGBA::Green is 0x008000; RGBA::Lime is 0x00FF00).
 	typedef enum {
 		AliceBlue = 0xF0F8FF,
 		Amethyst = 0x9966CC,
@@ -278,12 +258,11 @@ struct RGBA {
 		Gold4 = 0x8B7500,
 	} HTMLColorCode;
 
-	// Default is opaque white. Alpha defaults to 255 (full opacity) if not provided, e.g. when RGB color codes
-	// are used.
+	// Default is opaque white.
 	RGBA() : r(255), g(255), b(255), a(255) {}
 	RGBA(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255) : r(red), g(green), b(blue), a(alpha) {}
 
-	// 24-bit hex code (0xRRGGBB), including all the named-color enum values above. Alpha defaults to opaque.
+	// 0xRRGGBB code; alpha is opaque.
 	RGBA(uint32_t code) : r((code >> 16) & 0xFF), g((code >> 8) & 0xFF), b(code & 0xFF), a(255) {}
 
 	RGBA(const RGBA& o) = default;
@@ -297,14 +276,13 @@ struct RGBA {
 
 	RGBA& operator*=(float amount);
 
-	// Per-channel saturating add (used by ADD blending). Alpha is left untouched - compositing sets it explicitly.
+	// Per-channel saturating add.
 	RGBA operator+(RGBA second);
 
-	// Per-channel multiply, scaled back into [0, 255] (used by MULTIPLY blending). Alpha untouched.
+	// Per-channel multiply, scaled back into [0, 255].
 	RGBA& operator*=(RGBA second);
 
-	// Value equality across the RGB channels AND alpha, so two pixels compare equal only if both color and opacity
-	// match. Lets RGBA be compared directly (e.g. in tests via EXPECT_EQ).
+	// Compares alpha as well as RGB.
 	bool operator==(const RGBA& other) const {
 		return r == other.r && g == other.g && b == other.b && a == other.a;
 	}

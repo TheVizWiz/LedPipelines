@@ -1,11 +1,10 @@
 #include "LedPipelines.h"
-#include "outputs/FastLEDOutput.h" // the FastLED backend - opt in explicitly; the core no longer depends on FastLED
+#include "outputs/FastLEDOutput.h"
 
 
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
 
-// The backend LedPipelines renders into. Registered with setOutput() below, before initialize().
 FastLEDOutput ledOutput;
 
 
@@ -38,7 +37,6 @@ void setup() {
 	pinMode(LED_BUILTIN, OUTPUT);
 	pinMode(14, OUTPUT);
 
-	// Register the FastLED backend before initialize() - initialize() reads strip topology from the output.
 	ledpipelines::setOutput(&ledOutput);
 	ledpipelines::initialize();
 	ledpipelines::setMaxRefreshRate(60);

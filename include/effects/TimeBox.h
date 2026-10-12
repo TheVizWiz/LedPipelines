@@ -13,8 +13,6 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : WrapperEffect::Builder<TimeBox, Builder>, TimedEffect::Builder<Builder> {
-			// runtimeMs is a Value<unsigned long>: a plain duration converts implicitly, or pass a RandomRange for a
-			// randomized box duration (this replaces the old RandomTimeBox).
 			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
 			TimeBox* build() override {
@@ -25,4 +23,4 @@ namespace ledpipelines::effects {
 	protected:
 		TimeBox(LedPipelineStage* stage, Value<unsigned long> runtimeMs);
 	};
-} // namespace ledpipelines::effects
+}

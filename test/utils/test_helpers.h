@@ -4,13 +4,9 @@
 
 #include "LedPipelines.h"
 
-// Shared test fixtures and helpers used across the test suites (test_effects, test_base_utils, ...). This is test-only
-// support code, not a suite itself - it lives under test/utils/ (no test_ prefix, so PlatformIO does not build it as a
-// suite) and each suite includes it via "../utils/test_helpers.h". Everything here is a header-inline definition
-// (inline vars, inline functions) so it can be safely included into every suite's separate translation unit without
-// violating the one-definition rule.
+// Shared test helpers. Everything here must be header-inline, since every suite's translation unit includes it.
 
-namespace ledpipelines {}  // ensure namespace exists for the usings below
+namespace ledpipelines {}
 
 using namespace ledpipelines;
 using namespace ledpipelines::effects;
@@ -18,9 +14,7 @@ using namespace ledpipelines::effects;
 namespace test_helpers {
 	constexpr int kLedCount = 10;
 
-	// A minimal LedOutput backing the tests: a single strip of kLedCount pixels into a local buffer. It stands in for a
-	// real backend (FastLED, ESPHome) so the core can be exercised natively - initialize() reads its topology and
-	// populate() writes pixels into `pixels`, which a test can inspect. clear()/show() are no-ops.
+	// A single strip of kLedCount pixels written into `pixels`, which a test can inspect.
 	struct TestOutput : LedOutput {
 		RGBA pixels[kLedCount] = {};
 
@@ -33,19 +27,16 @@ namespace test_helpers {
 		}
 	};
 
-	// The single output instance the tests render into.
 	inline TestOutput gOutput;
 
-	// Register the test output and initialize LedPipelines' static LED bookkeeping. Re-registering the same output each
-	// time keeps topology stable across tests.
+	// Re-registering the same output each time keeps topology stable across tests.
 	inline void setUpLeds() {
 		setOutput(&gOutput);
 		TemporaryLedData::initialize();
 	}
 
-	// A leaf effect that tracks how many instances currently exist (liveCount) and how many have ever been constructed
-	// (totalCreated). Used to observe, from outside, whether the builder rebuilds a fresh inner effect on each build()
-	// and whether wrappers correctly own/delete their inner. calculate() is a no-op.
+	// A no-op leaf effect counting live and total instances, to observe whether builders rebuild a fresh inner on each
+	// build() and whether wrappers delete their inner.
 	struct SpyEffect : LedPipelineStage {
 		static inline int liveCount = 0;
 		static inline int totalCreated = 0;

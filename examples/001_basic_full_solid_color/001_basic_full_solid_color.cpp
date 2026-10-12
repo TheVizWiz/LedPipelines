@@ -1,76 +1,52 @@
 #include "Arduino.h"
 #include "LedPipelines.h"
+#include "outputs/FastLEDOutput.h"
 
-#define LED_PIN 5 // the pin we're attaching our LEDs to.
+#define LED_PIN 5
 
 
 /**
  * 001 - Full Solid Color.
  *
- * WHAT WE'RE BUILDING:
- * A very simple effect that just lights up the entire strip in a single color
- *
- * The most basic effect you could make is the full solid color effect, where the entire strip is lit up in a single
- * color. To do this, we'll learn:
- * - how to create an Led Pipeline
- * - how to add an effect to a pipeline
- * - how to run a pipeline to make effects show up on your LEDs.
+ * Lights up the entire strip in a single color. Covers creating a pipeline, adding an effect to it, and running it.
  */
 
 /**
- * LedPipelines depends on FastLED. To use FastLED, first declare all the LEDs that you would like to use. In this case,
- * we are declaring an array of 100 LEDs.
+ * The core library is hardware-independent and renders through a pluggable output. This sketch uses the FastLED
+ * backend (outputs/FastLEDOutput.h), so the LEDs are declared and added to FastLED as usual.
  */
 CRGB leds[100];
+ledpipelines::FastLEDOutput output;
 
 /**
- * This object will store our pipeline once we initialize it. All objects in LedPipelines derive from the base class of
- * LedPipelineStage, so no matter what our pipeline looks like, we can use LedPipelineStage to store it. Since
- * LedPipelineStage is an abstract class, we need to use a pointer here.
+ * Every object in LedPipelines derives from the abstract LedPipelineStage, so any pipeline can be stored through a
+ * LedPipelineStage pointer.
  */
 ledpipelines::LedPipelineStage *pipeline;
 
 
 void setup() {
-	/**
-     * The first step is to add all your LEDs to FastLED. In this case, we have 100 WS2812B leds on pin LED_PIN.
-     */
 	FastLED.addLeds<WS2812B, LED_PIN, GBR>(leds, 100);
 
 	/**
-     * Always call initialize() after adding all the LEDs to FastLED. LedPipelines sets things up in the background
-     * (such as counting all the leds and creating memory for the effects to follow) in this function. This can be
-     * called before or after actually creating all your LedPipelines, but has to be called *after* adding all your
-     * LEDs to FastLED.
-     */
+	 * Register the output with setOutput() before calling initialize(): initialize() reads the LED layout from it and
+	 * allocates memory for the effects. It can be called before or after creating your pipelines.
+	 */
+	ledpipelines::setOutput(&output);
 	ledpipelines::initialize();
 
 	/**
-     * LedPipelines is set up around the idea of stages, which are building blocks used to make effects. The most basic
-     * LedPipelineStage is a single effect that does one thing, like light up the entire strip in a single color. However,
-     * many times, you might want to make effects that are made up of multiple other effects internally. To make those kinds
-     * of effects, you can use actual pipelines, such as SeriesLedPipeline and ParallelLedPipeline. We'll dive into these
-     * in future tutorials, such as 002, which will walk through a SeriesLedPipeline.
-     *
-     * For now, we just want to use a single effect that sets up the entire strip to run in a single color, so we only need
-     * the one effect/stage. In LedPipelines, the effect that lights up the entire strip in a single color is called
-     * Solid. Every effect is created through its Builder: we pass the color we want into the Builder, then call
-     * build() to get the actual effect. We can set the pipeline to be that one stage.
-     */
+	 * Effects are built from stages. A single effect like Solid is a stage on its own; pipelines such as
+	 * SeriesLedPipeline and ParallelLedPipeline combine multiple stages (see 002). Every effect is created through its
+	 * Builder, and build() produces the actual stage.
+	 */
 	pipeline = ledpipelines::effects::Solid::Builder(CRGB::Red).build();
 }
 
 
 void loop() {
 	/**
-     * To run the effects in your pipeline, simply use the run() method on the pipeline. Call this method as often
-     * as possible. It is blocking, and will also call FastLED.show();
-     */
+	 * run() is blocking and also calls show() on the registered output. Call it as often as possible.
+	 */
 	pipeline->run();
 }
-
-/**
- * As we can see, setting up single effects is super easy! But that's not where LedPipelines shines. LedPipelines is really
- * meant for situations where we have multiple effects that we want to combine to make complicated, intricate designs
- * on LEDs. We will start doing this in the next tutorial, 002.
- */

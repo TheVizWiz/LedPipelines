@@ -29,4 +29,4 @@ namespace ledpipelines::effects {
 	private:
 		explicit Loop(LedPipelineStage* stage, size_t numLoops);
 	};
-} // namespace ledpipelines::effects
+}

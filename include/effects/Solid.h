@@ -1,13 +1,10 @@
 #pragma once
 
 #include "BaseLedPipeline.h"
-#include "Value.h"  // Value<RGBA> - the color input may be a constant or a randomized color
+#include "Value.h"
 
 namespace ledpipelines::effects {
 	struct Solid : LedPipelineStage {
-		// The color: a Value<RGBA> recipe that caches its own sampled draw (see Value - the Value IS the cache, so no
-		// separate sampledColor member). A plain RGBA is a constant; a RandomColor/RandomColorSet re-rolls on reset().
-		// calculate() renders color.value; reset() re-samples it.
 		Value<RGBA> color;
 
 
@@ -19,9 +16,6 @@ namespace ledpipelines::effects {
 		std::string toJson(bool includeState) override;
 #endif
 
-		// The builder's color field is a Value<RGBA> (the BUILDER_FIELD macro wraps the given type in Value): a plain
-		// RGBA converts implicitly (constant), or pass a RandomColor / RandomColorSet for a randomized color. Same slot,
-		// no RandomSolid needed.
 		struct Builder : LedPipelineStage::Builder<Solid, Builder> {
 			BUILDER_FIELD(RGBA, color);
 
@@ -38,8 +32,6 @@ namespace ledpipelines::effects {
 
 
 	struct SolidSegment : Solid {
-		// Like color, length is a Value<float> that caches its own draw: a plain float is constant, or a RandomRange
-		// gives a randomized segment length re-rolled on reset(). calculate() reads length.value.
 		Value<float> length;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
@@ -63,4 +55,4 @@ namespace ledpipelines::effects {
 	protected:
 		SolidSegment(Value<RGBA> color, Value<float> length, BlendingMode blendingMode = BlendingMode::NORMAL);
 	};
-} // namespace ledpipelines::effects
+}

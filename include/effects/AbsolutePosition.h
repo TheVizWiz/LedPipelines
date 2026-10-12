@@ -16,8 +16,6 @@ namespace ledpipelines::effects {
 			};
 		};
 
-		// The absolute position: a Value<float> caching its own draw (see Value). A plain float is a constant; a
-		// RandomRange/RandomSet re-rolls on reset(). calculate() reads position.value.
 		Value<float> position;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
@@ -32,4 +30,4 @@ namespace ledpipelines::effects {
 	private:
 		explicit AbsolutePosition(LedPipelineStage* stage, Value<float> position = 0.0f);
 	};
-} // namespace ledpipelines::effects
+}

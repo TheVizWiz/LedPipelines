@@ -12,7 +12,7 @@ namespace {
 	}
 
 	using State = LedPipelineRunningState;
-}  // namespace
+}
 
 TEST(HookTest, FiresEveryFrameWithInnerState) {
 	setUpLeds();

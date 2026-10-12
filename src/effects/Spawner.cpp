@@ -1,6 +1,6 @@
 #include "effects/Spawner.h"
 
-#include <algorithm>  // std::remove_if - not guaranteed transitively on all standard libraries (e.g. MinGW)
+#include <algorithm>
 #include <utility>
 
 
@@ -14,9 +14,7 @@ namespace ledpipelines::effects {
 
 
 	void Spawner::calculate(float startIndex, TemporaryLedData& tempData) {
-		// A Spawner runs indefinitely (it has no completion condition of its own), but it must report RUNNING once it
-		// starts rather than sitting at NOT_STARTED. TimedSpawner delegates to this method, so this
-		// single guard re-arms the whole family after a reset(). It never reaches DONE - a Spawner does not finish.
+		// Re-arm after reset(); TimedSpawner delegates here, so this covers both. A Spawner never reaches DONE.
 		if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
 		for (auto& child : activeChildren) {
@@ -57,7 +55,6 @@ namespace ledpipelines::effects {
 		if (activeChildren.size() >= maxChildren) {
 			if (keepOldOnSpawn) return;
 
-			// we should delete the oldest child, which is at index 0.
 			delete activeChildren[0];
 			activeChildren.erase(activeChildren.begin());
 		}
@@ -75,7 +72,6 @@ namespace ledpipelines::effects {
 		BlendingMode blendingMode
 	)
 		: Spawner(std::move(factory), maxChildren, keepOldOnSpawn, blendingMode), spawnTimeMs(std::move(spawnTimeMs)) {
-		// Sample the first interval up front (a constant always yields the same value; a RandomRange draws one).
 		this->spawnTimeMs.sample();
 	}
 
@@ -84,8 +80,6 @@ namespace ledpipelines::effects {
 		auto currentTimeMs = millis();
 		if (currentTimeMs - lastSpawnTimeMs >= spawnTimeMs.value) {
 			lastSpawnTimeMs = currentTimeMs;
-			// Re-sample the interval for the NEXT gap. For a constant this is a no-op (fixed cadence); for a RandomRange it
-			// draws a fresh gap length, so successive spawns are irregularly spaced (the old RandomTimedSpawner behavior).
 			spawnTimeMs.sample();
 			spawn();
 		}
@@ -118,7 +112,6 @@ namespace ledpipelines::effects {
 		result += jsonHeader("TimedSpawner");
 		result += jsonField("maxChildren", (int)maxChildren);
 		result += jsonField("keepOldOnSpawn", keepOldOnSpawn);
-		// Config emits the spawn-interval RECIPE (a constant, or a RandomRange spec); the sampled interval is state.
 		result += jsonRawField("spawnTimeMs", spawnTimeMs.describeValue());
 		result += jsonField("factory", std::string("non-serializable"));
 		if (includeState) {
@@ -136,4 +129,4 @@ namespace ledpipelines::effects {
 		return result;
 	}
 #endif
-} // namespace ledpipelines::effects
+}

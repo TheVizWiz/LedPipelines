@@ -1,7 +1,7 @@
 #pragma once
 
-#include <utility>  // std::move
-#include <vector>   // the segment list
+#include <utility>
+#include <vector>
 
 #include "BaseEffect.h"
 
@@ -23,8 +23,6 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : WrapperEffect::Builder<Path, Builder> {
-			// segments is a list, not a randomizable scalar, so it is a plain field (hand-rolled, not via the
-			// Value-wrapping BUILDER_FIELD macro).
 			Segments _segments;
 
 			Builder& addSegment(int start, int end) {
@@ -44,4 +42,4 @@ namespace ledpipelines::effects {
 
 		Path(LedPipelineStage* stage, Segments&& segments);
 	};
-} // namespace ledpipelines::effects
+}

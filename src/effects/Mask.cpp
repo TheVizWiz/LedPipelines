@@ -26,11 +26,9 @@ void Mask::calculate(float startIndex, TemporaryLedData& tempData) {
 	this->mask->calculate(startIndex, maskData);
 	this->base->calculate(startIndex, baseData);
 
-	// merge the two layers.
 	baseData.merge(maskData, BlendingMode::MASK);
 	tempData.merge(baseData, BlendingMode::NORMAL);
 
-	// The effect finishes when the base is done, so we check if the base effect is done here.
 	if (useMaskRuntime) {
 		if (this->mask->state == LedPipelineRunningState::DONE) {
 			this->state = LedPipelineRunningState::DONE;

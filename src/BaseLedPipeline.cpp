@@ -1,12 +1,10 @@
 #include "BaseLedPipeline.h"
-#include "LedOutput.h" // getOutput() - the registered render backend
+#include "LedOutput.h"
 
 using namespace ledpipelines;
 
 #ifdef LEDPIPELINES_SERIALIZATION
-// Fill a 9-char id + NUL. Only compiled under serialization, matching the guarded `id` field on LedPipelineStage - the
-// id exists purely to identify stages in serialized JSON, so a non-serializing build carries neither the field nor its
-// generator.
+// Fill a 9-char id + NUL.
 static void generateRandomId(char* id) {
 	static const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 								"abcdefghijklmnopqrstuvwxyz"
@@ -44,8 +42,6 @@ void LedPipelineStage::run() {
 	} else {
 		return;
 	}
-	// Render into the registered backend. setOutput() is required; if none is set, skip the frame (initialize() logs
-	// the same condition) rather than dereferencing null.
 	LedOutput* output = getOutput();
 	if (output == nullptr) {
 		return;
@@ -76,8 +72,7 @@ void LedPipeline::reset() {
 	LedPipelineStage::reset();
 
 	for (auto& stage : stages) {
-		// NOTE: stage->reset() (reset the pointed-to effect's state), NOT stage.reset() - the latter is
-		// unique_ptr::reset(), which would delete the child stage and null the pointer, crashing the next calculate().
+		// stage->reset(), NOT stage.reset() - the latter is unique_ptr::reset() and would delete the child.
 		stage->reset();
 	}
 }
@@ -88,7 +83,6 @@ void ParallelLedPipeline::calculate(float startIndex, TemporaryLedData& tempData
 	if (this->state == LedPipelineRunningState::DONE) return;
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
-
 
 	LedPipelineRunningState anyArePlaying = LedPipelineRunningState::DONE;
 
@@ -110,21 +104,17 @@ SeriesLedPipeline::SeriesLedPipeline(const BlendingMode mode) : LedPipeline(mode
 void SeriesLedPipeline::calculate(const float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::DONE) return;
 
-	// this is the first time we are state, so currentStage hasn't been set to the first stage yet.
 	if (this->state == LedPipelineRunningState::NOT_STARTED) {
 		currentStage = 0;
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	// Run the current stage; if it reports done, advance and run the next one in the SAME frame. Without this loop, the
-	// frame on which a stage finishes would still show that finished stage's last output (a one-frame stall) before the
-	// next stage got a chance to render. Looping also skips any stage that completes instantly on its first calculate.
+	// Advance through finished stages within the SAME frame, so a finishing stage doesn't cause a one-frame stall.
 	while (currentStage < stages.size()) {
 		stages[currentStage]->calculate(startIndex, tempData);
 		if (stages[currentStage]->state != LedPipelineRunningState::DONE) break;
 		currentStage++;
-		// Discard the finished stage's pixels so the next stage renders onto a clean buffer instead of layering over
-		// leftover output. Only needed when we actually advance to another stage this frame.
+		// Discard the finished stage's pixels so the next stage doesn't layer over them.
 		if (currentStage < stages.size()) tempData.clear();
 	}
 
@@ -166,7 +156,6 @@ std::string SeriesLedPipeline::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("SeriesLedPipeline");
 	result += jsonRawField("children", children);
-	// currentStage - which child is currently running - is runtime state.
 	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonField("currentStage", currentStage));
 	result += "}";
 	return result;

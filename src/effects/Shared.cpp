@@ -13,9 +13,6 @@ void Shared::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	// Delegate straight to the shared inner. Note the inner is a single instance that may be rendered from several
-	// Shared wrappers this frame; we deliberately do not copy or guard its state (see the class comment - Shared is
-	// meant for stateless sub-effects).
 	this->stage->calculate(startIndex, tempData);
 
 	this->state = this->stage->state;
@@ -23,8 +20,6 @@ void Shared::calculate(float startIndex, TemporaryLedData& tempData) {
 
 void Shared::reset() {
 	LedPipelineStage::reset();
-	// Reset the shared inner too. If multiple Shared wrappers reference the same inner, each reset() re-resets it -
-	// harmless for the stateless sources Shared is intended for.
 	this->stage->reset();
 }
 

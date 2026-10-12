@@ -35,7 +35,6 @@ namespace ledpipelines::effects {
 				currentIndex++;
 
 				if (opacity == 0) {
-					// the wrapped stage didn't light this source pixel, so there's nothing to lay along the path.
 					continue;
 				}
 
@@ -67,4 +66,4 @@ namespace ledpipelines::effects {
 		return result;
 	}
 #endif
-} // namespace ledpipelines::effects
+}

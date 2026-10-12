@@ -1,8 +1,8 @@
 #pragma once
 
-#include <functional>  // std::function (the factory type)
+#include <functional>
 #include <utility>
-#include <vector>  // activeChildren
+#include <vector>
 
 #include "BaseEffect.h"
 
@@ -27,8 +27,6 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<Spawner, Builder> {
-			// factory is a callable, not a randomizable value, so it is a plain field (hand-rolled, not via the
-			// Value-wrapping BUILDER_FIELD macro). The other fields are Value<T> recipes; build() reads their .value.
 			EffectSpawnerFactory _factory;
 			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
 			BUILDER_FIELD_DEFAULT(bool, keepOldOnSpawn, true);
@@ -51,10 +49,7 @@ namespace ledpipelines::effects {
 
 
 	struct TimedSpawner : public Spawner {
-		// The spawn interval: a Value<unsigned long> caching its own draw (see Value). A constant keeps a fixed cadence;
-		// a RandomRange gives irregular spacing - this replaces the old RandomTimedSpawner. Unlike the once-per-lifecycle
-		// sampling elsewhere, a spawn interval's "lifecycle" is a single interval: spawnTimeMs is re-sampled after every
-		// spawn (calculate()), so each gap gets a fresh random length. calculate() waits spawnTimeMs.value between spawns.
+		// Re-sampled after every spawn, so a RandomRange gives each gap a fresh length.
 		Value<unsigned long> spawnTimeMs;
 
 		unsigned long lastSpawnTimeMs = 0;
@@ -66,11 +61,8 @@ namespace ledpipelines::effects {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<TimedSpawner, Builder> {
-			// factory is a plain field (see Spawner::Builder). The rest are Value<T> recipes; build() reads their .value
-			// except spawnTimeMs, which is passed as a Value so the effect can re-sample it each spawn.
 			EffectSpawnerFactory _factory;
 			BUILDER_FIELD_DEFAULT(uint16_t, maxChildren, 10);
-			// A plain interval converts implicitly (regular cadence), or pass a RandomRange for irregular spacing.
 			BUILDER_FIELD(unsigned long, spawnTimeMs);
 			BUILDER_FIELD_DEFAULT(bool, keepOldOnSpawn, true);
 
@@ -91,4 +83,4 @@ namespace ledpipelines::effects {
 			BlendingMode blendingMode = BlendingMode::NORMAL
 		);
 	};
-} // namespace ledpipelines::effects
+}

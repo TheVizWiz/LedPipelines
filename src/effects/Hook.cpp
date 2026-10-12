@@ -79,4 +79,4 @@ namespace ledpipelines::effects {
 	}
 #endif
 
-} // namespace ledpipelines::effects
+}
