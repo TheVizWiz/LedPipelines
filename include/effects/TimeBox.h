@@ -6,6 +6,10 @@ namespace ledpipelines::effects {
 	struct TimeBox : public WrapperEffect, TimedEffect {
 		void reset() override;
 
+		TimedEffect* timedEffect() override {
+			return this;
+		}
+
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
 #ifdef LEDPIPELINES_SERIALIZATION

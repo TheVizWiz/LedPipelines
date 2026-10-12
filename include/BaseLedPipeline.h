@@ -87,6 +87,7 @@ namespace ledpipelines {
 
 	namespace effects {
 		struct WrapperEffect;
+		struct TimedEffect;
 
 		// Forward-declared for the Builder convenience wrappers (loop(), timebox(), ...), which are defined in
 		// effects/BuilderConveniences.h; the effect headers include this one, so they can't be included here.
@@ -222,6 +223,20 @@ namespace ledpipelines {
 		virtual void run();
 
 		virtual void reset();
+
+		/**
+		 * This stage's timeline, or null if it is not a TimedEffect. Lets callers reach the timer without RTTI.
+		 */
+		virtual effects::TimedEffect* timedEffect() {
+			return nullptr;
+		}
+
+		/**
+		 * The stage this one wraps, or null if it does not wrap one.
+		 */
+		virtual LedPipelineStage* innerStage() const {
+			return nullptr;
+		}
 
 		explicit LedPipelineStage(BlendingMode blendingMode = BlendingMode::NORMAL);
 

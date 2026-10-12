@@ -24,10 +24,7 @@ namespace ledpipelines::effects {
 		 */
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
-		/**
-		 * May be null if nothing was wrapped.
-		 */
-		LedPipelineStage* innerStage() const {
+		LedPipelineStage* innerStage() const override {
 			return stage;
 		}
 

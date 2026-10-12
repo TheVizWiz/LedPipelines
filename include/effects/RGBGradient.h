@@ -48,6 +48,10 @@ namespace ledpipelines::effects {
 
 		void reset() override;
 
+		TimedEffect* timedEffect() override {
+			return this;
+		}
+
 #ifdef LEDPIPELINES_SERIALIZATION
 		std::string toJson(bool includeState) override;
 #endif

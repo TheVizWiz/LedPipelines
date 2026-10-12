@@ -27,14 +27,11 @@ namespace ledpipelines::effects {
 		WrapperEffect::calculate(startIndex, tempData);
 		if (!callback.value) return;
 
-		LedPipelineStage* current = stage;
-		while (current) {
-			if (auto* timedEffect = dynamic_cast<TimedEffect*>(current)) {
-				callback.value({{this->state}, timedEffect->elapsedPercentage, timedEffect->runtimeMs.value});
+		for (LedPipelineStage* current = stage; current; current = current->innerStage()) {
+			if (TimedEffect* timer = current->timedEffect()) {
+				callback.value({{this->state}, timer->elapsedPercentage, timer->runtimeMs.value});
 				return;
 			}
-			auto* wrapper = dynamic_cast<WrapperEffect*>(current);
-			current = wrapper ? wrapper->innerStage() : nullptr;
 		}
 		callback.value({{this->state}, 0, 0});
 	}
