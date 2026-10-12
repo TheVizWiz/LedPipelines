@@ -13,7 +13,7 @@ Shift::Shift(LedPipelineStage* stage, Value<float> offset, bool useWholePixels)
 
 float Shift::effectiveOffset() const {
 	// Applied on read rather than baked into offset.value, so the raw sampled value is preserved for serialization.
-	return useWholePixels ? std::round(offset.value) : offset.value;
+	return useWholePixels ? std::round(offset.get()) : offset.get();
 }
 
 void Shift::calculate(const float startIndex, TemporaryLedData& tempData) {

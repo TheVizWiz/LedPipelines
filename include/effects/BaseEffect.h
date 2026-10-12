@@ -111,7 +111,7 @@ namespace ledpipelines::effects {
 		 */
 		unsigned long elapsedMs() const {
 			unsigned long sinceStart = millis() - startTimeMs;
-			return sinceStart > delayMs.value ? sinceStart - delayMs.value : 0;
+			return sinceStart > delayMs.get() ? sinceStart - delayMs.get() : 0;
 		}
 
 		virtual void resetTimer();
@@ -154,7 +154,7 @@ namespace ledpipelines::effects {
 			Product* applyTiming(Product* product) {
 				product->delayMs = this->_delayMs;
 				product->delayMs.sample();
-				product->terminateOnComplete = this->_terminateOnComplete.value;
+				product->terminateOnComplete = this->_terminateOnComplete.get();
 				return product;
 			}
 		};

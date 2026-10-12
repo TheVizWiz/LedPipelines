@@ -21,7 +21,7 @@ void Repeat::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
-	const float repeatDistance = this->repeatDistance.value;
+	const float repeatDistance = this->repeatDistance.get();
 
 	if (numRepeats == 0 && repeatDistance <= 0) {
 		// In infinite-repeat mode a non-positive repeatDistance would never advance the offset in the loops below,

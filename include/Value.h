@@ -26,6 +26,14 @@ namespace ledpipelines {
 
 		virtual T sample() const = 0;
 
+		/**
+		 * What Value::get() returns. Defaults to the cached sample; override to recompute on every read (the result
+		 * should also be stored into `cached`).
+		 */
+		virtual const T& get(T& cached) const {
+			return cached;
+		}
+
 #ifdef LEDPIPELINES_SERIALIZATION
 		// Raw JSON value fragment (no leading key) describing this recipe.
 		virtual std::string describeValue() const = 0;
@@ -58,8 +66,9 @@ namespace ledpipelines {
 		std::shared_ptr<const Provider<T>> provider;
 
 	public:
-		// The last value drawn by sample(); the owning effect reads this every frame. Primed by every constructor.
-		T value;
+		// The last value drawn by sample() (or computed by get()). Primed by every constructor. Effects should read
+		// through get(); read this directly only to report the cached value without triggering a recompute.
+		mutable T value;
 
 		/**
 		 * The converting constructor accepts anything convertible to T, allowing two implicit hops such as
@@ -81,6 +90,14 @@ namespace ledpipelines {
 		T sample() {
 			value = provider->sample();
 			return value;
+		}
+
+		/**
+		 * The current value. The cached sample for most providers; providers that override Provider::get() (e.g.
+		 * LiveFunctionValue) recompute it on every call.
+		 */
+		const T& get() const {
+			return provider->get(value);
 		}
 
 #ifdef LEDPIPELINES_SERIALIZATION

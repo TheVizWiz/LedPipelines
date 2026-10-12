@@ -123,10 +123,10 @@ void OpacityGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 	this->stage->calculate(startIndex, tempData);
 
 	// Only the start is offset by this stage's pipeline position; the end is passed un-offset.
-	if (this->startIndex.value > this->endIndex.value)
-		calculateBackwardGradient(startIndex + this->startIndex.value, this->endIndex.value, tempData);
+	if (this->startIndex.get() > this->endIndex.get())
+		calculateBackwardGradient(startIndex + this->startIndex.get(), this->endIndex.get(), tempData);
 	else
-		calculateForwardGradient(startIndex + this->startIndex.value, this->endIndex.value, tempData);
+		calculateForwardGradient(startIndex + this->startIndex.get(), this->endIndex.get(), tempData);
 
 	this->state = this->stage->state;
 }

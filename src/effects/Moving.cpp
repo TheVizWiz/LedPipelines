@@ -20,7 +20,7 @@ Moving::Moving(
 	this->startPosition.sample();
 	this->endPosition.sample();
 	this->smoothingFunction.sample();
-	this->currentPosition = this->startPosition.value;
+	this->currentPosition = this->startPosition.get();
 }
 
 
@@ -32,11 +32,11 @@ void Moving::calculate(float startIndex, TemporaryLedData& tempData) {
 		this->state = LedPipelineRunningState::RUNNING;
 	}
 
-	this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs.value;
+	this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs.get();
 
 	// smoothingFunction clamps the percentage to [0, 1], so once the move completes the inner stays pinned at
 	// endPosition; by default only the inner reaching DONE ends this effect.
-	this->currentPosition = smoothingFunction.value(elapsedPercentage, startPosition.value, endPosition.value);
+	this->currentPosition = smoothingFunction.get()(elapsedPercentage, startPosition.get(), endPosition.get());
 
 	this->stage->calculate(startIndex + currentPosition, tempData);
 
@@ -55,7 +55,7 @@ void Moving::reset() {
 	this->startPosition.sample();
 	this->endPosition.sample();
 	this->smoothingFunction.sample();
-	this->currentPosition = this->startPosition.value;
+	this->currentPosition = this->startPosition.get();
 }
 
 

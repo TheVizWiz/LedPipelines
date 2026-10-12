@@ -7,8 +7,8 @@ namespace ledpipelines::effects {
 
 	void Hook::calculate(float startIndex, TemporaryLedData& tempData) {
 		WrapperEffect::calculate(startIndex, tempData);
-		if (!callback.value) return;
-		callback.value({this->state});
+		if (!callback.get()) return;
+		callback.get()({this->state});
 	}
 
 #ifdef LEDPIPELINES_SERIALIZATION
@@ -25,15 +25,15 @@ namespace ledpipelines::effects {
 
 	void TimedHook::calculate(float startIndex, TemporaryLedData& tempData) {
 		WrapperEffect::calculate(startIndex, tempData);
-		if (!callback.value) return;
+		if (!callback.get()) return;
 
 		for (LedPipelineStage* current = stage; current; current = current->innerStage()) {
 			if (TimedEffect* timer = current->timedEffect()) {
-				callback.value({{this->state}, timer->elapsedPercentage, timer->runtimeMs.value});
+				callback.get()({{this->state}, timer->elapsedPercentage, timer->runtimeMs.get()});
 				return;
 			}
 		}
-		callback.value({{this->state}, 0, 0});
+		callback.get()({{this->state}, 0, 0});
 	}
 
 #ifdef LEDPIPELINES_SERIALIZATION
@@ -61,8 +61,8 @@ namespace ledpipelines::effects {
 	}
 
 	void StateHook::notifyIfChanged(LedPipelineRunningState oldState) {
-		if (oldState == this->state || !callback.value) return;
-		callback.value({oldState, this->state});
+		if (oldState == this->state || !callback.get()) return;
+		callback.get()({oldState, this->state});
 	}
 
 #ifdef LEDPIPELINES_SERIALIZATION

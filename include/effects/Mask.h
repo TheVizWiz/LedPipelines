@@ -28,7 +28,7 @@ namespace ledpipelines::effects {
 			Builder(LedPipelineStage* base, LedPipelineStage* mask) : _base(base), _mask(mask) {};
 
 			Mask* build() override {
-				return new Mask(_base, _mask, _useMaskRuntime.value, _blendingMode);
+				return new Mask(_base, _mask, _useMaskRuntime.get(), _blendingMode);
 			}
 		};
 

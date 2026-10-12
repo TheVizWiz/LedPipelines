@@ -20,13 +20,13 @@ void Wait::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	unsigned long totalTimeWaited = elapsedMs();
 
-	if (totalTimeWaited >= this->runtimeMs.value) {
+	if (totalTimeWaited >= this->runtimeMs.get()) {
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 		return;
 	}
 
-	this->elapsedPercentage = (float)totalTimeWaited / (float)this->runtimeMs.value;
+	this->elapsedPercentage = (float)totalTimeWaited / (float)this->runtimeMs.get();
 	this->state = LedPipelineRunningState::RUNNING;
 }
 

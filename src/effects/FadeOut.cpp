@@ -27,7 +27,7 @@ void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	unsigned long timeFadingMs = elapsedMs();
 
-	if (timeFadingMs >= runtimeMs.value) {
+	if (timeFadingMs >= runtimeMs.get()) {
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.data[i].a = 0;
 		}
@@ -36,8 +36,8 @@ void FadeOut::calculate(float startIndex, TemporaryLedData& tempData) {
 		return;
 	}
 
-	elapsedPercentage = (float)timeFadingMs / (float)runtimeMs.value;
-	float opacityMultiplier = smoothingFunction.value(timeFadingMs, 0, runtimeMs.value, UINT8_MAX, 0);
+	elapsedPercentage = (float)timeFadingMs / (float)runtimeMs.get();
+	float opacityMultiplier = smoothingFunction.get()(timeFadingMs, 0, runtimeMs.get(), UINT8_MAX, 0);
 	for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 		tempData.data[i].a = (tempData.data[i].a * opacityMultiplier) / 255;
 	}

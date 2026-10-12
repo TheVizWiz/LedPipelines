@@ -19,7 +19,7 @@ void OpacityScale::calculate(float startIndex, TemporaryLedData& tempData) {
 	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
 	this->stage->calculate(startIndex, tempData);
-	const uint8_t maxOpacity = this->maxOpacity.value;
+	const uint8_t maxOpacity = this->maxOpacity.get();
 	for (int i = 0; i < tempData.size; i++) {
 		tempData.data[i].a = (tempData.data[i].a * maxOpacity) / 255;
 	}

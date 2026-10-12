@@ -2,10 +2,12 @@
 
 #include "BaseEffect.h"
 
+#include "values/FunctionValue.h"
 #include "values/RandomColor.h"
 #include "values/RandomHSVA.h"
 #include "values/RandomNumber.h"
 #include "values/RandomSet.h"
+#include "values/ReferenceValue.h"
 
 #include "AbsolutePosition.h"
 #include "FadeIn.h"

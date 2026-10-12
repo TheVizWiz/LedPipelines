@@ -27,7 +27,7 @@ namespace ledpipelines::effects {
 			Builder(Value<float> offset) : _offset(std::move(offset)) {}
 
 			Shift* build() override {
-				return new Shift(buildInner(), _offset, _useWholePixels.value);
+				return new Shift(buildInner(), _offset, _useWholePixels.get());
 			}
 		};
 

@@ -27,7 +27,7 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	unsigned long timeFadingMs = elapsedMs();
 
-	if (timeFadingMs >= runtimeMs.value) {
+	if (timeFadingMs >= runtimeMs.get()) {
 		elapsedPercentage = 1;
 
 		// The inner already rendered above at full opacity, so this frame still shows fully faded-in content.
@@ -36,8 +36,8 @@ void FadeIn::calculate(float startIndex, TemporaryLedData& tempData) {
 			return;
 		}
 	} else {
-		elapsedPercentage = (float)timeFadingMs / (float)runtimeMs.value;
-		float opacityMultiplier = smoothingFunction.value(timeFadingMs, 0, runtimeMs.value, 0, UINT8_MAX);
+		elapsedPercentage = (float)timeFadingMs / (float)runtimeMs.get();
+		float opacityMultiplier = smoothingFunction.get()(timeFadingMs, 0, runtimeMs.get(), 0, UINT8_MAX);
 		for (int i = 0; i < TemporaryLedData::bufferSize; i++) {
 			tempData.data[i].a = (tempData.data[i].a * opacityMultiplier) / 255;
 		}

@@ -55,20 +55,20 @@ void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 
 	// runtimeMs == 0 means static: pinned to startGradient forever, never advances or reports DONE.
 	float timeT;
-	if (runtimeMs.value == 0) {
+	if (runtimeMs.get() == 0) {
 		timeT = 0;
 	} else {
-		this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs.value;
+		this->elapsedPercentage = (float)elapsedMs() / (float)runtimeMs.get();
 		float clamped = elapsedPercentage < 0 ? 0 : (elapsedPercentage > 1 ? 1 : elapsedPercentage);
-		timeT = smoothingFunction.value(clamped);
+		timeT = smoothingFunction.get()(clamped);
 	}
 
-	const HSVA nowStart = lerpFhsv(startGradientStart.value, endGradientStart.value, timeT);
-	const HSVA nowEnd = lerpFhsv(startGradientEnd.value, endGradientEnd.value, timeT);
+	const HSVA nowStart = lerpFhsv(startGradientStart.get(), endGradientStart.get(), timeT);
+	const HSVA nowEnd = lerpFhsv(startGradientEnd.get(), endGradientEnd.get(), timeT);
 
 	// Swap the colors alongside the positions so the gradient stays anchored to its endpoints.
-	float lo = startIndex + startPosition.value;
-	float hi = startIndex + endPosition.value;
+	float lo = startIndex + startPosition.get();
+	float hi = startIndex + endPosition.get();
 	HSVA loColor = nowStart;
 	HSVA hiColor = nowEnd;
 	if (lo > hi) {
@@ -114,7 +114,7 @@ void HSVGradient::calculate(float startIndex, TemporaryLedData& tempData) {
 		}
 	}
 
-	if (runtimeMs.value != 0 && elapsedPercentage >= 1) {
+	if (runtimeMs.get() != 0 && elapsedPercentage >= 1) {
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 	}

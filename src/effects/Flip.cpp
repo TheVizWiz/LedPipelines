@@ -28,8 +28,8 @@ void Flip::calculate(float startIndex, ledpipelines::TemporaryLedData& tempData)
 
 	stage->calculate(startIndex, tempData);
 
-	const long lo = std::min(minIndex.value, maxIndex.value);
-	const long hi = std::max(minIndex.value, maxIndex.value);
+	const long lo = std::min(minIndex.get(), maxIndex.get());
+	const long hi = std::max(minIndex.get(), maxIndex.get());
 
 	for (long i = lo, mirror = hi; i < mirror; i++, mirror--) {
 		auto leftOpacity = tempData.getOpacity(i);

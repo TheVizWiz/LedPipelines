@@ -20,13 +20,13 @@ void TimeBox::calculate(float startIndex, TemporaryLedData& tempData) {
 	unsigned long elapsedTime = elapsedMs();
 
 
-	this->elapsedPercentage = (float)elapsedTime / (float)runtimeMs.value;
+	this->elapsedPercentage = (float)elapsedTime / (float)runtimeMs.get();
 	this->stage->calculate(startIndex, tempData);
 	if (this->stage->state == LedPipelineRunningState::DONE) {
 		this->state = LedPipelineRunningState::DONE;
 	}
 
-	if (elapsedTime >= runtimeMs.value) {
+	if (elapsedTime >= runtimeMs.get()) {
 		this->elapsedPercentage = 1;
 		this->state = LedPipelineRunningState::DONE;
 		return;

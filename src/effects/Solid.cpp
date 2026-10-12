@@ -18,7 +18,7 @@ void Solid::calculate(const float startIndex, TemporaryLedData& tempData) {
 	// around a bare Solid loops forever.
 	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
-	const RGBA sampledColor = this->color.value;
+	const RGBA sampledColor = this->color.get();
 
 	// Clamp so a negative startIndex (e.g. from a Moving/Shift wrapper) doesn't start the loop at a negative index.
 	int start = startIndex < 0 ? 0 : (int)startIndex;
@@ -41,8 +41,8 @@ void SolidSegment::calculate(float startIndex, TemporaryLedData& tempData) {
 	// Overrides calculate() rather than delegating, so it needs the same re-arm as Solid::calculate.
 	if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;
 
-	const RGBA sampledColor = this->color.value;
-	const float length = this->length.value;
+	const RGBA sampledColor = this->color.get();
+	const float length = this->length.get();
 
 	const float endIndex = startIndex + length;
 

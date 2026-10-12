@@ -14,7 +14,7 @@ void AbsolutePosition::reset() {
 }
 
 void AbsolutePosition::calculate(float startIndex, TemporaryLedData& tempData) {
-	this->stage->calculate(position.value, tempData);
+	this->stage->calculate(position.get(), tempData);
 	this->state = this->stage->state;
 }
 

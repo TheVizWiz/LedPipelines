@@ -78,7 +78,7 @@ namespace ledpipelines::effects {
 
 	void TimedSpawner::calculate(float startIndex, TemporaryLedData& tempData) {
 		auto currentTimeMs = millis();
-		if (currentTimeMs - lastSpawnTimeMs >= spawnTimeMs.value) {
+		if (currentTimeMs - lastSpawnTimeMs >= spawnTimeMs.get()) {
 			lastSpawnTimeMs = currentTimeMs;
 			spawnTimeMs.sample();
 			spawn();
