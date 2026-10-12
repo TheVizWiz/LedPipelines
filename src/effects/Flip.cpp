@@ -31,9 +31,7 @@ void Flip::calculate(float startIndex, ledpipelines::TemporaryLedData& tempData)
 	const long lo = std::min(minIndex.value, maxIndex.value);
 	const long hi = std::max(minIndex.value, maxIndex.value);
 
-	for (int i = lo; i < (lo + hi) / 2; i++) {
-		int mirror = lo + hi - i;
-
+	for (long i = lo, mirror = hi; i < mirror; i++, mirror--) {
 		auto leftOpacity = tempData.getOpacity(i);
 		auto leftRGB = tempData.get(i);
 
