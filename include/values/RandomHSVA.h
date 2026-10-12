@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "Color.h"
+#include "LedColor.h"
 #include "Value.h"
 #include "values/RandomSet.h"
 

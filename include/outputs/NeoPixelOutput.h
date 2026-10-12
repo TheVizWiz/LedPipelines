@@ -22,7 +22,7 @@
 
 #include <Adafruit_NeoPixel.h>
 
-#include "../Color.h"
+#include "../LedColor.h"
 #include "../LedOutput.h"
 
 namespace ledpipelines {

@@ -36,7 +36,7 @@ board = esp32-s3-devkitm-1
 framework = arduino
 lib_deps =
     thevizwiz/LedPipelines
-    fastled/FastLED        ; only if you use the FastLED backend (outputs/FastLEDOutput.h)
+    fastled/FastLED@<3.10.7 ; only if you use the FastLED backend (outputs/FastLEDOutput.h); 3.10.7 fails to build on ESP32
 
 ; LedPipelines needs C++17 (nested-namespace syntax, inline static members). The Arduino-ESP32 framework defaults to
 ; gnu++11 and its own headers expect the GNU dialect, so unset the old standard and opt into gnu++2a - the setting the

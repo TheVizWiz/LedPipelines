@@ -9,7 +9,7 @@
 #include <string>
 #include <type_traits>
 
-#include "Color.h"
+#include "LedColor.h"
 #include "enums/BlendingMode.h"
 #include "enums/SamplingFunction.h"
 #include "enums/SmoothingFunction.h"

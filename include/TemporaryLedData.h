@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Color.h"
+#include "LedColor.h"
 #include "LedOutput.h"
 
 #include "enums/BlendingMode.h"

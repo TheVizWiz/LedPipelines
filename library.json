@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "LedPipelines",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A library for building and composing complex LED effects. Renders through a pluggable output backend (FastLED, ESPHome, ...) and has no hard dependency on any LED driver.",
   "keywords": "led pipelines, ledpipelines, pipelines, led effects, effects, led strips, led lighting, lighting effects, lighting pipelines",
   "repository": {
