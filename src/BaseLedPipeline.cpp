@@ -24,7 +24,9 @@ LedPipelineStage::LedPipelineStage(BlendingMode blendingMode)
 #endif
 }
 
-LedPipelineStage::~LedPipelineStage() = default;
+LedPipelineStage::~LedPipelineStage() {
+	for (auto& registry : handleRegistries) registry->remove(this);
+}
 
 void LedPipelineStage::reset() {
 	this->state = LedPipelineRunningState::NOT_STARTED;

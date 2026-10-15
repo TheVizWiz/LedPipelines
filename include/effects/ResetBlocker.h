@@ -22,7 +22,7 @@ namespace ledpipelines::effects {
 		struct Builder : WrapperEffect::Builder<ResetBlocker, Builder> {
 			Builder() = default;
 
-			ResetBlocker* build() override {
+			ResetBlocker* create() override {
 				return new ResetBlocker(buildInner());
 			}
 		};

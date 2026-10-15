@@ -105,7 +105,7 @@ namespace ledpipelines::effects {
 				return std::move(*this);
 			}
 
-			RGBGradient* build() override {
+			RGBGradient* create() override {
 				return applyTiming(new RGBGradient(
 					_startPosition,
 					_endPosition,

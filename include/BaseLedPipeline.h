@@ -10,6 +10,8 @@
 
 #include "Arduino.h"
 
+#include "Handle.h"
+
 #include "TemporaryLedData.h"
 #include "enums/BlendingMode.h"
 #include "enums/SamplingFunction.h"
@@ -144,6 +146,23 @@ namespace ledpipelines {
 
 			BlendingMode _blendingMode = BlendingMode::NORMAL;
 
+			std::vector<std::function<void(T*)>> _bindings;
+
+			/**
+			 * Register every stage this builder (or any copy of it) builds with `handle`. See Handle.
+			 */
+			template <typename U, typename = std::enable_if_t<std::is_base_of_v<U, T>>>
+			ConcreteBuilder& bind(const Handle<U>& handle) & {
+				this->_bindings.push_back([handle](T* product) { handle.attach(static_cast<U*>(product)); });
+				return static_cast<ConcreteBuilder&>(*this);
+			}
+
+			template <typename U, typename = std::enable_if_t<std::is_base_of_v<U, T>>>
+			ConcreteBuilder bind(const Handle<U>& handle) && {
+				this->_bindings.push_back([handle](T* product) { handle.attach(static_cast<U*>(product)); });
+				return std::move(static_cast<ConcreteBuilder&>(*this));
+			}
+
 			ConcreteBuilder& blendingMode(BlendingMode v) & {
 				this->_blendingMode = v;
 				return static_cast<ConcreteBuilder&>(*this);
@@ -159,7 +178,17 @@ namespace ledpipelines {
 			 * builders are rebuilt too). Can be called any number of times. Ownership of the returned pointer passes
 			 * to the caller.
 			 */
-			virtual T* build() = 0;
+			T* build() {
+				T* product = create();
+				for (auto& bindProduct : _bindings) bindProduct(product);
+				return product;
+			}
+
+			/**
+			 * Construct this builder's product. Implemented by each leaf builder (return new T(...)); call build()
+			 * instead, which also applies bind() registrations.
+			 */
+			virtual T* create() = 0;
 
 			/**
 			 * Like build(), but returns a shared_ptr. Each call creates a **new** stage, not another pointer to the
@@ -294,7 +323,19 @@ namespace ledpipelines {
 
 	private:
 		uint64_t lastUpdateTimeMicros;
+
+		std::vector<std::shared_ptr<detail::HandleRegistryBase>> handleRegistries;
+
+		template <typename>
+		friend class Handle;
 	};
+
+	template <typename T>
+	template <typename Stage>
+	void Handle<T>::attach(Stage* stage) const {
+		registry->stages.push_back(stage);
+		static_cast<LedPipelineStage*>(stage)->handleRegistries.push_back(registry);
+	}
 
 	/**
 	 * Base abstract class for LED pipelines: stages that own and combine child stages.
@@ -302,7 +343,7 @@ namespace ledpipelines {
 	struct LedPipeline : LedPipelineStage {
 		/**
 		 * Base builder for pipelines; accumulates child stage builders, which concrete builders build fresh in
-		 * build().
+		 * create().
 		 */
 		template <typename T, typename ConcreteBuilder>
 		struct Builder : LedPipelineStage::Builder<T, ConcreteBuilder> {
@@ -391,7 +432,7 @@ namespace ledpipelines {
 	class ParallelLedPipeline : public LedPipeline {
 	public:
 		struct Builder : LedPipeline::Builder<ParallelLedPipeline, Builder> {
-			ParallelLedPipeline* build() override {
+			ParallelLedPipeline* create() override {
 				auto* pipeline = new ParallelLedPipeline(this->_blendingMode);
 				for (auto& childBuilder : _childBuilders) pipeline->addStage(childBuilder->buildStage());
 				return pipeline;
@@ -413,7 +454,7 @@ namespace ledpipelines {
 	class SeriesLedPipeline : public LedPipeline {
 	public:
 		struct Builder : LedPipeline::Builder<SeriesLedPipeline, Builder> {
-			SeriesLedPipeline* build() override {
+			SeriesLedPipeline* create() override {
 				auto* pipeline = new SeriesLedPipeline(this->_blendingMode);
 				for (auto& childBuilder : _childBuilders) pipeline->addStage(childBuilder->buildStage());
 				return pipeline;

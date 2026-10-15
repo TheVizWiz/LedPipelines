@@ -37,7 +37,7 @@ namespace ledpipelines::effects {
 
 			explicit Builder(std::shared_ptr<LedPipelineStage> stage) : _stage(std::move(stage)) {}
 
-			Shared* build() override {
+			Shared* create() override {
 				return new Shared(_stage, _blendingMode);
 			}
 		};

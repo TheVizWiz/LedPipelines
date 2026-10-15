@@ -25,7 +25,7 @@ namespace ledpipelines::effects {
 		struct Builder : WrapperEffect::Builder<Toggle, Builder> {
 			Builder() {};
 
-			Toggle* build() override {
+			Toggle* create() override {
 				return new Toggle(buildInner());
 			}
 		};

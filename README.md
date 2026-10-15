@@ -216,6 +216,32 @@ Two things to know:
   with effects that **accumulate or mutate state across calls within a frame** (e.g. `Spawner`, which grows a child list
   each `calculate()`), or where a per-branch `reset()` would disturb the other branch — sharing those can misbehave.
 
+### Controlling effects at runtime (handles)
+
+Some effects have methods meant to be called while the pipeline runs — `Spawner::spawn()`, `Toggle::activate()` /
+`deactivate()`. Since a pipeline is assembled from builders and the effect may end up nested deep inside wrappers, bind a
+`Handle<T>` on the effect's builder to reach the built instance:
+
+```cpp
+Handle<Spawner> sparks;
+Handle<Toggle> light;
+
+pipeline = ParallelLedPipeline::Builder()
+    .addStage(Spawner::Builder(factory).bind(sparks).shift(10))
+    .addStage(Solid::Builder(RGBA::White).wrap(Toggle::Builder()).bind(light))
+    .build();
+
+sparks->spawn();        // call the effect's own methods through the handle
+light->deactivate();
+```
+
+- **`.bind()` binds whatever the builder at that point produces.** `X.wrap(Toggle::Builder()).bind(h)` binds the
+  Toggle; `X.bind(h).wrap(Toggle::Builder())` binds X. The handle's type is checked at compile time, and a `Handle<U>`
+  binds to any product derived from `U` (so `Handle<Spawner>` works with `TimedSpawner`).
+- **Every stage the builder builds is bound.** Building it twice (or binding a builder inside a `Spawner` factory) binds
+  several stages: `->` / `get()` reach the first, `forEach(fn)` and `callAll(&Spawner::spawn)` reach all of them.
+- **Handles never dangle.** Deleted stages unregister themselves; `get()` returns `nullptr` once nothing is bound.
+
 ### Colors
 
 Colors are `RGBA` — LedPipelines' own value type, so the library needs no LED driver just to name a color. It holds the

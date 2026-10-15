@@ -25,7 +25,7 @@ namespace ledpipelines::effects {
 
 			Builder(Value<float> repeatDistance) : _repeatDistance(std::move(repeatDistance)) {};
 
-			Repeat* build() override {
+			Repeat* create() override {
 				return new Repeat(buildInner(), _numRepeats.get(), _repeatDistance, _repeatBlendingMode.get());
 			}
 		};

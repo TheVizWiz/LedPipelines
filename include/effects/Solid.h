@@ -21,7 +21,7 @@ namespace ledpipelines::effects {
 
 			explicit Builder(Value<RGBA> color) : _color(std::move(color)) {}
 
-			Solid* build() override {
+			Solid* create() override {
 				return new Solid(_color, _blendingMode);
 			}
 		};
@@ -47,7 +47,7 @@ namespace ledpipelines::effects {
 			BUILDER_FIELD(float, length);
 			explicit Builder(Value<RGBA> color, Value<float> length) : _color(std::move(color)), _length(std::move(length)) {}
 
-			SolidSegment* build() override {
+			SolidSegment* create() override {
 				return new SolidSegment(_color, _length, _blendingMode);
 			}
 		};

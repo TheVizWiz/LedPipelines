@@ -26,7 +26,7 @@ namespace ledpipelines::effects {
 
 			Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
-			FadeOut* build() override {
+			FadeOut* create() override {
 				return applyTiming(new FadeOut(buildInner(), _runtimeMs, _smoothingFunction, _blendingMode));
 			}
 		};

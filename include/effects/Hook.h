@@ -30,7 +30,7 @@ namespace ledpipelines::effects {
 
 			BUILDER_FIELD(Callback, callback);
 
-			Hook* build() override {
+			Hook* create() override {
 				return new Hook(buildInner(), _callback);
 			};
 		};
@@ -65,7 +65,7 @@ namespace ledpipelines::effects {
 		struct Builder : WrapperEffect::Builder<TimedHook, Builder> {
 			BUILDER_FIELD(Callback, callback);
 
-			TimedHook* build() override {
+			TimedHook* create() override {
 				return new TimedHook(buildInner(), _callback);
 			};
 		};
@@ -103,7 +103,7 @@ namespace ledpipelines::effects {
 		struct Builder : WrapperEffect::Builder<StateHook, Builder> {
 			BUILDER_FIELD(Callback, callback);
 
-			StateHook* build() override {
+			StateHook* create() override {
 				return new StateHook(buildInner(), _callback);
 			};
 		};

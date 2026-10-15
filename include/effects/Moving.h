@@ -32,7 +32,7 @@ namespace ledpipelines::effects {
 
 			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
-			Moving* build() override {
+			Moving* create() override {
 				return applyTiming(
 					new Moving(buildInner(), _runtimeMs, _startPosition, _endPosition, _smoothingFunction));
 			}

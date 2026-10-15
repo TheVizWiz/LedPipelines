@@ -106,7 +106,7 @@ namespace ledpipelines::effects {
 				return std::move(*this);
 			}
 
-			HSVGradient* build() override {
+			HSVGradient* create() override {
 				return applyTiming(new HSVGradient(
 					_startPosition,
 					_endPosition,

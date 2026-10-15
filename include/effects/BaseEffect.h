@@ -69,7 +69,7 @@ namespace ledpipelines::effects {
 			}
 
 		public:
-			T* build() override = 0;
+			T* create() override = 0;
 		};
 	};
 
@@ -148,7 +148,7 @@ namespace ledpipelines::effects {
 
 		protected:
 			// Copies this builder's timing config onto a freshly built product (and samples the delay). Every leaf
-			// build() must call this:
+			// create() must call this:
 			//   return applyTiming(new FadeOut(...));
 			template <typename Product>
 			Product* applyTiming(Product* product) {

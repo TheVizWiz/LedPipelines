@@ -15,7 +15,7 @@ namespace {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<IndexedEffect, Builder> {
-			IndexedEffect *build() override { return new IndexedEffect(); }
+			IndexedEffect *create() override { return new IndexedEffect(); }
 		};
 	};
 

@@ -65,7 +65,7 @@ namespace test_helpers {
 #endif
 
 		struct Builder : LedPipelineStage::Builder<SpyEffect, Builder> {
-			SpyEffect *build() override { return new SpyEffect(); }
+			SpyEffect *create() override { return new SpyEffect(); }
 		};
 	};
 }

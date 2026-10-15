@@ -19,7 +19,7 @@ namespace ledpipelines::effects {
 		struct Builder : WrapperEffect::Builder<TimeBox, Builder>, TimedEffect::Builder<Builder> {
 			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
-			TimeBox* build() override {
+			TimeBox* create() override {
 				return applyTiming(new TimeBox(buildInner(), _runtimeMs));
 			}
 		};

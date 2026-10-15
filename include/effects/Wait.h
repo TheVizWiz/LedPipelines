@@ -20,7 +20,7 @@ namespace ledpipelines::effects {
 		struct Builder : LedPipelineStage::Builder<Wait, Builder>, TimedEffect::Builder<Builder> {
 			explicit Builder(Value<unsigned long> runtimeMs) : TimedEffect::Builder<Builder>(std::move(runtimeMs)) {};
 
-			Wait* build() override {
+			Wait* create() override {
 				return applyTiming(new Wait(_runtimeMs, _blendingMode));
 			}
 		};
