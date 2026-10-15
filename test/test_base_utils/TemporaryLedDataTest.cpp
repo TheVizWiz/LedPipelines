@@ -52,3 +52,95 @@ TEST(TemporaryLedDataBracketTest, UnsetAndOutOfRangeReadsAreSafe) {
 	EXPECT_EQ(off.g, 0);
 	EXPECT_EQ(off.b, 0);
 }
+
+TEST(TemporaryLedDataMergeTest, NormalOverTransparentKeepsColorAndAlpha) {
+	setUpLeds();
+
+	TemporaryLedData base;
+	TemporaryLedData layer;
+	layer.set(2, RGBA(0, 255, 0), 128);
+	base.merge(layer, BlendingMode::NORMAL);
+
+	EXPECT_EQ(base.get(2), RGBA(0, 255, 0, 128)) << "alpha must not be baked into RGB, or populate() applies it twice";
+}
+
+TEST(TemporaryLedDataMergeTest, NormalOverOpaqueBlendsColors) {
+	setUpLeds();
+
+	TemporaryLedData base;
+	TemporaryLedData layer;
+	base.set(2, RGBA(255, 0, 0));
+	layer.set(2, RGBA(0, 255, 0), 128);
+	base.merge(layer, BlendingMode::NORMAL);
+
+	EXPECT_EQ(base.get(2), RGBA(127, 128, 0, 255));
+}
+
+TEST(TemporaryLedDataMergeTest, NormalOverSemiTransparentWeightsByContribution) {
+	setUpLeds();
+
+	TemporaryLedData base;
+	TemporaryLedData layer;
+	base.set(2, RGBA(255, 0, 0), 128);
+	layer.set(2, RGBA(0, 0, 255), 128);
+	base.merge(layer, BlendingMode::NORMAL);
+
+	RGBA got = base.get(2);
+	EXPECT_EQ(got.a, 191);
+	EXPECT_EQ(got.r, 85) << "red contributes 128 * 127 / 255 of the 191 total alpha";
+	EXPECT_EQ(got.b, 171);
+}
+
+TEST(TemporaryLedDataMergeTest, HalfAlphaInsideAPipelineRendersAtHalfBrightness) {
+	setUpLeds();
+
+	auto *pipeline = ParallelLedPipeline::Builder().addStage(Solid::Builder(RGBA(0, 255, 0, 128))).build();
+	TemporaryLedData data;
+	pipeline->calculate(0, data);
+	data.populate(test_helpers::gOutput);
+
+	EXPECT_EQ(test_helpers::gOutput.pixels[0], RGBA(0, 128, 0));
+
+	delete pipeline;
+}
+
+namespace {
+	RGBA mergeOne(RGBA base, RGBA layer, BlendingMode mode) {
+		TemporaryLedData baseData;
+		TemporaryLedData layerData;
+		if (base.a) baseData.set(2, base, base.a);
+		if (layer.a) layerData.set(2, layer, layer.a);
+		baseData.merge(layerData, mode);
+		return baseData.get(2);
+	}
+}
+
+TEST(TemporaryLedDataMergeTest, OverwriteReplacesColorAndAlpha) {
+	setUpLeds();
+	EXPECT_EQ(mergeOne(RGBA(255, 0, 0), RGBA(0, 255, 0, 128), BlendingMode::OVERWRITE), RGBA(0, 255, 0, 128));
+}
+
+TEST(TemporaryLedDataMergeTest, AddSumsVisibleLight) {
+	setUpLeds();
+	EXPECT_EQ(mergeOne(RGBA(255, 0, 0), RGBA(0, 255, 0, 50), BlendingMode::ADD), RGBA(255, 50, 0, 255))
+		<< "a faint green layer adds only its visible light";
+	EXPECT_EQ(mergeOne(RGBA(0, 0, 0, 0), RGBA(0, 255, 0, 128), BlendingMode::ADD), RGBA(0, 255, 0, 128));
+	EXPECT_EQ(mergeOne(RGBA(255, 0, 0, 128), RGBA(255, 0, 0, 128), BlendingMode::ADD), RGBA(255, 0, 0, 255));
+}
+
+TEST(TemporaryLedDataMergeTest, MultiplyTintsByLayerOpacity) {
+	setUpLeds();
+	EXPECT_EQ(mergeOne(RGBA(255, 255, 255), RGBA(255, 0, 0), BlendingMode::MULTIPLY), RGBA(255, 0, 0, 255));
+	EXPECT_EQ(mergeOne(RGBA(255, 255, 255), RGBA(255, 0, 0, 128), BlendingMode::MULTIPLY), RGBA(255, 127, 127, 255));
+	EXPECT_EQ(mergeOne(RGBA(0, 0, 0, 0), RGBA(255, 0, 0), BlendingMode::MULTIPLY).a, 0)
+		<< "multiplying cannot add coverage where the destination is empty";
+}
+
+TEST(TemporaryLedDataMergeTest, MaskGatesOpacityByMaskBrightness) {
+	setUpLeds();
+	EXPECT_EQ(mergeOne(RGBA(255, 0, 0), RGBA(255, 255, 255), BlendingMode::MASK), RGBA(255, 0, 0, 255));
+	EXPECT_EQ(mergeOne(RGBA(255, 0, 0), RGBA(128, 128, 128), BlendingMode::MASK), RGBA(255, 0, 0, 128));
+	EXPECT_EQ(mergeOne(RGBA(255, 255, 255), RGBA(0, 0, 255), BlendingMode::MASK), RGBA(255, 255, 255, 255))
+		<< "a fully lit colored mask passes the base through untinted";
+	EXPECT_EQ(mergeOne(RGBA(255, 0, 0), RGBA(0, 0, 0, 0), BlendingMode::MASK).a, 0) << "unlit mask hides the base";
+}

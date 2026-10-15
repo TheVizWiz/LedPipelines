@@ -136,24 +136,48 @@ void TemporaryLedData::merge(TemporaryLedData& other, BlendingMode blendingMode)
 			this->data[i] = B_rgb;
 			this->data[i].a = B_alpha;
 			break;
-		case BlendingMode::ADD:
-			this->data[i] = A_rgb + B_rgb;
-			this->data[i].a = std::min(A_alpha + B_alpha, (int)UINT8_MAX);
+		case BlendingMode::ADD: {
+			// Sum the visible (alpha-weighted) light, then un-premultiply by the combined alpha.
+			const int outAlpha = std::min(A_alpha + B_alpha, (int)UINT8_MAX);
+			auto add = [&](uint8_t a, uint8_t b) {
+				const int light = std::min((a * A_alpha + b * B_alpha + 127) / 255, (int)UINT8_MAX);
+				return (uint8_t)std::min((light * 255 + outAlpha / 2) / outAlpha, (int)UINT8_MAX);
+			};
+			this->data[i].r = add(A_rgb.r, B_rgb.r);
+			this->data[i].g = add(A_rgb.g, B_rgb.g);
+			this->data[i].b = add(A_rgb.b, B_rgb.b);
+			this->data[i].a = outAlpha;
 			break;
-		case BlendingMode::MULTIPLY:
-			this->data[i] *= A_rgb * B_rgb;
-			this->data[i].a = (B_alpha * B_alpha) / 255;
+		}
+		case BlendingMode::MULTIPLY: {
+			// Tint the destination by the source color, by the source's opacity; coverage stays the destination's.
+			auto multiply = [&](uint8_t a, uint8_t b) {
+				return (uint8_t)((a * (255 - B_alpha) + (a * b / 255) * B_alpha + 127) / 255);
+			};
+			this->data[i].r = multiply(A_rgb.r, B_rgb.r);
+			this->data[i].g = multiply(A_rgb.g, B_rgb.g);
+			this->data[i].b = multiply(A_rgb.b, B_rgb.b);
 			break;
-		case BlendingMode::NORMAL:
-			this->data[i].r = ((255 - B_alpha) * A_rgb.r + B_alpha * B_rgb.r) / 255;
-			this->data[i].g = ((255 - B_alpha) * A_rgb.g + B_alpha * B_rgb.g) / 255;
-			this->data[i].b = ((255 - B_alpha) * A_rgb.b + B_alpha * B_rgb.b) / 255;
-			this->data[i].a = B_alpha + ((255 - B_alpha) * A_alpha) / 255;
+		}
+		case BlendingMode::NORMAL: {
+			// Colors are stored un-premultiplied (populate() applies alpha), so weight each layer by its contribution
+			// and divide by the result's alpha; otherwise alpha is applied twice over a transparent destination.
+			const int outAlpha = B_alpha + ((255 - B_alpha) * A_alpha) / 255;
+			const int bWeight = B_alpha * 255;
+			const int aWeight = A_alpha * (255 - B_alpha);
+			const int total = outAlpha * 255;
+			this->data[i].r = (B_rgb.r * bWeight + A_rgb.r * aWeight + total / 2) / total;
+			this->data[i].g = (B_rgb.g * bWeight + A_rgb.g * aWeight + total / 2) / total;
+			this->data[i].b = (B_rgb.b * bWeight + A_rgb.b * aWeight + total / 2) / total;
+			this->data[i].a = outAlpha;
 			break;
-		case BlendingMode::MASK:
-			this->data[i] = (A_rgb * B_rgb);
-			this->data[i].a = (A_alpha * B_alpha) / 255;
+		}
+		case BlendingMode::MASK: {
+			// The mask's visible brightness gates the destination's opacity; the destination keeps its own color.
+			const int gate = std::max({B_rgb.r, B_rgb.g, B_rgb.b}) * B_alpha / 255;
+			this->data[i].a = (A_alpha * gate + 127) / 255;
 			break;
+		}
 		}
 	}
 }
