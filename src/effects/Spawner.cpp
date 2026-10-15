@@ -13,6 +13,11 @@ namespace ledpipelines::effects {
 		  keepOldOnSpawn(keepOldOnSpawn) {}
 
 
+	Spawner::~Spawner() {
+		for (auto& child : activeChildren) delete child;
+	}
+
+
 	void Spawner::calculate(float startIndex, TemporaryLedData& tempData) {
 		// Re-arm after reset(); TimedSpawner delegates here, so this covers both. A Spawner never reaches DONE.
 		if (this->state == LedPipelineRunningState::NOT_STARTED) this->state = LedPipelineRunningState::RUNNING;

@@ -15,6 +15,7 @@ namespace ledpipelines::effects {
 		uint16_t maxChildren;
 		bool keepOldOnSpawn;
 
+		~Spawner() override;
 
 		void calculate(float startIndex, TemporaryLedData& tempData) override;
 
