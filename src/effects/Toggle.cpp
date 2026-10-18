@@ -2,7 +2,8 @@
 
 using namespace ledpipelines::effects;
 
-Toggle::Toggle(ledpipelines::LedPipelineStage* stage) : WrapperEffect(stage), isActive(true) {}
+Toggle::Toggle(ledpipelines::LedPipelineStage* stage, bool completeOnDeactivate, bool resetOnActivate)
+	: WrapperEffect(stage), isActive(true), completeOnDeactivate(completeOnDeactivate), resetOnActivate(resetOnActivate) {}
 
 void Toggle::reset() {
 	isActive = true;
@@ -18,15 +19,27 @@ void Toggle::calculate(float startIndex, TemporaryLedData& tempData) {
 }
 
 void Toggle::deactivate() {
+	if (!this->isActive) return;
 	this->isActive = false;
+	if (this->completeOnDeactivate) this->state = LedPipelineRunningState::DONE;
 }
 
 void Toggle::activate() {
+	if (this->isActive) return;
 	this->isActive = true;
+	if (this->resetOnActivate || this->completeOnDeactivate) {
+		WrapperEffect::reset();
+	} else {
+		this->state = this->stage->state;
+	}
 }
 
 void Toggle::toggle() {
-	this->isActive = !this->isActive;
+	if (this->isActive) {
+		deactivate();
+	} else {
+		activate();
+	}
 }
 
 
@@ -34,6 +47,8 @@ void Toggle::toggle() {
 std::string Toggle::toJson(bool includeState) {
 	std::string result = "{";
 	result += jsonHeader("Toggle");
+	result += jsonField("completeOnDeactivate", completeOnDeactivate);
+	result += jsonField("resetOnActivate", resetOnActivate);
 	result += jsonRawField("stage", this->stage ? this->stage->toJson(includeState) : "null");
 	if (includeState) result += jsonStateObject(jsonStateHeader() + jsonField("isActive", isActive));
 	result += "}";
